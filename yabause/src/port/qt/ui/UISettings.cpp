@@ -722,9 +722,10 @@ void UISettings::loadSettings()
 		dteBaseTime->setDateTime( QDateTime(QDate(1998, 1, 1), QTime(12, 0, 0)) );
 
 	// video
-	cbVideoCore->setCurrentIndex( cbVideoCore->findData( s->value( "Video/VideoCore", QtYabause::defaultVIDCore().id ).toInt() ) );
-	if (cbVideoCore->currentIndex() != VIDCORE_CS) {
+	if (s->value( "Video/VideoCore", QtYabause::defaultVIDCore().id ).toInt() != VIDCORE_CS) {
 		cbVideoCore->setCurrentIndex(cbVideoCore->findData(VIDCORE_CS));
+	} else {
+		cbVideoCore->setCurrentIndex( cbVideoCore->findData( s->value( "Video/VideoCore", QtYabause::defaultVIDCore().id ).toInt() ) );
 	}
 	changeVideoMode(cbVideoCore->currentIndex());
 #if YAB_PORT_OSD
