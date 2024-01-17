@@ -271,7 +271,7 @@ int YabauseSh2Init(yabauseinit_struct *init)
 
    BackupInit(init->buppath, init->extend_backup);
 
-   if (CartInit(init->cartpath, init->carttype) != 0)
+   if (CartInit(init->cartpath, init->carttype,init->modemip,init->modemport) != 0)
    {
       YabSetError(YAB_ERR_CANNOTINIT, _("Cartridge"));
       return -1;
@@ -389,11 +389,13 @@ TRACE_EMULATOR("YabauseInit");
       return -1;
    }
 
+
+
    // Now that we have some informations on current game, trying to auto-detect required settings
    if (init->auto_cart != 0)
       DBLookup(&init->carttype, &init->cartpath, init->supportdir);
 
-   if (CartInit(init->cartpath, init->carttype) != 0)
+   if (CartInit(init->cartpath, init->carttype, init->modemip, init->modemport) != 0)
    {
       YabSetError(YAB_ERR_CANNOTINIT, _("Cartridge"));
       return -1;
@@ -610,7 +612,7 @@ void YabauseResetNoLoad(void) {
    SmpcReset();
 
    nextFrameTime = 0;
-
+   
    SH2PowerOn(MSH2);
 }
 
@@ -619,7 +621,8 @@ void YabauseResetNoLoad(void) {
 void YabauseReset(void) {
 
    YabauseResetNoLoad();
-
+   CartReset();
+   
    if (yabsys.usequickload || yabsys.emulatebios)
    {
       if (YabauseQuickLoadGame() != 0)
@@ -851,6 +854,11 @@ int YabauseEmulate(void) {
     PROFILE_START("CDB");
     Cs2Exec(cycles[yabsys.DecilineCount][1][!yabsys.IsPal]);
     PROFILE_STOP("CDB");
+    // This stuff need to go elsewhere
+    if (CartridgeArea->carttype == CART_NETLINK)
+        NetlinkExec(cycles[yabsys.DecilineCount][1][!yabsys.IsPal]);
+    else if (CartridgeArea->carttype == CART_JAPMODEM)
+        JapModemExec(cycles[yabsys.DecilineCount][1][!yabsys.IsPal]);
     // }
       // printf("Deciline %d line %d\n", yabsys.DecilineCount, yabsys.LineCount);
       yabsys.DecilineCount  = (yabsys.DecilineCount+1)%DECILINE_STEP;

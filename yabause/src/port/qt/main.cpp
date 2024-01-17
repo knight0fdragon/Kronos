@@ -47,6 +47,8 @@ int main( int argc, char** argv )
 #endif
 
 	// create application
+	//QCoreApplication::addLibraryPath(".");
+	//QCoreApplication::addLibraryPath(<result of GetModuleHandleExA>);
 	QApplication::setAttribute(Qt::AA_UseDesktopOpenGL);
 	QApplication app( argc, argv );
 	// init application

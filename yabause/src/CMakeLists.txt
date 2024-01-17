@@ -114,6 +114,7 @@ set(kronos_HEADERS
 	utils/include/cdbase.h
   utils/include/profile.h
   utils/include/netlink.h
+  utils/include/usb.h
   utils/include/cheat.h
   utils/include/db.h
   utils/include/gameinfo.h
@@ -141,6 +142,7 @@ set(kronos_SOURCES
 	utils/src/japmodem.c
 	core/m68k/m68kcore.c
 	utils/src/netlink.c
+	utils/src/usb.c
 	core/osd/src/osdcore.c
 	utils/src/profile.c
 	sys/vdp2/src/vdp2debug.c
@@ -199,6 +201,7 @@ elseif (WIN32)
 endif()
 #add translations
 include(${CMAKE_SOURCE_DIR}/l10n/CMakeLists.txt)
+
 
 #-------------------------------------------------------
   set(kronos_SOURCES
@@ -667,6 +670,10 @@ elseif (${CMAKE_SYSTEM_NAME} MATCHES "OpenBSD")
 elseif (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 	add_definitions(-DARCH_IS_WINDOWS=1)
 	set(kronos_SOURCES ${kronos_SOURCES} core/net/windows/sock-windows.c ctrl/threads/thr-windows.c)
+	message("-------------")
+	message("sockets added")
+	message("-------------")
+
 else ()
 	add_definitions(-DUNKNOWN_ARCH=1)
 	set(kronos_SOURCES ${kronos_SOURCES} core/net/dummy/sock-dummy.c ctrl/threads/thr-dummy.c)
@@ -765,7 +772,7 @@ add_definitions(-DVERSION=\"${YAB_VERSION}\")
 if( IOS )
 	add_library(kronos OBJECT ${kronos_SOURCES} ${kronos_HEADERS})
 else()
-	add_library(kronos ${kronos_SOURCES} ${kronos_HEADERS})
+	add_library(kronos ${kronos_SOURCES} ${kronos_HEADERS} "utils/include/usb.h" "utils/src/usb.c")
 endif()
 
 add_dependencies(kronos m68kmake)

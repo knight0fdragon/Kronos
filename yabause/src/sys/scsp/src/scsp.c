@@ -5041,8 +5041,10 @@ ScspDeInit (void)
   scsp_mute_flags = 0;
   thread_running = false;
   YabThreadCondSignal(g_scsp_set_cyc_cond);
-  YabSemPost(g_cpu_ready);
-  YabSemPost(g_scsp_ready);
+  if (g_cpu_ready)
+    YabSemPost(g_cpu_ready);
+  if(g_scsp_ready)
+    YabSemPost(g_scsp_ready);
   // YabThreadWake(YAB_THREAD_SCSP);
   YabThreadWait(YAB_THREAD_SCSP);
 

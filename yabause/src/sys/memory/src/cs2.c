@@ -569,20 +569,7 @@ int Cs2Init(int coreid, const char *cdpath, const char *mpegpath) {
      last = blckNb[i];
    }
 
-#if 0
-   // This stuff need to go elsewhere
-   // If Modem is connected, set the registers
-   if(Cs2Area->carttype == CART_NETLINK)
-   {
-      if ((ret = NetlinkInit(modemip, modemport)) != 0)
-         return ret;
-   }
-   else if (Cs2Area->carttype == CART_JAPMODEM)
-   {
-      if ((ret = JapModemInit(modemip, modemport)) != 0)
-         return ret;
-   }
-#endif
+
 
    if ((cdip = (ip_struct *) calloc(sizeof(ip_struct), 1)) == NULL)
       return -1;
@@ -1033,13 +1020,9 @@ static void Cs2Exec_unit(u32 timing) {
       Cs2SetIRQ(CDB_HIRQ_SCDQ);
    }
 
-#if 0
-   // This stuff need to go elsewhere
-   if(Cs2Area->carttype == CART_NETLINK)
-      NetlinkExec(timing);
-   else if (Cs2Area->carttype == CART_JAPMODEM)
-      JapModemExec(timing);
-#endif
+
+
+
 }
 
 void Cs2Exec(u32 timing) {

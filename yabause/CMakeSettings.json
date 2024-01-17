@@ -4,9 +4,7 @@
       "name": "x64-Release",
       "generator": "Ninja",
       "configurationType": "Release",
-      "inheritEnvironments": [
-        "msvc_x64_x64"
-      ],
+      "inheritEnvironments": [ "msvc_x64_x64" ],
       "buildRoot": "${env.USERPROFILE}\\CMakeBuilds\\${workspaceHash}\\build\\${name}",
       "installRoot": "${env.USERPROFILE}\\CMakeBuilds\\${workspaceHash}\\install\\${name}",
       "cmakeCommandArgs": "",
@@ -20,6 +18,11 @@
         },
         {
           "name": "YAB_WANT_DIRECTSOUND",
+          "value": "True",
+          "type": "BOOL"
+        },
+        {
+          "name": "YAB_NETWORK",
           "value": "True",
           "type": "BOOL"
         }
@@ -29,9 +32,7 @@
       "name": "x64-Debug",
       "generator": "Ninja",
       "configurationType": "Debug",
-      "inheritEnvironments": [
-        "msvc_x64_x64"
-      ],
+      "inheritEnvironments": [ "msvc_x64_x64" ],
       "buildRoot": "${env.USERPROFILE}\\CMakeBuilds\\${workspaceHash}\\build\\${name}",
       "installRoot": "${env.USERPROFILE}\\CMakeBuilds\\${workspaceHash}\\install\\${name}",
       "cmakeCommandArgs": "",
@@ -47,16 +48,95 @@
           "name": "YAB_WANT_DIRECTSOUND",
           "value": "True",
           "type": "BOOL"
+        },
+        {
+          "name": "Qt5_DIR",
+          "value": "C:/Qt/5.15.2/msvc2019_64/lib/cmake/Qt5",
+          "type": "PATH"
+        },
+        {
+          "name": "Qt5Core_DIR",
+          "value": "C:/Qt/5.15.2/msvc2019_64/lib/cmake/Qt5Core",
+          "type": "PATH"
+        },
+        {
+          "name": "Qt5Gui_DIR",
+          "value": "C:/Qt/5.15.2/msvc2019_64/lib/cmake/Qt5Gui",
+          "type": "PATH"
+        },
+        {
+          "name": "Qt5Multimedia_DIR",
+          "value": "C:/Qt/5.15.2/msvc2019_64/lib/cmake/Qt5Multimedia",
+          "type": "PATH"
+        },
+        {
+          "name": "Qt5Network_DIR",
+          "value": "C:/Qt/5.15.2/msvc2019_64/lib/cmake/Qt5Network",
+          "type": "PATH"
+        },
+        {
+          "name": "Qt5Widgets_DIR",
+          "value": "C:/Qt/5.15.2/msvc2019_64/lib/cmake/Qt5Widgets",
+          "type": "PATH"
+        },
+        {
+          "name": "Qt5OpenGL_DIR",
+          "value": "C:/Qt/5.15.2/msvc2019_64/lib/cmake/Qt5OpenGL",
+          "type": "PATH"
+        },
+        {
+          "name": "YAB_USE_QT5_SPECIFIC",
+          "value": "True",
+          "type": "BOOL"
+        },
+        {
+          "name": "AMD64",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "INSTALL_BIN_DIR",
+          "value": "C:/Users/drago/CMakeBuilds/94095382-31f4-468e-9ace-b7df6e3fa606/install/x64-Debug/bin",
+          "type": "PATH"
+        },
+        {
+          "name": "INSTALL_INC_DIR",
+          "value": "C:/Users/drago/CMakeBuilds/94095382-31f4-468e-9ace-b7df6e3fa606/install/x64-Debug/include",
+          "type": "PATH"
+        },
+        {
+          "name": "INSTALL_LIB_DIR",
+          "value": "C:/Users/drago/CMakeBuilds/94095382-31f4-468e-9ace-b7df6e3fa606/install/x64-Debug/lib",
+          "type": "PATH"
+        },
+        {
+          "name": "INSTALL_MAN_DIR",
+          "value": "C:/Users/drago/CMakeBuilds/94095382-31f4-468e-9ace-b7df6e3fa606/install/x64-Debug/share/man",
+          "type": "PATH"
+        },
+        {
+          "name": "INSTALL_PKGCONFIG_DIR",
+          "value": "C:/Users/drago/CMakeBuilds/94095382-31f4-468e-9ace-b7df6e3fa606/install/x64-Debug/share/pkgconfig",
+          "type": "PATH"
+        },
+        {
+          "name": "YAB_NETWORK",
+          "value": "True",
+          "type": "BOOL"
+        },
+        {
+          "name": "YAB_OPTIMIZATION",
+          "value": " -s -fdata-sections -ffunction-sections -Wl,--gc-sections",
+          "type": "STRING"
         }
-      ]
+      ],
+      "intelliSenseMode": "windows-clang-x64"
     },
     {
       "name": "x86-Release",
       "generator": "Ninja",
       "configurationType": "Release",
-      "inheritEnvironments": [
-        "msvc_x86"
-      ],
+      "inheritEnvironments": [ "msvc_x86" ],
       "buildRoot": "${env.USERPROFILE}\\CMakeBuilds\\${workspaceHash}\\build\\${name}",
       "installRoot": "${env.USERPROFILE}\\CMakeBuilds\\${workspaceHash}\\install\\${name}",
       "cmakeCommandArgs": "",
@@ -67,9 +147,7 @@
       "name": "x86-Debug",
       "generator": "Ninja",
       "configurationType": "Debug",
-      "inheritEnvironments": [
-        "msvc_x86"
-      ],
+      "inheritEnvironments": [ "msvc_x86" ],
       "buildRoot": "${env.USERPROFILE}\\CMakeBuilds\\${workspaceHash}\\build\\${name}",
       "installRoot": "${env.USERPROFILE}\\CMakeBuilds\\${workspaceHash}\\install\\${name}",
       "cmakeCommandArgs": "",

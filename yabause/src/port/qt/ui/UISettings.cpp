@@ -85,6 +85,7 @@ const Items mCartridgeTypes = Items()
 	<< Item( "8", "Netlink", false, false, true )
 	<< Item( "9", "16 Mbit ROM", true, false )
 	<< Item( "10", "Japanese Modem", false, false, true )
+	<< Item( "11", "USB Development Cart", true, false, true)
 	<< Item( "12", "STV Rom game", true, false, false, true )
 	<< Item( "13", "128 Mbit Dram", false, false )
 	<< Item( "14", "Development Extension", false, false );
@@ -574,9 +575,14 @@ void UISettings::loadCores()
 		cbSoundCore->addItem( QtYabause::translate( SNDCoreList[i]->Name ), SNDCoreList[i]->id );
 
 	// Cartridge Types
-	foreach ( const Item& it, mCartridgeTypes )
-		cbCartridge->addItem( QtYabause::translate( it.Name ), it.id );
+	foreach(const Item & it, mCartridgeTypes)
+	{
+		
+		QByteArray ba = it.Name.toLocal8Bit();
+		const char* c_str2 = ba.data();
 
+		cbCartridge->addItem(QtYabause::translate(it.Name), it.id);
+	}
 	// Input Drivers
 	for ( int i = 0; PERCoreList[i] != NULL; i++ )
 		cbInput->addItem( QtYabause::translate( PERCoreList[i]->Name ), PERCoreList[i]->id );

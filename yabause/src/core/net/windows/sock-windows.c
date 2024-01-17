@@ -32,7 +32,7 @@
 
 #include <winsock2.h>
 #include <ws2tcpip.h>
-
+#pragma comment(lib, "Ws2_32.lib")
 static fd_set read_fds;
 static fd_set write_fds;
 

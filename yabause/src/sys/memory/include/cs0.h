@@ -83,8 +83,8 @@ typedef struct
 } cartridge_struct;
 
 extern cartridge_struct *CartridgeArea;
-
-int CartInit(const char *filename, int);
+int CartReset();
+int CartInit(const char *filename, int, const char*, const char*);
 void CartFlush(void);
 void CartDeInit(void);
 
