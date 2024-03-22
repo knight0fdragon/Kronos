@@ -1408,7 +1408,8 @@ void Cs2GetHardwareInfo(void) {
 
   Cs2Area->reg.CR1 = Cs2Area->status << 8;
   // hardware flags/CD Version
-  Cs2Area->reg.CR2 = 0x0201; // mpeg card exists
+  //Cs2Area->reg.CR2 = 0x0201; // mpeg card exists
+  Cs2Area->reg.CR2 = 0x0001; // No mpeg card exists
   // mpeg version, it actually is required(at least by the bios)
 
   if (Cs2Area->mpgauth)
