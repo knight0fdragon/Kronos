@@ -197,9 +197,9 @@ u8 UIHexEditorWnd::readByte(u32 addr)
 {
    if ((addr >= 0x05D00000 && addr < 0x05D80000) ||
       (addr >= 0x05F80000 && addr < 0x05FC0000))
-      return DMAMappedMemoryReadWord(addr & (~0x1)) >> ((1-(addr & 0x1))<<3);
+      return DMAMappedMemoryReadDrawWord(addr & (~0x1)) >> ((1-(addr & 0x1))<<3);
    else
-      return DMAMappedMemoryReadByte(addr);
+      return DMAMappedMemoryReadDrawByte(addr);
 }
 
 void UIHexEditorWnd::writeByte(u32 addr, u8 val)

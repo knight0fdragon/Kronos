@@ -141,13 +141,13 @@ void UICheatSearch::listResults()
             switch(searchType & 0x3)
             {
             case SEARCHBYTE:
-               s.sprintf("%d", DMAMappedMemoryReadByte(search[j].results[i].addr));
+               s.sprintf("%d", DMAMappedMemoryReadDrawByte(search[j].results[i].addr));
                break;
             case SEARCHWORD:
-               s.sprintf("%d", DMAMappedMemoryReadWord(search[j].results[i].addr));
+               s.sprintf("%d", DMAMappedMemoryReadDrawWord(search[j].results[i].addr));
                break;
             case SEARCHLONG:
-               s.sprintf("%d", DMAMappedMemoryReadLong(search[j].results[i].addr));
+               s.sprintf("%d", DMAMappedMemoryReadDrawLong(search[j].results[i].addr));
                break;
             default: break;
             }

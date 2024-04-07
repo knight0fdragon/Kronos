@@ -76,6 +76,15 @@ writebytefunc CacheWriteByteList[0x1000];
 writewordfunc CacheWriteWordList[0x1000];
 writelongfunc CacheWriteLongList[0x1000];
 
+
+readbytefunc ReadByteDrawList[0x1000];
+readwordfunc ReadWordDrawList[0x1000];
+readlongfunc ReadLongDrawList[0x1000];
+
+readbytefunc CacheReadByteDrawList[0x1000];
+readwordfunc CacheReadWordDrawList[0x1000];
+readlongfunc CacheReadLongDrawList[0x1000];
+
 #define EXTENDED_BACKUP_SIZE 0x00800000
 #define EXTENDED_BACKUP_ADDR 0x08000000
 
@@ -549,6 +558,13 @@ static void FillMemoryArea(unsigned short start, unsigned short end,
       CacheWriteByteList[i] = w8func;
       CacheWriteWordList[i] = w16func;
       CacheWriteLongList[i] = w32func;
+
+      ReadByteDrawList[i] = r8func;
+      ReadWordDrawList[i] = r16func;
+      ReadLongDrawList[i] = r32func;
+      CacheReadByteDrawList[i] = r8func;
+      CacheReadWordDrawList[i] = r16func;
+      CacheReadLongDrawList[i] = r32func;
    }
 }
 
@@ -708,6 +724,19 @@ void MappedMemoryInit()
      &BupRamMemoryWriteLong,
      &BupRam);
 }
+
+u8 FASTCALL DMAMappedMemoryReadDrawByte(u32 addr) {
+    return ReadByteDrawList[(addr >> 16) & 0xFFF](NULL, *(MemoryBuffer[(addr >> 16) & 0xFFF]), addr);
+}
+u16 FASTCALL DMAMappedMemoryReadDrawWord(u32 addr) {
+    return ReadWordDrawList[(addr >> 16) & 0xFFF](NULL, *(MemoryBuffer[(addr >> 16) & 0xFFF]), addr);
+}
+u32 FASTCALL DMAMappedMemoryReadDrawLong(u32 addr)
+{
+    return ReadLongDrawList[(addr >> 16) & 0xFFF](NULL, *(MemoryBuffer[(addr >> 16) & 0xFFF]), addr);
+}
+
+
 
 u8 FASTCALL DMAMappedMemoryReadByte(u32 addr) {
    return ReadByteList[(addr >> 16) & 0xFFF](NULL, *(MemoryBuffer[(addr >> 16) & 0xFFF]), addr);

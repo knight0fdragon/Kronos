@@ -96,7 +96,10 @@ void YabauseGL::swapBuffers()
 {
   context()->swapBuffers(context()->surface());
 }
-
+void YabauseGL::makeCurrent()
+{
+	context()->makeCurrent(context()->surface());
+}
 void YabauseGL::resizeGL( int w, int h )
 {
   QOpenGLWindow::resizeGL(w, h);

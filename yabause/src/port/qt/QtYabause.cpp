@@ -196,6 +196,7 @@ extern "C"
 	}
 	void YuiSwapBuffers()
 	{
+		
           QtYabause::mainWindow()->swapBuffers();
         }
 

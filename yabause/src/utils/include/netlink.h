@@ -79,7 +79,7 @@ typedef struct
 typedef struct {
    volatile u8 inbuffer[NETLINK_BUFFER_SIZE];
    volatile u8 outbuffer[NETLINK_BUFFER_SIZE];
-   volatile u32 inbufferstart, inbufferend, inbuffersize;
+   volatile u32 inbufferstart, inbufferend;
    volatile int inbufferupdate;
    volatile u32 outbufferstart, outbufferend, outbuffersize;
    volatile int outbufferupdate;

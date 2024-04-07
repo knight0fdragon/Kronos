@@ -84,7 +84,7 @@ bool UIDebugVDP2::updateInfoDisplay(void (*debugStats)(char *, int *), QGroupBox
    else {
 		 cb->setVisible(false);
 	 }
-	 return (isScreenEnabled==true);
+	 return (isScreenEnabled!=0);
 }
 
 void UIDebugVDP2::on_pbViewer_clicked()

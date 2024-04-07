@@ -50,16 +50,17 @@
 
 #include <QDebug>
 #include <QMimeData>
-
+#include <QSemaphore>
 extern "C" {
 extern VideoInterface_struct *VIDCoreList[];
 }
 
 //#define USE_UNIFIED_TITLE_TOOLBAR
-
+QMutex mutex;
 UIYabause::UIYabause( QWidget* parent )
 	: QMainWindow( parent )
 {
+	
 	mInit = false;
    search.clear();
 	searchType = 0;
@@ -356,11 +357,14 @@ void UIYabause::adjustHeight(int & height)
 
 void UIYabause::swapBuffers()
 {
+	mYabauseGL->makeCurrent();
 	mYabauseGL->swapBuffers();
 }
 
 void UIYabause::appendLog( const char* s )
 {
+	
+	mutex.lock();
 	if (! mCanLog)
 	{
 		qWarning( "%s", s );
@@ -368,12 +372,14 @@ void UIYabause::appendLog( const char* s )
 	}
 
 	teLog->moveCursor( QTextCursor::End );
+	
 	teLog->append( s );
-
+	
 	VolatileSettings* vs = QtYabause::volatileSettings();
 	if (( !mLogDock->isVisible( )) && ( vs->value( "View/LogWindow" ).toInt() == 1 )) {
 		mLogDock->setVisible( true );
 	}
+	mutex.unlock();
 }
 
 bool UIYabause::eventFilter( QObject* o, QEvent* e )
