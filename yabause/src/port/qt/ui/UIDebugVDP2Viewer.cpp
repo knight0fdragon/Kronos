@@ -131,7 +131,7 @@ void UIDebugVDP2Viewer::on_pbSaveAsBitmap_clicked ()
 	}
 	bool YMirrored = true;
 	if (index == SPRITE) YMirrored = false;
-   QImage img((uchar *)vdp2texture, width, width, format);
+   QImage img((uchar *)vdp2texture, width, height, format);
    img = img.mirrored(false, YMirrored).rgbSwapped();
 
 	// request a file to save to to user
