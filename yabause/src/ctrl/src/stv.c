@@ -30,7 +30,7 @@ extern "C" {
 //YuiMsg
 #define ROTATED 1
 
-#define NB_STV_GAMES 101
+#define NB_STV_GAMES 103
 
 GameLink availableGames[NB_STV_GAMES];
 BiosLink biosLink;
@@ -371,7 +371,7 @@ Game GameList[NB_STV_GAMES]={
     NULL,
     NULL,
     {
-        GAME_WORD_BLOB, "13",  0x0000000, 0x0800000, 0x00000000,
+        GAME_WORD_BLOB, "13",  0x0000000, 0x0080000, 0x00000000,
         GAME_WORD_BLOB, "1",   0x0400000, 0x0400000, 0x00000000,
         GAME_WORD_BLOB, "2",   0x0800000, 0x0400000, 0x00000000,
         GAME_WORD_BLOB, "3",   0x0c00000, 0x0400000, 0x00000000,
@@ -1090,6 +1090,8 @@ Game GameList[NB_STV_GAMES]={
         GAME_WORD_BLOB, "pclub2v7.ic28",	0x0800000, 0x0200000, 0x00000000,
         GAME_WORD_BLOB, "pclub2v7.ic30",	0x0a00000, 0x0200000, 0x00000000,
         EEPROM_BLOB,	"pclub27s.nv",		0x0000, 0x0080, 0x00000000,
+        EEPROM_BLOB,	"315-6055.ic12",	0x0000, 0x0000, 0x00000000,
+        EEPROM_BLOB,	"315-6056.ic13",	0x0000, 0x0200, 0x01170000,
         GAME_END, "", 0, 0, 0
     },
     STV,
@@ -1097,7 +1099,7 @@ Game GameList[NB_STV_GAMES]={
   {
     "prc28su",
     NULL,
-    "Print Club 2 Vol. 8 Summer (J 970616 V1.100)",
+    "Print Club 2 Vol. 8 '97 Summer (J 970616 V1.100))",
     STV_REGION_JP,
     0,
     0,
@@ -1555,6 +1557,28 @@ Game GameList[NB_STV_GAMES]={
         GAME_WORD_BLOB, "ic28.bin",	0x0800000, 0x0200000, 0x00000000,
         GAME_WORD_BLOB, "ic30.bin",	0x0a00000, 0x0200000, 0x00000000,
 		EEPROM_BLOB,	"eeprom",	0x0000, 0x0080, 0x00000000,
+        GAME_END, "", 0, 0, 0
+    },
+    STV,
+  },
+    {
+    "pclubyo",
+    NULL,
+    "Print Club Yoshimoto V1 (J 970208 V1.000)",
+    STV_REGION_JP,
+    0,
+    0,
+    NULL,
+    NV_1P,
+    {
+        GAME_WORD_BLOB, "pclbyov1.ic22",    0x0200000, 0x0200000, 0x00000000,
+        GAME_WORD_BLOB, "pclbyov2.ic24",    0x0400000, 0x0200000, 0x00000000,
+        GAME_WORD_BLOB, "pclbyov2.ic26",    0x0600000, 0x0200000, 0x00000000,
+        GAME_WORD_BLOB, "pclbyov2.ic28",    0x0800000, 0x0200000, 0x00000000,
+        GAME_WORD_BLOB, "pclbyov2.ic30",    0x0a00000, 0x0200000, 0x00000000,
+        EEPROM_BLOB,	"pclubyo2.nv",		0x0000, 0x0080, 0x00000000,
+        EEPROM_BLOB,	"315-6055.ic12",	0x0000, 0x0000, 0x00000000,
+        EEPROM_BLOB,	"315-6056.ic13",	0x0000, 0x0200, 0x01170000,
         GAME_END, "", 0, 0, 0
     },
     STV,
@@ -2227,6 +2251,26 @@ Game GameList[NB_STV_GAMES]={
         GAME_END, "", 0, 0, 0
     },
     MYFAIRLD,
+  },
+  {
+    "wasafari",
+    NULL,
+    "Wanpaku Safari (J 981109 V1.000)",
+    STV_REGION_JP,
+    0x0,
+    0,
+    NULL,
+    NULL,
+    {
+        GAME_WORD_BLOB, "ic22.bin",	0x0200000, 0x0200000, 0x00000000,
+        GAME_WORD_BLOB, "ic24.bin",	0x0400000, 0x0200000, 0x00000000,
+        GAME_WORD_BLOB, "ic26.bin",	0x0600000, 0x0200000, 0x00000000,
+        GAME_WORD_BLOB, "ic28.bin",	0x0800000, 0x0200000, 0x00000000,
+        GAME_WORD_BLOB, "ic30.bin",	0x0a00000, 0x0200000, 0x00000000,
+        EEPROM_BLOB,	"wasafari.nv",	0x0000, 0x0080, 0x00000000,
+        GAME_END, "", 0, 0, 0
+    },
+    STV,
   },
   {
     "winterht",
