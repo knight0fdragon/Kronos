@@ -826,6 +826,8 @@ static u8 FASTCALL DevCs1ReadByte(SH2_struct *context, UNUSED u8* memory, u32 ad
 {
   if (addr == 0xFFFFFF)
      return CartridgeArea->cartid;
+   if (addr == 0xFFFFF0)
+      return CartridgeArea->cartid;
   return 0xFF;
 }
 
@@ -835,6 +837,8 @@ static u16 FASTCALL DevCs1ReadWord(SH2_struct *context, UNUSED u8* memory, u32 a
 {
   if (addr == 0xFFFFFE)
      return (0xFF00 | CartridgeArea->cartid);
+  if (addr == 0xFFFFF0)
+     return (0xFF00 | CartridgeArea->cartid);
   return 0xFFFF;
 }
 
@@ -843,6 +847,8 @@ static u16 FASTCALL DevCs1ReadWord(SH2_struct *context, UNUSED u8* memory, u32 a
 static u32 FASTCALL DevCs1ReadLong(SH2_struct *context, UNUSED u8* memory, u32 addr)
 {
   if (addr == 0xFFFFFC)
+     return (0xFF00FF00 | (CartridgeArea->cartid << 16) | CartridgeArea->cartid);
+  if (addr == 0xFFFFF0)
      return (0xFF00FF00 | (CartridgeArea->cartid << 16) | CartridgeArea->cartid);
   return 0xFFFFFFFF;
 }
