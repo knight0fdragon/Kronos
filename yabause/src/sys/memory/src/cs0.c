@@ -824,21 +824,27 @@ static void FASTCALL DRAM32MBITCs0WriteLong(SH2_struct *context, UNUSED u8* memo
 
 static u8 FASTCALL DevCs1ReadByte(SH2_struct *context, UNUSED u8* memory, u32 addr)
 {
-   return 0;
+  if (addr == 0xFFFFFF)
+     return CartridgeArea->cartid;
+  return 0xFF;
 }
 
 //////////////////////////////////////////////////////////////////////////////
 
 static u16 FASTCALL DevCs1ReadWord(SH2_struct *context, UNUSED u8* memory, u32 addr)
 {
-   return 0;
+  if (addr == 0xFFFFFE)
+     return (0xFF00 | CartridgeArea->cartid);
+  return 0xFFFF;
 }
 
 //////////////////////////////////////////////////////////////////////////////
 
 static u32 FASTCALL DevCs1ReadLong(SH2_struct *context, UNUSED u8* memory, u32 addr)
 {
-   return 0;
+  if (addr == 0xFFFFFC)
+     return (0xFF00FF00 | (CartridgeArea->cartid << 16) | CartridgeArea->cartid);
+  return 0xFFFFFFFF;
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -1805,4 +1811,3 @@ int CartLoadState(const void * stream, UNUSED int version, int size)
 }
 
 //////////////////////////////////////////////////////////////////////////////
-
