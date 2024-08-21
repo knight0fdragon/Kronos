@@ -173,7 +173,7 @@ int PERSDLJoyHandleEvents(void) {
 	int i;
 	int j;
 	SDL_Joystick* joy;
-	Sint32 cur;
+	Sint32 cur, curAxis;
 	Uint8 buttonState;
 	Uint8 newHatState;
 	Uint8 oldHatState;
@@ -196,23 +196,19 @@ int PERSDLJoyHandleEvents(void) {
 		for ( i = 0; i < SDL_JoystickNumAxes( joy ); i++ )
 		{
 			cur = SDL_JoystickGetAxis( joy, i );
-      if (abs(cur) <= abs(SDL_PERCORE_JOYSTICKS[ joyId ].mInitValue[ i ])) cur = 0;
+      if (abs(cur) <= abs(SDL_PERCORE_JOYSTICKS[ joyId ].mInitValue[ i ])) curAxis = 0;
+      else curAxis = cur;
 
-			PerAxisValue((joyId << 18) | SDL_PERSF_AXIS_VALUE | i, (u8)(((int)cur+32768) >> 8));
+      cur -= SDL_PERCORE_JOYSTICKS[ joyId ].mInitValue[ i ];
 
-			if ( cur < 8196 ) {
-				PerKeyUp( (joyId << 18) | SDL_PERSF_HAT_MAX_VALUE | i );
-			}
-			if ( cur > -8196 ) {
-				PerKeyUp( (joyId << 18) | SDL_PERSF_HAT_MIN_VALUE | i );
-			}
-			if ( cur < -16384 )
-			{
-				PerKeyDown( (joyId << 18) | SDL_PERSF_HAT_MIN_VALUE | i );
-			}
-			if ( cur > 16384 )
+			PerAxisValue((joyId << 18) | SDL_PERSF_AXIS_VALUE | i, (u8)(((int)curAxis+32768) >> 8));
+
+      if (( cur > 16384 ) || ( cur < -16384 ))
 			{
 				PerKeyDown( (joyId << 18) | SDL_PERSF_HAT_MAX_VALUE | i );
+      } else
+      {
+				PerKeyUp( (joyId << 18) | SDL_PERSF_HAT_MAX_VALUE | i );
 			}
 		}
 
