@@ -195,7 +195,8 @@ int PERSDLJoyHandleEvents(void) {
 		// check axis
 		for ( i = 0; i < SDL_JoystickNumAxes( joy ); i++ )
 		{
-			cur = SDL_JoystickGetAxis( joy, i ) - SDL_PERCORE_JOYSTICKS[ joyId ].mInitValue[ i ];
+			cur = SDL_JoystickGetAxis( joy, i );
+      if (abs(cur) <= abs(SDL_PERCORE_JOYSTICKS[ joyId ].mInitValue[ i ])) cur = 0;
 
 			PerAxisValue((joyId << 18) | SDL_PERSF_AXIS_VALUE | i, (u8)(((int)cur+32768) >> 8));
 
