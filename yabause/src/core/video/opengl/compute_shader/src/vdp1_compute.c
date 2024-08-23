@@ -359,7 +359,7 @@ void VIDCSGenerateBufferVdp1_sync(vdp1cmd_struct* cmd, int id) {
 					if (cmdRam_update_start[id] > pos) cmdRam_update_start[id] = pos;
 					if (cmdRam_update_end[id] < (pos + 1)) cmdRam_update_end[id] = pos + 1;
 					T1WriteByte(buf, pos, dot);
-					pos += 1;
+					pos = (pos+1) & 0x7FFFF;
 	    	}
 			}
 	    break;
@@ -380,7 +380,7 @@ void VIDCSGenerateBufferVdp1_sync(vdp1cmd_struct* cmd, int id) {
 						if (cmdRam_update_start[id] > pos) cmdRam_update_start[id] = pos;
 						if (cmdRam_update_end[id] < (pos + 1)) cmdRam_update_end[id] = pos + 1;
 						T1WriteByte(buf, pos, dot);
-						pos += 1;
+						pos = (pos+1) & 0x7FFFF;;
 		    	}
 				}
 	    break;
@@ -399,7 +399,7 @@ void VIDCSGenerateBufferVdp1_sync(vdp1cmd_struct* cmd, int id) {
 					if (cmdRam_update_start[id] > pos) cmdRam_update_start[id] = pos;
 					if (cmdRam_update_end[id] < (pos + 2)) cmdRam_update_end[id] = pos + 2;
 					T1WriteWord(buf, pos, dot);
-					pos += 2;
+					pos = (pos+2) & 0x7FFFF;;
 	    	}
 			}
 	    break;
