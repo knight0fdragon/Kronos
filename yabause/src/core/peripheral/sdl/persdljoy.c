@@ -205,10 +205,16 @@ int PERSDLJoyHandleEvents(void) {
 
       if (( cur > 16384 ) || ( cur < -16384 ))
 			{
-				PerKeyDown( (joyId << 18) | SDL_PERSF_HAT_MAX_VALUE | i );
+        if ( cur > 16384 )
+				    PerKeyDown( (joyId << 18) | SDL_PERSF_HAT_MAX_VALUE | i );
+        else
+        		PerKeyDown( (joyId << 18) | SDL_PERSF_HAT_MIN_VALUE | i );
       } else
       {
-				PerKeyUp( (joyId << 18) | SDL_PERSF_HAT_MAX_VALUE | i );
+        if ( cur > -8196 )
+				    PerKeyUp( (joyId << 18) | SDL_PERSF_HAT_MIN_VALUE | i );
+        if ( cur < 8196 )
+				    PerKeyUp( (joyId << 18) | SDL_PERSF_HAT_MAX_VALUE | i );
 			}
 		}
 
