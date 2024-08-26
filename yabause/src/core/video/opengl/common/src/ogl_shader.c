@@ -417,6 +417,7 @@ uniform sampler2D s_color; \n \
 uniform sampler2D s_vdp2reg; \n \
 uniform sampler2D s_perline; \n \
 uniform float u_emu_height;\n \
+uniform float u_vdp2_h_density;\n \
 uniform vec2 u_emu_vdp1_ratio;\n \
 uniform float u_emu_vdp2_width;\n \
 uniform float u_vheight; \n \
@@ -1101,6 +1102,7 @@ int YglBlitTexture(int* prioscreens, int* modescreens, int* isRGB, int * isBlur,
   glUniform1i(glGetUniformLocation(vdp2blit_prg, "s_lncl_off_rgb0"), 17);
   glUniform1i(glGetUniformLocation(vdp2blit_prg, "s_lncl_off_rgb1"), 18);
   glUniform1f(glGetUniformLocation(vdp2blit_prg, "u_emu_height"),(float)_Ygl->rheight / (float)_Ygl->height);
+  glUniform1f(glGetUniformLocation(vdp2blit_prg, "u_vdp2_h_density"), _Ygl->vdp2hdensity);
   YGLLOG("All: \n\
     rheight %d\n\
     height %d\n\
