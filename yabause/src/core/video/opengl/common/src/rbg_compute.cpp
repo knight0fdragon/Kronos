@@ -1895,6 +1895,7 @@ DEBUGWIP("Init\n");
 							break;
 						}
 						case 1: {
+							//Issue with high velocity
 							DEBUGWIP("prog %d\n", __LINE__);glUseProgram(prg_rbg_3_2w_p2_8bpp_);
 							break;
 						}
