@@ -187,7 +187,9 @@ void VIDCSRender(Vdp2 *varVdp2Regs) {
    GLenum DrawBuffers[8]= {GL_COLOR_ATTACHMENT0,GL_COLOR_ATTACHMENT1,GL_COLOR_ATTACHMENT2,GL_COLOR_ATTACHMENT3,GL_COLOR_ATTACHMENT4,GL_COLOR_ATTACHMENT5,GL_COLOR_ATTACHMENT6,GL_COLOR_ATTACHMENT7};
    double dar = (double)GlWidth/(double)GlHeight;
    double par = 4.0/3.0;
-   int Intw = (int)(floor((float)GlWidth/(float)_Ygl->width));
+
+   int width = (_Ygl->interlace != 0)?_Ygl->width*2:_Ygl->width;
+   int Intw = (int)(floor((float)GlWidth/(float)width));
    int Inth = (int)(floor((float)GlHeight/(float)_Ygl->height));
    int Int  = 1;
    int modeScreen = _Ygl->stretch;
@@ -228,7 +230,7 @@ void VIDCSRender(Vdp2 *varVdp2Regs) {
        y = 0;
        break;
      case 2:
-       w = Int * _Ygl->width;
+       w = Int * width;
        h = Int * _Ygl->height;
        x = (GlWidth-w)/2;
        y = (GlHeight-h)/2;
@@ -239,7 +241,7 @@ void VIDCSRender(Vdp2 *varVdp2Regs) {
     scale = MAX(w/_Ygl->rwidth, h/_Ygl->rheight);
 #else
   //Libretro is taking care to the resize
-  w = _Ygl->width;
+  w = width;
   h = _Ygl->height;
   x = y = 0;
 #endif

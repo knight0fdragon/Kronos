@@ -1086,6 +1086,7 @@ int YglInit(int width, int height, unsigned int depth) {
   glBindTexture(GL_TEXTURE_2D, 0);
   _Ygl->st = 0;
   _Ygl->aamode = AA_NONE;
+  _Ygl->interlace = 0;
   _Ygl->stretch = ORIGINAL_RATIO;
   _Ygl->wireframe_mode = 0;
 
@@ -2220,6 +2221,10 @@ void YglChangeResolution(int w, int h) {
   if (_Ygl->rheight >= 448) _Ygl->heightRatio *= 2.0f;
   if (_Ygl->rwidth >= 640) _Ygl->widthRatio *= 2.0f;
   YglOrtho(&_Ygl->rbgModelView, 0.0f, (float)_Ygl->rwidth, (float)_Ygl->rheight, 0.0f, 10.0f, 0.0f);
+  if (_Ygl->interlace != 0) {
+    //Single interlace So we need Twice number of lines
+    _Ygl->height *= 2;
+  }
 }
 
 void VIDCSSync(){

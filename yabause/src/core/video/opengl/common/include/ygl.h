@@ -662,6 +662,8 @@ typedef struct {
    float vdp2wdensity;
    float vdp2hdensity;
 
+   int interlace;
+
 } Ygl;
 
 extern Ygl * _Ygl;
