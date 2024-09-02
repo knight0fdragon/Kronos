@@ -1002,8 +1002,6 @@ int YglInit(int width, int height, unsigned int depth) {
 
   glGenVertexArrays(1, &_Ygl->vao);
   glBindVertexArray(_Ygl->vao);
-  glGenBuffers(1, &_Ygl->vertices_buf);
-  glGenBuffers(1, &_Ygl->texcord_buf);
   glGenBuffers(1, &_Ygl->win0v_buf);
   glGenBuffers(1, &_Ygl->win1v_buf);
   glGenBuffers(1, &_Ygl->vertexPosition_buf);

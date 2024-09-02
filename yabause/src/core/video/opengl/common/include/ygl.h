@@ -641,8 +641,6 @@ typedef struct {
 
    int msb_shadow_count_[2];
    GLuint vao;
-   GLuint vertices_buf;
-   GLuint texcord_buf;
    GLuint win0v_buf;
    GLuint win1v_buf;
    GLuint vertexPosition_buf;
