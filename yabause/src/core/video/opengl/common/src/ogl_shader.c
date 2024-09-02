@@ -2017,7 +2017,6 @@ static int u_mosaic_th = -1;
 static int u_mosaic = -1;
 
 int YglBlitMosaic(u32 srcTexture, float w, float h, GLfloat* matrix, int * mosaic) {
-
   float vb[] = { 0, 0,
     2.0, 0.0,
     2.0, 2.0,
