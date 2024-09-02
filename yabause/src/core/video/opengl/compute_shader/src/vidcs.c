@@ -2221,7 +2221,7 @@ static void Vdp2SetResolution(u16 TVMD)
   int width = 1, height = 1;
   int wratio = 1, hratio = 1;
   int old_interlace = vdp2_interlace;
-  int old_simple_interlace = _Ygl->interlace;
+  InterlaceMode old_simple_interlace = _Ygl->interlace;
 
   // Horizontal Resolution
   switch (TVMD & 0x7)
@@ -2281,7 +2281,7 @@ static void Vdp2SetResolution(u16 TVMD)
   hratio = 1;
 
   vdp2_interlace = 0;
-  _Ygl->interlace = 0;
+  _Ygl->interlace = NORMAL;
   // Check for interlace
   switch ((TVMD >> 6) & 0x3)
   {
@@ -2291,7 +2291,7 @@ static void Vdp2SetResolution(u16 TVMD)
     vdp2_interlace = 1;
     break;
   case 2: // Single-density Interlace
-    _Ygl->interlace = 1;
+    _Ygl->interlace = SINGLE;
     break;
   case 0: // Non-interlace
   default:

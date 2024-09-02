@@ -504,6 +504,12 @@ typedef enum {
 	DST_ALPHA = 4
 } SpriteMode;
 
+typedef enum {
+	NORMAL = 0,
+	DOUBLE = 1,
+	SINGLE = 2
+} InterlaceMode;
+
 typedef struct {
    //GLuint texture;
    //GLuint pixelBufferID;
@@ -662,7 +668,7 @@ typedef struct {
    float vdp2wdensity;
    float vdp2hdensity;
 
-   int interlace;
+   InterlaceMode interlace;
 
 } Ygl;
 
