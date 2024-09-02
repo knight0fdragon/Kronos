@@ -140,10 +140,8 @@ extern void VIDCSFinsihDraw(void);
  int VIDCSVdp2Reset(void);
  void VIDCSVdp2Draw(void);
 extern void VIDCSGetGlSize(int *width, int *height);
-extern void VIDCSGetNativeResolution(int *width, int *height, int*interlace);
 extern void VIDCSSetSettingValueMode(int type, int value);
 extern void VIDCSSync();
-extern void VIDCSGetNativeResolution(int *width, int *height, int*interlace);
 extern void VIDCSVdp2DispOff(void);
 extern int VIDCSGenFrameBuffer();
 extern void VIDCSGenerateBufferVdp1(vdp1cmd_struct* cmd);
@@ -177,7 +175,6 @@ VIDCSVdp2Draw,
 VIDCSGetGlSize,
 VIDCSSetSettingValueMode,
 VIDCSSync,
-VIDCSGetNativeResolution,
 VIDCSVdp2DispOff,
 VIDCSRender,
 VIDCSRenderVDP1,
@@ -2330,13 +2327,6 @@ void VIDCSGetGlSize(int *width, int *height)
 {
   *width = GlWidth;
   *height = GlHeight;
-}
-
-void VIDCSGetNativeResolution(int *width, int *height, int*interlace)
-{
-  *width = _Ygl->rwidth;
-  *height = _Ygl->rheight;
-  *interlace = (_Ygl->interlace == DOUBLE);
 }
 
 void VIDCSVdp2DispOff()
