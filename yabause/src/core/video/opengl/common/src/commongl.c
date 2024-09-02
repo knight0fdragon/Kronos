@@ -1201,6 +1201,8 @@ void YglQuadOffset_in(vdp2draw_struct * input, YglTexture * output, YglCache * c
   vHeight = input->vertices[5] - input->vertices[1];
 
   pos = program->quads + program->currentQuad;
+  if (_Ygl->interlace == DOUBLE) sy /= 2.0;
+
   pos[0] = (input->vertices[0] - cx) * sx;
   pos[1] = input->vertices[1] * sy;
   pos[2] = (input->vertices[2] - cx) * sx;
@@ -2219,7 +2221,7 @@ void YglChangeResolution(int w, int h) {
   if (_Ygl->rheight >= 448) _Ygl->heightRatio *= 2.0f;
   if (_Ygl->rwidth >= 640) _Ygl->widthRatio *= 2.0f;
   YglOrtho(&_Ygl->rbgModelView, 0.0f, (float)_Ygl->rwidth, (float)_Ygl->rheight, 0.0f, 10.0f, 0.0f);
-  if (_Ygl->interlace == SINGLE) {
+  if (_Ygl->interlace != NORMAL) {
     //Single interlace So we need Twice number of lines
     _Ygl->height *= 2;
   }

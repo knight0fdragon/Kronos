@@ -2288,7 +2288,7 @@ static void Vdp2SetResolution(u16 TVMD)
   switch ((TVMD >> 6) & 0x3)
   {
   case 3: // Double-density Interlace
-    height *= 2;
+    // height *= 2;
     hratio = 2;
     _Ygl->interlace = DOUBLE;
     break;
@@ -3746,6 +3746,7 @@ static void Vdp2DrawMapTest(Vdp2Ctrl *ctrl, int delayed) {
   ctrl->info.patternpixelwh = 8 * ctrl->info.patternwh;
   ctrl->info.draww = (int)((float)_Ygl->rwidth / ctrl->info.coordincx);
   ctrl->info.drawh = (int)((float)_Ygl->rheight / ctrl->info.coordincy);
+  if (_Ygl->interlace == DOUBLE) ctrl->info.drawh *= 2;
   ctrl->info.lineinc = ctrl->info.patternpixelwh;
 
   //ctrl->info.coordincx = 1.0f;
