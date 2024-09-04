@@ -484,7 +484,12 @@ static void Vdp2DrawRotation_in_sync(RBGDrawInfo * rbg)
     rbg->hres *= _Ygl->widthRatio;
     rbg->vres *= _Ygl->heightRatio;
 
-    RBGGenerator_init(_Ygl->width, _Ygl->height);
+    if (_Ygl->interlace == NORMAL)
+      RBGGenerator_init(_Ygl->width, _Ygl->height);
+    else {
+      RBGGenerator_init(_Ygl->width, _Ygl->height/2);
+      screenHeight = screenHeight<<1;
+    }
 
     info->vertices[0] = 0;
     info->vertices[1] = (screenHeight * info->startLine)/yabsys.VBlankLineCount;

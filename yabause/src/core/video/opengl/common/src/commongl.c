@@ -769,13 +769,19 @@ static int YglGenerateScreenBuffer(){
   //Generate fbo and texture fr rbh compute shader
   glGenTextures(2, &_Ygl->rbg_compute_fbotex[0]);
   glBindTexture(GL_TEXTURE_2D, _Ygl->rbg_compute_fbotex[0]);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _Ygl->width, _Ygl->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+  if (_Ygl->interlace == NORMAL)
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _Ygl->width, _Ygl->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+  else
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _Ygl->width, _Ygl->height>>1, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   glBindTexture(GL_TEXTURE_2D, _Ygl->rbg_compute_fbotex[1]);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _Ygl->width, _Ygl->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+  if (_Ygl->interlace == NORMAL)
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _Ygl->width, _Ygl->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+  else
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _Ygl->width, _Ygl->height>>1, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -1201,7 +1207,6 @@ void YglQuadOffset_in(vdp2draw_struct * input, YglTexture * output, YglCache * c
   vHeight = input->vertices[5] - input->vertices[1];
 
   pos = program->quads + program->currentQuad;
-  if (_Ygl->interlace == DOUBLE) sy /= 2.0;
 
   pos[0] = (input->vertices[0] - cx) * sx;
   pos[1] = input->vertices[1] * sy;
@@ -1570,7 +1575,7 @@ void YglSetVDP2Reg(u8 * pbuf, int start, int size){
 void YglUpdateVdp2Reg() {
   int needupdate = 0;
   int size = sizeof(char);
-  int step = (((Vdp2Lines[0].TVMD >> 6) & 0x3) == 3)?2:1;
+  int step = (_Ygl->interlace == DOUBLE)?2:1;
   for (int i = 0; i<_Ygl->rheight; i++) {
     Vdp2 *varVdp2Regs = &Vdp2Lines[i/step];
     u8 bufline[NB_VDP2_REG*4] = {0};
@@ -2220,7 +2225,10 @@ void YglChangeResolution(int w, int h) {
 
   if (_Ygl->rheight >= 448) _Ygl->heightRatio *= 2.0f;
   if (_Ygl->rwidth >= 640) _Ygl->widthRatio *= 2.0f;
-  YglOrtho(&_Ygl->rbgModelView, 0.0f, (float)_Ygl->rwidth, (float)_Ygl->rheight, 0.0f, 10.0f, 0.0f);
+  if (_Ygl->interlace == DOUBLE)
+    YglOrtho(&_Ygl->rbgModelView, 0.0f, (float)_Ygl->rwidth, (float)(_Ygl->rheight<<1), 0.0f, 10.0f, 0.0f);
+  else
+    YglOrtho(&_Ygl->rbgModelView, 0.0f, (float)_Ygl->rwidth, (float)_Ygl->rheight, 0.0f, 10.0f, 0.0f);
   if (_Ygl->interlace != NORMAL) {
     //Single interlace So we need Twice number of lines
     _Ygl->height *= 2;

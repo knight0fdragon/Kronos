@@ -297,8 +297,13 @@ void VIDCSRender(Vdp2 *varVdp2Regs) {
 
   for (int i = 0; i < SPRITE; i++) {
     if ((i == RBG0) || (i == RBG1)) {
-      glViewport(0, 0, _Ygl->width, _Ygl->height);
-      glScissor(0, 0, _Ygl->width, _Ygl->height);
+      if (_Ygl->interlace == NORMAL) {
+        glViewport(0, 0, _Ygl->width, _Ygl->height);
+        glScissor(0, 0, _Ygl->width, _Ygl->height);
+      } else {
+        glViewport(0, 0, _Ygl->width, _Ygl->height>>1);
+        glScissor(0, 0, _Ygl->width, _Ygl->height>>1);
+      }
       glBindFramebuffer(GL_FRAMEBUFFER, _Ygl->rbg_compute_fbo);
       if ( i == RBG0)
         glDrawBuffers(1, &DrawBuffers[0]);
