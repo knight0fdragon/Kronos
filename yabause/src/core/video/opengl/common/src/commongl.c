@@ -48,9 +48,6 @@ extern int YglDrawBackScreen();
 static int YglGenerateBackBuffer();
 static int YglDestroyBackBuffer();
 
-static int YglGenerateWindowBuffer();
-static int YglDestroyWindowBuffer();
-
 static int YglGenerateScreenBuffer();
 static int YglDestroyScreenBuffer();
 
@@ -502,7 +499,6 @@ void YglDestroy() {
   }
   YglDestroyOriginalBuffer();
   YglDestroyBackBuffer();
-  YglDestroyWindowBuffer();
   YglDestroyScreenBuffer();
 }
 
@@ -588,7 +584,6 @@ void YglGenerate() {
   glClearBufferfi(GL_DEPTH_STENCIL, 0, 0, 0);
   YglGenerateOriginalBuffer();
   YglGenerateBackBuffer();
-  YglGenerateWindowBuffer();
   YglGenerateScreenBuffer();
   YGLDEBUG("VIDCSGenFrameBuffer OK\n");
   glBindFramebuffer(GL_FRAMEBUFFER, _Ygl->default_fbo);
@@ -642,49 +637,6 @@ int VIDCSGenFrameBuffer() {
 }
 
 //////////////////////////////////////////////////////////////////////////////
-static int YglDestroyWindowBuffer(){
-  if (_Ygl->window_fbotex[0] != 0) {
-    glDeleteTextures(enBGMAX,&_Ygl->window_fbotex[0]);
-    _Ygl->window_fbotex[0] = 0;
-  }
-  if (_Ygl->window_fbo != 0){
-    glDeleteFramebuffers(1, &_Ygl->window_fbo);
-    _Ygl->window_fbo  = 0;
-  }
-  return 0;
-}
-static int YglGenerateWindowBuffer(){
-
-  int status;
-  GLuint error;
-
-  YGLDEBUG("YglGenerateWindowBuffer: %d,%d\n", _Ygl->width, _Ygl->height);
-  glGenTextures(enBGMAX, &_Ygl->window_fbotex[0]);
-  for (int i=0; i<enBGMAX; i++) {
-    glBindTexture(GL_TEXTURE_2D, _Ygl->window_fbotex[i]);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _Ygl->rwidth, _Ygl->rheight, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  }
-  glGenFramebuffers(1, &_Ygl->window_fbo);
-  glBindFramebuffer(GL_FRAMEBUFFER, _Ygl->window_fbo);
-  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, _Ygl->window_fbotex[0], 0);
-  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, _Ygl->window_fbotex[1], 0);
-  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, _Ygl->window_fbotex[2], 0);
-  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, _Ygl->window_fbotex[3], 0);
-  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT4, GL_TEXTURE_2D, _Ygl->window_fbotex[4], 0);
-  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT5, GL_TEXTURE_2D, _Ygl->window_fbotex[5], 0);
-  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT6, GL_TEXTURE_2D, _Ygl->window_fbotex[6], 0);
-  status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-  if (status != GL_FRAMEBUFFER_COMPLETE) {
-    YGLDEBUG("YglGenerateOriginalBuffer:Framebuffer status = %08X\n", status);
-    abort();
-  }
-  _Ygl->window_tex[0] = _Ygl->window_tex[1] = 0;
-  return 0;
-}
 
 //////////////////////////////////////////////////////////////////////////////
 static int YglDestroyScreenBuffer(){
@@ -1672,9 +1624,6 @@ int DrawVDP2Screen(Vdp2 *varVdp2Regs, int id) {
   level = &_Ygl->vdp2levels[id];
 
   if (level->prgcurrent == 0) return 0;
-
-  glActiveTexture(GL_TEXTURE3);
-  glBindTexture(GL_TEXTURE_2D, _Ygl->window_fbotex[id]);
 
   for (int j = 0; j < (level->prgcurrent + 1); j++)
   {
