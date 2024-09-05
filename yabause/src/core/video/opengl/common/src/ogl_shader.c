@@ -188,7 +188,7 @@ int Ygl_uniformNormalCram(void * p, YglTextureManager *tm, Vdp2 *varVdp2Regs, in
   glUniform1i(id_normal_cram_s_color, 1);
   glUniform1f(id_normal_cram_vdp2_hratio, (float)_Ygl->vdp2hdensity);
   glUniform1i(id_normal_cram_vdp2_interlace, (_Ygl->interlace==DOUBLE)?1:0);
-  glUniform1i(id_normal_cram_vdp2_frame, ((varVdp2Regs->TVSTAT>>1)&0x1)==0);
+  glUniform1i(id_normal_cram_vdp2_frame, ((varVdp2Regs->TVSTAT>>1)&0x1)==1);
   if ((id == RBG0)||(id == RBG1)){
     glUniform1f(id_normal_cram_emu_height, (float)_Ygl->rheight / (float)_Ygl->height);
     glUniform1f(id_normal_cram_emu_width, (float)_Ygl->rwidth /(float)_Ygl->width);
@@ -1704,6 +1704,14 @@ static const char fblitnear_img[] =
   "{ \n"
   "     return texture( textureSampler, TexCoord ) ; \n"
   "} \n";
+static const char fblitnear_interlace_img[] =
+  "vec4 Filter( sampler2D textureSampler, vec2 TexCoord ) \n"
+  "{ \n"
+  "     ivec2 texSize = textureSize(textureSampler,0);\n"
+  "     ivec2 coord = ivec2(texSize*TexCoord);\n"
+  "     coord.y = (coord.y&~0x1) | (int(gl_FragCoord.y)&0x1);\n"
+  "     return texelFetch( textureSampler, coord, 0);\n"
+  "} \n";
 
   static const char fbobsecure_img[] =
     "vec4 Filter( sampler2D textureSampler, vec2 TexCoord ) \n"
@@ -1795,6 +1803,7 @@ static const char fblitbilinear_img[] =
 GLuint textureCoord_buf[2] = {0,0};
 
 static int last_upmode = 0;
+static InterlaceMode last_interlace = NORMAL;
 
 int YglBlitFramebuffer(u32 srcTexture, float w, float h, float dispw, float disph) {
   float width = w;
@@ -1802,9 +1811,12 @@ int YglBlitFramebuffer(u32 srcTexture, float w, float h, float dispw, float disp
   int decim;
   u32 tex = srcTexture;
   const GLchar * fblit_img_v[] = { fblit_head, fblitnear_img, fblit_img, fblit_img_end, NULL };
+  const GLchar * fblit_img_interlace_v[] = { fblit_head, fblitnear_interlace_img, fblit_img, fblit_img_end, NULL };
   const GLchar * fblitbilinear_img_v[] = { fblit_head, fblitnear_img, fblit_img, fblit_img_end, NULL };
+  const GLchar * fblitbilinear_img_interlace_v[] = { fblit_head, fblitnear_interlace_img, fblit_img, fblit_img_end, NULL };
   const GLchar * fblitbicubic_img_v[] = { fblit_head, fblitbicubic_img, fblit_img, fblit_img_end, NULL };
   const GLchar * fblit_img_scanline_is_v[] = { fblit_head, fblitnear_img, fblit_img, Yglprg_blit_scanline_is_f, fblit_img_end, NULL };
+  const GLchar * fblit_img_scanline_is_interlace_v[] = { fblit_head, fblitnear_interlace_img, fblit_img, Yglprg_blit_scanline_is_f, fblit_img_end, NULL };
 
   const GLchar * fblit_bob_secure_img_v[] = { fblit_head, fbobsecure_img, fblit_img, fblit_img_end, NULL };
   const GLchar * fblit_bob_secure_debug_img_v[] = { fblit_head, fbobsecure_debug_img, fblit_img, fblit_img_end, NULL };
@@ -1859,7 +1871,7 @@ int YglBlitFramebuffer(u32 srcTexture, float w, float h, float dispw, float disp
       aamode = AA_NONE;
     }
   }
-  if ((blit_prg == -1) || (blit_mode != aamode)){
+  if ((blit_prg == -1) || (blit_mode != aamode) || (last_interlace != _Ygl->interlace)){
     GLuint vshader;
     GLuint fshader;
     GLint compiled, linked;
@@ -1872,6 +1884,7 @@ int YglBlitFramebuffer(u32 srcTexture, float w, float h, float dispw, float disp
     }
 
     blit_mode = aamode;
+    last_interlace = _Ygl->interlace;
 
     YGLLOG("BLIT_FRAMEBUFFER\n");
 
@@ -1889,10 +1902,16 @@ int YglBlitFramebuffer(u32 srcTexture, float w, float h, float dispw, float disp
     }
     switch(aamode) {
       case AA_NONE:
-        glShaderSource(fshader, 4, fblit_img_v, NULL);
+        if (_Ygl->interlace == NORMAL)
+          glShaderSource(fshader, 4, fblit_img_v, NULL);
+        else
+          glShaderSource(fshader, 4, fblit_img_interlace_v, NULL);
         break;
       case AA_BILINEAR_FILTER:
-        glShaderSource(fshader, 4, fblitbilinear_img_v, NULL);
+        if (_Ygl->interlace == NORMAL)
+          glShaderSource(fshader, 4, fblitbilinear_img_v, NULL);
+        else
+          glShaderSource(fshader, 4, fblitbilinear_img_interlace_v, NULL);
         break;
       case AA_BICUBIC_FILTER:
         glShaderSource(fshader, 4, fblitbicubic_img_v, NULL);
@@ -1910,7 +1929,10 @@ int YglBlitFramebuffer(u32 srcTexture, float w, float h, float dispw, float disp
         glShaderSource(fshader, 4, fblit_bob_ossc_debug_img_v, NULL);
         break;
       case AA_SCANLINE:
-        glShaderSource(fshader, 5, fblit_img_scanline_is_v, NULL);
+        if (_Ygl->interlace == NORMAL)
+          glShaderSource(fshader, 5, fblit_img_scanline_is_v, NULL);
+        else
+          glShaderSource(fshader, 5, fblit_img_scanline_is_interlace_v, NULL);
         break;
     }
     glCompileShader(fshader);
