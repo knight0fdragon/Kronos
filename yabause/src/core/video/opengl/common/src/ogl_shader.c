@@ -1179,7 +1179,7 @@ int YglBlitTexture(int* prioscreens, int* modescreens, int* isRGB, int * isBlur,
     glUniform1i(glGetUniformLocation(vdp2blit_prg, "nbFrame"),2);
   } else {
     //Single density
-    if (((varVdp2Regs->TVSTAT>>1)&0x1)==1)
+    if (((varVdp2Regs->TVSTAT>>1)&0x1)==0)
     glUniform1i(glGetUniformLocation(vdp2blit_prg, "nbFrame"),1);
     else
     glUniform1i(glGetUniformLocation(vdp2blit_prg, "nbFrame"),0);
@@ -1661,6 +1661,7 @@ static int u_h = -1;
 static int u_l = -1;
 static int u_d = -1;
 static int u_f = -1;
+static int u_s = -1;
 static int outputSize = -1;
 static int inputSize = -1;
 
@@ -1687,6 +1688,7 @@ static const char fblit_head[] =
   "uniform vec2 lineNumber; \n"
   "uniform float decim; \n"
   "uniform int field; \n"
+  "uniform int scale; \n"
   "in highp vec2 vTexCoord;     \n"
   "uniform sampler2D u_Src;     \n"
   "out vec4 fragColor; \n";
@@ -1709,7 +1711,7 @@ static const char fblitnear_interlace_img[] =
   "{ \n"
   "     ivec2 texSize = textureSize(textureSampler,0);\n"
   "     ivec2 coord = ivec2(texSize*TexCoord);\n"
-  "     coord.y = (coord.y&~0x1) | (int(gl_FragCoord.y)&0x1);\n"
+  // "     coord.y = (coord.y&~0x1) | (int(gl_FragCoord.y)&0x1);\n"
   "     return texelFetch( textureSampler, coord, 0);\n"
   "} \n";
 
@@ -1750,11 +1752,11 @@ static const char fblitnear_interlace_img[] =
       "{ \n"
       "    ivec2 coord = ivec2(vec2(textureSize(textureSampler,0))*TexCoord);\n"
       "    vec4 cur = texture( textureSampler, TexCoord ); \n"
-      "    if ((coord.y&0x1)!=field) {\n"
-      "    if (field == 0) "
-      "     return texelFetch( textureSampler, ivec2(coord.x,coord.y-1) , 0 ); \n"
-      "    else"
-      "     return texelFetch( textureSampler, ivec2(coord.x,coord.y+1) , 0 ); \n"
+      "    if ((int(coord.y/scale)&0x1)!=field) {\n"
+      "    if (field == 0) \n"
+      "     return texelFetch( textureSampler, ivec2(coord.x,coord.y-scale) , 0 ); \n"
+      "    else \n"
+      "     return texelFetch( textureSampler, ivec2(coord.x,coord.y+scale) , 0 ); \n"
       "}\n"
       " else"
       "     return cur; \n"
@@ -1962,6 +1964,7 @@ int YglBlitFramebuffer(u32 srcTexture, float w, float h, float dispw, float disp
     u_l = glGetUniformLocation(blit_prg, "lineNumber");
     u_d = glGetUniformLocation(blit_prg, "decim");
     u_f = glGetUniformLocation(blit_prg, "field");
+    u_s = glGetUniformLocation(blit_prg, "scale");
   }
   else{
     GLUSEPROG(blit_prg);
@@ -1994,6 +1997,7 @@ int YglBlitFramebuffer(u32 srcTexture, float w, float h, float dispw, float disp
   if (decim < 2) decim = 2;
   glUniform1f(u_d, (float)decim);
   glUniform1i(u_f, (Vdp2Regs->TVSTAT>>1)&0x1);
+  glUniform1i(u_s, _Ygl->vdp1hratio);
 
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, tex);
