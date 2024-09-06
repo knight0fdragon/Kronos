@@ -2734,56 +2734,56 @@ static INLINE int Vdp2CheckWindow(vdp2draw_struct *info, int x, int y, int area,
     if (win[y] == 0) return 1;
     if (x < upLx) return 1;
     if (x > upRx) return 1;
+    printf("%d\n", __LINE__);
     return 0;
   }
+  printf("%d\n", __LINE__);
   return 0;
 }
 
 // 0 .. all outsize, 1~3 .. partly inside, 4.. all inside
 static int FASTCALL Vdp2CheckWindowRange(Vdp2Ctrl *ctrl, int x, int y, int w, int h)
 {
-  int rtn = 0;
-
   if (_Ygl->Win0[ctrl->info.idScreen]  != 0 && _Ygl->Win1[ctrl->info.idScreen]  == 0)
   {
-    rtn += Vdp2CheckWindow(&ctrl->info, x, y, _Ygl->Win0_mode[ctrl->info.idScreen], _Ygl->win[0]);
-    rtn += Vdp2CheckWindow(&ctrl->info, x + w, y, _Ygl->Win0_mode[ctrl->info.idScreen], _Ygl->win[0]);
-    rtn += Vdp2CheckWindow(&ctrl->info, x + w, y + h, _Ygl->Win0_mode[ctrl->info.idScreen], _Ygl->win[0]);
-    rtn += Vdp2CheckWindow(&ctrl->info, x, y + h, _Ygl->Win0_mode[ctrl->info.idScreen], _Ygl->win[0]);
-    return rtn;
+    if(Vdp2CheckWindow(&ctrl->info, x, y, _Ygl->Win0_mode[ctrl->info.idScreen], _Ygl->win[0])) return 1;
+    if(Vdp2CheckWindow(&ctrl->info, x + w, y, _Ygl->Win0_mode[ctrl->info.idScreen], _Ygl->win[0])) return 1;
+    if(Vdp2CheckWindow(&ctrl->info, x + w, y + h, _Ygl->Win0_mode[ctrl->info.idScreen], _Ygl->win[0])) return 1;
+    if(Vdp2CheckWindow(&ctrl->info, x, y + h, _Ygl->Win0_mode[ctrl->info.idScreen], _Ygl->win[0])) return 1;
+    return 0;
   }
   else if (_Ygl->Win0[ctrl->info.idScreen]  == 0 && _Ygl->Win1[ctrl->info.idScreen]  != 0)
   {
-    rtn += Vdp2CheckWindow(&ctrl->info, x, y, _Ygl->Win1_mode[ctrl->info.idScreen], _Ygl->win[1]);
-    rtn += Vdp2CheckWindow(&ctrl->info, x + w, y, _Ygl->Win1_mode[ctrl->info.idScreen], _Ygl->win[1]);
-    rtn += Vdp2CheckWindow(&ctrl->info, x + w, y + h, _Ygl->Win1_mode[ctrl->info.idScreen], _Ygl->win[1]);
-    rtn += Vdp2CheckWindow(&ctrl->info, x, y + h, _Ygl->Win1_mode[ctrl->info.idScreen], _Ygl->win[1]);
-    return rtn;
+    if(Vdp2CheckWindow(&ctrl->info, x, y, _Ygl->Win1_mode[ctrl->info.idScreen], _Ygl->win[1])) return 1;
+    if(Vdp2CheckWindow(&ctrl->info, x + w, y, _Ygl->Win1_mode[ctrl->info.idScreen], _Ygl->win[1])) return 1;
+    if(Vdp2CheckWindow(&ctrl->info, x + w, y + h, _Ygl->Win1_mode[ctrl->info.idScreen], _Ygl->win[1])) return 1;
+    if(Vdp2CheckWindow(&ctrl->info, x, y + h, _Ygl->Win1_mode[ctrl->info.idScreen], _Ygl->win[1])) return 1;
+    return 0;
   }
   else if (_Ygl->Win0[ctrl->info.idScreen]  != 0 && _Ygl->Win1[ctrl->info.idScreen]  != 0)
   {
     if (_Ygl->Win_op[ctrl->info.idScreen] == 0)
     {
-      rtn += (Vdp2CheckWindow(&ctrl->info, x, y, _Ygl->Win0_mode[ctrl->info.idScreen], _Ygl->win[0]) &
-        Vdp2CheckWindow(&ctrl->info, x, y, _Ygl->Win1_mode[ctrl->info.idScreen], _Ygl->win[1]));
-      rtn += (Vdp2CheckWindow(&ctrl->info, x + w, y, _Ygl->Win0_mode[ctrl->info.idScreen], _Ygl->win[0])&
-        Vdp2CheckWindow(&ctrl->info, x + w, y, _Ygl->Win1_mode[ctrl->info.idScreen], _Ygl->win[1]));
-      rtn += (Vdp2CheckWindow(&ctrl->info, x + w, y + h, _Ygl->Win0_mode[ctrl->info.idScreen], _Ygl->win[0])&
-        Vdp2CheckWindow(&ctrl->info, x + w, y + h, _Ygl->Win1_mode[ctrl->info.idScreen], _Ygl->win[1]));
-      rtn += (Vdp2CheckWindow(&ctrl->info, x, y + h, _Ygl->Win0_mode[ctrl->info.idScreen], _Ygl->win[0]) &
-        Vdp2CheckWindow(&ctrl->info, x, y + h, _Ygl->Win1_mode[ctrl->info.idScreen], _Ygl->win[1]));
-      return rtn;
+      if(Vdp2CheckWindow(&ctrl->info, x, y, _Ygl->Win0_mode[ctrl->info.idScreen], _Ygl->win[0])) return 1;
+      if(Vdp2CheckWindow(&ctrl->info, x, y, _Ygl->Win1_mode[ctrl->info.idScreen], _Ygl->win[1])) return 1;
+      if(Vdp2CheckWindow(&ctrl->info, x + w, y, _Ygl->Win0_mode[ctrl->info.idScreen], _Ygl->win[0])) return 1;
+      if(Vdp2CheckWindow(&ctrl->info, x + w, y, _Ygl->Win1_mode[ctrl->info.idScreen], _Ygl->win[1])) return 1;
+      if(Vdp2CheckWindow(&ctrl->info, x + w, y + h, _Ygl->Win0_mode[ctrl->info.idScreen], _Ygl->win[0])) return 1;
+      if(Vdp2CheckWindow(&ctrl->info, x + w, y + h, _Ygl->Win1_mode[ctrl->info.idScreen], _Ygl->win[1])) return 1;
+      if(Vdp2CheckWindow(&ctrl->info, x, y + h, _Ygl->Win0_mode[ctrl->info.idScreen], _Ygl->win[0])) return 1;
+      if(Vdp2CheckWindow(&ctrl->info, x, y + h, _Ygl->Win1_mode[ctrl->info.idScreen], _Ygl->win[1])) return 1;
+      return 0;
     }
     else {
-      rtn += (Vdp2CheckWindow(&ctrl->info, x, y, _Ygl->Win0_mode[ctrl->info.idScreen], _Ygl->win[0]) |
-        Vdp2CheckWindow(&ctrl->info, x, y, _Ygl->Win1_mode[ctrl->info.idScreen], _Ygl->win[1]));
-      rtn += (Vdp2CheckWindow(&ctrl->info, x + w, y, _Ygl->Win0_mode[ctrl->info.idScreen], _Ygl->win[0]) |
-        Vdp2CheckWindow(&ctrl->info, x + w, y, _Ygl->Win1_mode[ctrl->info.idScreen], _Ygl->win[1]));
-      rtn += (Vdp2CheckWindow(&ctrl->info, x + w, y + h, _Ygl->Win0_mode[ctrl->info.idScreen], _Ygl->win[0]) |
-        Vdp2CheckWindow(&ctrl->info, x + w, y + h, _Ygl->Win1_mode[ctrl->info.idScreen], _Ygl->win[1]));
-      rtn += (Vdp2CheckWindow(&ctrl->info, x, y + h, _Ygl->Win0_mode[ctrl->info.idScreen], _Ygl->win[0]) |
-        Vdp2CheckWindow(&ctrl->info, x, y + h, _Ygl->Win1_mode[ctrl->info.idScreen], _Ygl->win[1]));
-      return rtn;
+      if(Vdp2CheckWindow(&ctrl->info, x, y, _Ygl->Win0_mode[ctrl->info.idScreen], _Ygl->win[0])) return 1;
+      if(Vdp2CheckWindow(&ctrl->info, x, y, _Ygl->Win1_mode[ctrl->info.idScreen], _Ygl->win[1])) return 1;
+      if(Vdp2CheckWindow(&ctrl->info, x + w, y, _Ygl->Win0_mode[ctrl->info.idScreen], _Ygl->win[0])) return 1;
+      if(Vdp2CheckWindow(&ctrl->info, x + w, y, _Ygl->Win1_mode[ctrl->info.idScreen], _Ygl->win[1])) return 1;
+      if(Vdp2CheckWindow(&ctrl->info, x + w, y + h, _Ygl->Win0_mode[ctrl->info.idScreen], _Ygl->win[0])) return 1;
+      if(Vdp2CheckWindow(&ctrl->info, x + w, y + h, _Ygl->Win1_mode[ctrl->info.idScreen], _Ygl->win[1])) return 1;
+      if(Vdp2CheckWindow(&ctrl->info, x, y + h, _Ygl->Win0_mode[ctrl->info.idScreen], _Ygl->win[0])) return 1;
+      if(Vdp2CheckWindow(&ctrl->info, x, y + h, _Ygl->Win1_mode[ctrl->info.idScreen], _Ygl->win[1])) return 1;
+      return 0;
     }
   }
   return 0;
