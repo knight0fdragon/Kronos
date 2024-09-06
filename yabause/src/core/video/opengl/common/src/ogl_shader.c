@@ -1845,7 +1845,7 @@ int YglBlitFramebuffer(u32 srcTexture, float w, float h, float dispw, float disp
     1.0f, 1.0f };
 
   float nbLines = h;//yabsys.IsPal?625.0f:525.0f;
-  if (_Ygl->stretch == 2) nbLines = height;
+  if (_Ygl->stretch == INTEGER_RATIO) nbLines = height;
 
   if (_Ygl->upmode != UP_NONE) {
     int scale = 1;

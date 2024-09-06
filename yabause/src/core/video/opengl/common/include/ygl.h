@@ -440,7 +440,8 @@ typedef enum
 typedef enum
 {
 	ORIGINAL_RATIO = 0,
-	STREETCH_RATIO
+	STRETCH_RATIO = 1,
+  INTEGER_RATIO = 2
 } RATIOMODE;
 
 

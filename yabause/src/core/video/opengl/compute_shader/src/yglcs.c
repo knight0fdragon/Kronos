@@ -192,20 +192,20 @@ void VIDCSRender(Vdp2 *varVdp2Regs) {
    int Intw = (int)(floor((float)GlWidth/(float)width));
    int Inth = (int)(floor((float)GlHeight/(float)_Ygl->height));
    int Int  = 1;
-   int modeScreen = _Ygl->stretch;
+   RATIOMODE modeScreen = _Ygl->stretch;
    #ifndef __LIBRETRO__
    if (yabsys.isRotated) par = 1.0/par;
    #endif
    if (Intw == 0) {
      if (warning == 0) YuiMsg("Window width is too small - Do not use integer scaling or reduce scaling\n");
      warning = 1;
-     modeScreen = 0;
+     modeScreen = ORIGINAL_RATIO;
      Intw = 1;
    }
    if (Inth == 0) {
      if (warning == 0) YuiMsg("Window height is too small - Do not use integer scaling or reduce scaling\n");
      warning = 1;
-     modeScreen = 0;
+     modeScreen = ORIGINAL_RATIO;
      Inth = 1;
    }
    Int = (Inth<Intw)?Inth:Intw;
@@ -217,19 +217,19 @@ void VIDCSRender(Vdp2 *varVdp2Regs) {
    glBindVertexArray(_Ygl->vao);
 #ifndef __LIBRETRO__
    switch(modeScreen) {
-     case 0:
+     case ORIGINAL_RATIO:
        w = (dar>par)?(double)GlHeight*par:GlWidth;
        h = (dar>par)?(double)GlHeight:(double)GlWidth/par;
        x = (GlWidth-w)/2;
        y = (GlHeight-h)/2;
        break;
-     case 1:
+     case STRETCH_RATIO:
        w = GlWidth;
        h = GlHeight;
        x = 0;
        y = 0;
        break;
-     case 2:
+     case INTEGER_RATIO:
        w = Int * width;
        h = Int * _Ygl->height;
        x = (GlWidth-w)/2;
