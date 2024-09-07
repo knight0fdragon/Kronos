@@ -111,11 +111,12 @@ const Items mPolygonGenerationMode = Items()
 	<< Item("2", "GPU Tesselation");
 
 const Items mResolutionMode = Items()
-	<< Item("1", "Original (original resolution of the Saturn)")
-	<< Item("2", "480p")
-	<< Item("4", "720p")
-	<< Item("8", "1080p")
-	<< Item("16", "Native (current resolution of the window)");
+	<< Item("1", "SD (original resolution of the Saturn)")
+	<< Item("4", "HD")
+	<< Item("8", "Full HD")
+	<< Item("16", "2K")
+	<< Item("32", "4K")
+	<< Item("64", "Native (current resolution of the window)");
 
 const Items mAspectRatio = Items()
 	<< Item("0", "Original aspect ratio")

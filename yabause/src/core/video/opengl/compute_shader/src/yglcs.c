@@ -190,19 +190,21 @@ void VIDCSRender(Vdp2 *varVdp2Regs) {
 
    int width = (_Ygl->interlace == SINGLE)?_Ygl->width*2:_Ygl->width;
    int Intw = (int)(floor((float)GlWidth/(float)width));
+   printf("resize intw %d %d\n", GlWidth, width);
+   printf("resize inth %d %d\n", GlHeight, _Ygl->height);
    int Inth = (int)(floor((float)GlHeight/(float)_Ygl->height));
    int Int  = 1;
    RATIOMODE modeScreen = _Ygl->stretch;
    #ifndef __LIBRETRO__
    if (yabsys.isRotated) par = 1.0/par;
    #endif
-   if (Intw == 0) {
+   if ((Intw == 0)&&(modeScreen == INTEGER_RATIO)) {
      if (warning == 0) YuiMsg("Window width is too small - Do not use integer scaling or reduce scaling\n");
      warning = 1;
      modeScreen = ORIGINAL_RATIO;
      Intw = 1;
    }
-   if (Inth == 0) {
+   if ((Inth == 0)&&(modeScreen == INTEGER_RATIO)) {
      if (warning == 0) YuiMsg("Window height is too small - Do not use integer scaling or reduce scaling\n");
      warning = 1;
      modeScreen = ORIGINAL_RATIO;

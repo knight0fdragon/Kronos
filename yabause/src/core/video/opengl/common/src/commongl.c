@@ -2128,15 +2128,19 @@ void YglChangeResolution(int w, int h) {
     uw = w * _Ygl->vdp2hdensity; //uniformize density
   }
   int maxRes = GlHeight;
+  printf("Request resolution %d %d (%d) [%d %d]\n", _Ygl->resolution_mode, uh, h, uw, w);
   switch (_Ygl->resolution_mode) {
-    case RES_480p: //480p
-      scale = floor(480.0/(float)uh);
+    case RES_HD: //720p
+    scale = floor(360.0/(float)uh);
     break;
-    case RES_720p: //720p
+    case RES_FHD: //1080p
+    scale = floor(540.0/(float)uh);
+    break;
+    case RES_2K: //1440p
     scale = floor(720.0/(float)uh);
     break;
-    case RES_1080p: //1080p
-    scale = floor(1080.0/(float)uh);
+    case RES_4K: //2160
+    scale = floor(1080/(float)uh);
     break;
     case RES_NATIVE: //Native
     if ((GlHeight * uw) > (GlWidth * uh)) {

@@ -978,11 +978,11 @@ void check_variables(void)
       if (strcmp(var.value, "original") == 0)
          resolution_mode = RES_ORIGINAL;
       else if (strcmp(var.value, "480p") == 0)
-         resolution_mode = RES_480p;
+         resolution_mode = RES_SD;
       else if (strcmp(var.value, "720p") == 0)
-         resolution_mode = RES_720p;
+         resolution_mode = RES_HD;
       else if (strcmp(var.value, "1080p") == 0)
-         resolution_mode = RES_1080p;
+         resolution_mode = RES_FHD;
       else if (strcmp(var.value, "4k") == 0)
       {
          resolution_mode = RES_NATIVE;
@@ -1138,15 +1138,15 @@ void retro_get_system_av_info(struct retro_system_av_info *info)
       switch(resolution_mode)
       {
          case RES_ORIGINAL:
-         case RES_480p:
+         case RES_SD:
             window_width = 704;
             window_height = 512;
             break;
-         case RES_720p:
+         case RES_HD:
             window_width = 1280;
             window_height = 720;
             break;
-         case RES_1080p:
+         case RES_FHD:
             window_width = 1920;
             window_height = 1080;
             break;
