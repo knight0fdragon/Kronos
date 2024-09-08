@@ -2734,10 +2734,8 @@ static INLINE int Vdp2CheckWindow(vdp2draw_struct *info, int x, int y, int area,
     if (win[y] == 0) return 1;
     if (x < upLx) return 1;
     if (x > upRx) return 1;
-    printf("%d\n", __LINE__);
     return 0;
   }
-  printf("%d\n", __LINE__);
   return 0;
 }
 

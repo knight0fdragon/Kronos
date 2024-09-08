@@ -18,8 +18,9 @@
 
 extern vdp2rotationparameter_struct  Vdp1ParaA;
 
-static int local_size_x = LOCAL_SIZE_X;
-static int local_size_y = LOCAL_SIZE_Y;
+static int local_size_x = 10;
+static int local_size_y = 10;
+
 
 static int tex_width;
 static int tex_height;
@@ -231,8 +232,9 @@ static void regenerateMeshTex(int w, int h) {
 
 static void vdp1_clear_mesh() {
 	int progId = CLEAR_MESH;
-	if (prg_vdp1[progId] == 0)
-    prg_vdp1[progId] = createProgram(sizeof(a_prg_vdp1[progId]) / sizeof(char*), (const GLchar**)a_prg_vdp1[progId]);
+	if (prg_vdp1[progId] == 0) {
+		prg_vdp1[progId] = createProgram(sizeof(a_prg_vdp1[progId]) / sizeof(char*), (const GLchar**)a_prg_vdp1[progId]);
+	}
   glUseProgram(prg_vdp1[progId]);
 	glBindImageTexture(0, mesh_tex[0], 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
 	glBindImageTexture(1, mesh_tex[1], 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
@@ -577,8 +579,9 @@ void vdp1_clear(int id, float *col, int* lim) {
 	int progId = CLEAR;
 	int limits[4];
 	memcpy(limits, lim, 4*sizeof(int));
-	if (prg_vdp1[progId] == 0)
-    prg_vdp1[progId] = createProgram(sizeof(a_prg_vdp1[progId]) / sizeof(char*), (const GLchar**)a_prg_vdp1[progId]);
+	if (prg_vdp1[progId] == 0) {
+		prg_vdp1[progId] = createProgram(sizeof(a_prg_vdp1[progId]) / sizeof(char*), (const GLchar**)a_prg_vdp1[progId]);
+	}
 	limits[0] = limits[0]*_Ygl->vdp1width/512;
 	limits[1] = limits[1]*_Ygl->vdp1height/256;
 	limits[2] = limits[2]*_Ygl->vdp1width/512;
@@ -616,8 +619,9 @@ u32* vdp1_read(int frame) {
 	int progId = READ;
 	float wratio = 1.0f/_Ygl->vdp1wratio;
 	float hratio = 1.0f/_Ygl->vdp1hratio;
-	if (prg_vdp1[progId] == 0)
-    prg_vdp1[progId] = createProgram(sizeof(a_prg_vdp1[progId]) / sizeof(char*), (const GLchar**)a_prg_vdp1[progId]);
+	if (prg_vdp1[progId] == 0){
+		prg_vdp1[progId] = createProgram(sizeof(a_prg_vdp1[progId]) / sizeof(char*), (const GLchar**)a_prg_vdp1[progId]);
+	}
   glUseProgram(prg_vdp1[progId]);
 
 	glBindImageTexture(0, get_vdp1_tex(frame), 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA8);
@@ -641,6 +645,27 @@ u32* vdp1_read(int frame) {
 
 void vdp1_compute_init(int width, int height, float ratiow, float ratioh)
 {
+	GLint maxInvocations;
+	glGetIntegerv(GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS, &maxInvocations);
+
+	local_size_x = sqrtf(maxInvocations);
+	local_size_y = sqrtf(maxInvocations);
+
+	int length = sizeof(vdp1_write_f_base) + 64;
+	snprintf(vdp1_write_f,length,vdp1_write_f_base,local_size_x,local_size_y);
+
+	length = sizeof(vdp1_read_f_base) + 64;
+	snprintf(vdp1_read_f,length,vdp1_read_f_base,local_size_x,local_size_y);
+
+	length = sizeof(vdp1_clear_f_base) + 64;
+	snprintf(vdp1_clear_f,length,vdp1_clear_f_base,local_size_x,local_size_y);
+
+	length = sizeof(vdp1_clear_mesh_f_base) + 64;
+	snprintf(vdp1_clear_mesh_f,length,vdp1_clear_mesh_f_base,local_size_x,local_size_y);
+
+	length = sizeof(vdp1_start_f_base) + 64;
+	snprintf(vdp1_start_f,length,vdp1_start_f_base,local_size_x,local_size_y);
+
   int am = sizeof(vdp1cmd_struct) % 16;
   tex_width = width;
   tex_height = height;
@@ -725,8 +750,9 @@ void vdp1_compute() {
 		return;
 	}
 
-	if (prg_vdp1[progId] == 0)
-	prg_vdp1[progId] = createProgram(sizeof(a_prg_vdp1[progId]) / sizeof(char*), (const GLchar**)a_prg_vdp1[progId]);
+	if (prg_vdp1[progId] == 0){
+		prg_vdp1[progId] = createProgram(sizeof(a_prg_vdp1[progId]) / sizeof(char*), (const GLchar**)a_prg_vdp1[progId]);
+	}
 
 // YuiMsg("Use program 0x%x\n", progMask);
 

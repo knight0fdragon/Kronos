@@ -28,19 +28,16 @@ extern "C" {
 #define NB_COARSE_RAST_X 16
 #define NB_COARSE_RAST_Y 16
 
-#define LOCAL_SIZE_X 4
-#define LOCAL_SIZE_Y 4
-
 #define QUEUE_SIZE 512
 
 //#define SHOW_QUAD
 
-static const char vdp1_write_f[] =
+static const char vdp1_write_f_base[] =
 SHADER_VERSION_COMPUTE
 "#ifdef GL_ES\n"
 "precision highp float;\n"
 "#endif\n"
-"layout(local_size_x = "Stringify(LOCAL_SIZE_X)", local_size_y = "Stringify(LOCAL_SIZE_Y)") in;\n"
+"layout(local_size_x = %d, local_size_y = %d) in;\n"
 "layout(rgba8, binding = 0) writeonly uniform image2D outSurface;\n"
 "layout(rgba8, binding = 1) readonly uniform image2D fbSurface;\n"
 "layout(location = 2) uniform vec2 upscale;\n"
@@ -55,12 +52,14 @@ SHADER_VERSION_COMPUTE
 "  if (pix.a != 0.0) imageStore(outSurface,texel,vec4(pix.r, pix.g, 0.0, 0.0));\n"
 "}\n";
 
-static const char vdp1_read_f[] =
+static char vdp1_write_f[ sizeof(vdp1_write_f_base) + 64 ] = {};
+
+static const char vdp1_read_f_base[] =
 SHADER_VERSION_COMPUTE
 "#ifdef GL_ES\n"
 "precision highp float;\n"
 "#endif\n"
-"layout(local_size_x = "Stringify(LOCAL_SIZE_X)", local_size_y = "Stringify(LOCAL_SIZE_Y)") in;\n"
+"layout(local_size_x = %d, local_size_y = %d) in;\n"
 "layout(rgba8, binding = 0) readonly uniform image2D s_texture;  \n"
 "layout(std430, binding = 1) writeonly buffer VDP1FB { uint Vdp1FB[]; };\n"
 "layout(location = 2) uniform vec2 upscale;\n"
@@ -77,12 +76,14 @@ SHADER_VERSION_COMPUTE
 "  Vdp1FB[idx] = val;\n"
 "}\n";
 
-static const char vdp1_clear_f[] =
+static char vdp1_read_f[ sizeof(vdp1_read_f_base) + 64 ] = {};
+
+static const char vdp1_clear_f_base[] =
 SHADER_VERSION_COMPUTE
 "#ifdef GL_ES\n"
 "precision highp float;\n"
 "#endif\n"
-"layout(local_size_x = "Stringify(LOCAL_SIZE_X)", local_size_y = "Stringify(LOCAL_SIZE_Y)") in;\n"
+"layout(local_size_x = %d, local_size_y = %d) in;\n"
 "layout(rgba8, binding = 0) writeonly uniform image2D outSurface;\n"
 "layout(rgba8, binding = 1) writeonly uniform image2D outMesh;\n"
 "layout(location = 2) uniform vec4 col;\n"
@@ -100,12 +101,14 @@ SHADER_VERSION_COMPUTE
 "  imageStore(outMesh, texel, vec4(0.0));\n"
 "}\n";
 
-static const char vdp1_clear_mesh_f[] =
+static char vdp1_clear_f[ sizeof(vdp1_clear_f_base) + 64 ] = {};
+
+static const char vdp1_clear_mesh_f_base[] =
 SHADER_VERSION_COMPUTE
 "#ifdef GL_ES\n"
 "precision highp float;\n"
 "#endif\n"
-"layout(local_size_x = "Stringify(LOCAL_SIZE_X)", local_size_y = "Stringify(LOCAL_SIZE_Y)") in;\n"
+"layout(local_size_x = %d, local_size_y = %d) in;\n"
 "layout(rgba8, binding = 0) writeonly uniform image2D outMesh0;\n"
 "layout(rgba8, binding = 1) writeonly uniform image2D outMesh1;\n"
 "void main()\n"
@@ -116,6 +119,7 @@ SHADER_VERSION_COMPUTE
 "  imageStore(outMesh0, texel, vec4(0.0));\n"
 "  imageStore(outMesh1, texel, vec4(0.0));\n"
 "}\n";
+static char vdp1_clear_mesh_f[ sizeof(vdp1_clear_mesh_f_base) + 64 ] = {};
 
 #define COLINDEX(A) \
 "int col"Stringify(A)" = (int("Stringify(A)".r*255.0) | (int("Stringify(A)".g*255.0)<<8));\n"
@@ -185,7 +189,7 @@ Bg = clamp(Bg + mix(mix(pixcmd.G[2],pixcmd.G[6],gouraudcoord.x), mix(pixcmd.G[14
 "Stringify(A)".a = float((int(Bg*255.0)&0x7))/255.0;\n \
 ""\n"
 
-static const char vdp1_start_f[] =
+static const char vdp1_start_f_base[] =
 SHADER_VERSION_COMPUTE
 "#ifdef GL_ES\n"
 "precision highp float;\n"
@@ -224,7 +228,7 @@ SHADER_VERSION_COMPUTE
 "  int pad[2];\n"
 "};\n"
 
-"layout(local_size_x = "Stringify(LOCAL_SIZE_X)", local_size_y = "Stringify(LOCAL_SIZE_Y)") in;\n"
+"layout(local_size_x = %d, local_size_y = %d) in;\n"
 "layout(rgba8, binding = 0) uniform image2D outSurface;\n"
 "layout(rgba8, binding = 1) writeonly uniform image2D meshSurface;\n"
 "layout(rgba8, binding = 2) readonly uniform image2D FBSurface;\n"
@@ -605,6 +609,9 @@ SHADER_VERSION_COMPUTE
 "    texel = OriginTexel;\n"
      COLINDEX(finalColor)
      COLINDEX(newColor);
+
+static char vdp1_start_f[ sizeof(vdp1_start_f_base) + 64 ] = {};
+
 static const char vdp1_banding_f[] =
 "    if ((pixcmd.CMDPMOD & 0x8000u) == 0x8000u) {\n"
 "       //MSB shadow\n"

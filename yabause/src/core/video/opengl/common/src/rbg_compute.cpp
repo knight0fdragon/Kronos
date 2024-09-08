@@ -29,14 +29,14 @@ extern "C"{
 
 #define DEBUGWIP
 
-const char prg_generate_rbg[] =
+const char prg_generate_rbg_base[] =
 SHADER_VERSION_COMPUTE
 "#ifdef GL_ES\n"
 "precision highp float; \n"
 "precision highp int;\n"
 "precision highp image2D;\n"
 "#endif\n"
-"layout(local_size_x = 4, local_size_y = 4) in;\n"
+"layout(local_size_x = %d, local_size_y = %d) in;\n"
 "layout(rgba8, binding = 0) writeonly uniform image2D outSurface;\n"
 "layout(std430, binding = 1) readonly buffer VDP2 { uint vram[]; };\n"
 " struct vdp2rotationparameter_struct{ \n"
@@ -287,6 +287,8 @@ SHADER_VERSION_COMPUTE
 "  if( (index & 0x02u) != 0u ) { temp >>= 16; } \n"
 "  return vec4(float((temp >> 0) &0x1F)/31.0, float((temp >> 5) & 0x1Fu)/31.0, float((temp >> 10) &0x1F)/31.0,alpha_lncl);\n"
 "}\n";
+
+char prg_generate_rbg[ sizeof(prg_generate_rbg_base) + 64 ] = {};
 
 const char prg_continue_rbg[] =
 //----------------------------------------------------------------------
@@ -1135,6 +1137,9 @@ class RBGGenerator{
 
   void * mapped_vram = nullptr;
 
+	int local_size_x = 10;
+	int local_size_y = 10;
+
 protected:
   RBGGenerator() {
     tex_surface_ = 0;
@@ -1288,6 +1293,15 @@ public:
 
   //-----------------------------------------------
   void init( int width, int height ) {
+
+    GLint maxInvocations;
+    glGetIntegerv(GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS, &maxInvocations);
+
+    local_size_x = sqrtf(maxInvocations);
+    local_size_y = sqrtf(maxInvocations);
+
+    int length = sizeof(prg_generate_rbg_base) + 64;
+    snprintf(prg_generate_rbg,length,prg_generate_rbg_base,local_size_x,local_size_y);
 
 	resize(width,height);
 	if (ssbo_vram_ != 0) return; // always inisialized!
@@ -2219,8 +2233,6 @@ DEBUGWIP("Init\n");
     if (prg_rbg_0_2w_p1_4bpp_ == 0) return;
 
     GLuint error;
-    int local_size_x = 4;
-    int local_size_y = 4;
 
     int work_groups_x = ceil(float(tex_width_) / float(local_size_x));
     int work_groups_y = ceil(float(tex_height_) / float(local_size_y));
