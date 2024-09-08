@@ -190,8 +190,6 @@ void VIDCSRender(Vdp2 *varVdp2Regs) {
 
    int width = (_Ygl->interlace == SINGLE)?_Ygl->width*2:_Ygl->width;
    int Intw = (int)(floor((float)GlWidth/(float)width));
-   printf("resize intw %d %d\n", GlWidth, width);
-   printf("resize inth %d %d\n", GlHeight, _Ygl->height);
    int Inth = (int)(floor((float)GlHeight/(float)_Ygl->height));
    int Int  = 1;
    RATIOMODE modeScreen = _Ygl->stretch;
