@@ -508,9 +508,9 @@ typedef enum {
 } SpriteMode;
 
 typedef enum {
-	NORMAL = 0,
-	DOUBLE = 1,
-	SINGLE = 2
+	NORMAL_INTERLACE = 0,
+	DOUBLE_INTERLACE = 1,
+	SINGLE_INTERLACE = 2
 } InterlaceMode;
 
 typedef struct {

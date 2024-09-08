@@ -188,7 +188,7 @@ void VIDCSRender(Vdp2 *varVdp2Regs) {
    double dar = (double)GlWidth/(double)GlHeight;
    double par = 4.0/3.0;
 
-   int width = (_Ygl->interlace == SINGLE)?_Ygl->width*2:_Ygl->width;
+   int width = (_Ygl->interlace == SINGLE_INTERLACE)?_Ygl->width*2:_Ygl->width;
    int Intw = (int)(floor((float)GlWidth/(float)width));
    int Inth = (int)(floor((float)GlHeight/(float)_Ygl->height));
    int Int  = 1;
@@ -297,7 +297,7 @@ void VIDCSRender(Vdp2 *varVdp2Regs) {
 
   for (int i = 0; i < SPRITE; i++) {
     if ((i == RBG0) || (i == RBG1)) {
-      if (_Ygl->interlace == NORMAL) {
+      if (_Ygl->interlace == NORMAL_INTERLACE) {
         glViewport(0, 0, _Ygl->width, _Ygl->height);
         glScissor(0, 0, _Ygl->width, _Ygl->height);
       } else {

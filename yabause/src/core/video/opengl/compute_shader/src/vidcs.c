@@ -219,7 +219,7 @@ static void Vdp2DrawPatternPos(Vdp2Ctrl *ctrl, int x, int y, int cx, int cy, int
 {
   u64 cacheaddr = (ctrl->info.paladdr << 20) | ctrl->info.charaddr | ctrl->info.transparencyenable |
     ((ctrl->info.patternpixelwh >> 4) << 1) | (((u64)(ctrl->info.coloroffset >> 8) & 0x07) << 32) | (((u64)(ctrl->info.idScreen) & 0x07) << 39);
-  if (_Ygl->interlace == DOUBLE)
+  if (_Ygl->interlace == DOUBLE_INTERLACE)
     cacheaddr |= ((u32)(ctrl->info.alpha_per_line[y>>1] >> 3) << 27);
   else
     cacheaddr |= ((u32)(ctrl->info.alpha_per_line[y] >> 3) << 27);
@@ -484,7 +484,7 @@ static void Vdp2DrawRotation_in_sync(RBGDrawInfo * rbg)
     rbg->hres *= _Ygl->widthRatio;
     rbg->vres *= _Ygl->heightRatio;
 
-    if (_Ygl->interlace == NORMAL)
+    if (_Ygl->interlace == NORMAL_INTERLACE)
       RBGGenerator_init(_Ygl->width, _Ygl->height);
     else {
       RBGGenerator_init(_Ygl->width, _Ygl->height/2);
@@ -940,7 +940,7 @@ static void Vdp2DrawNBG0(Vdp2* varVdp2Regs) {
   ctrl.info.endLine = (yabsys.VBlankLineCount < 270)?yabsys.VBlankLineCount:270;
 
   ctrl.info.cellh = 256;
-  if (_Ygl->interlace == DOUBLE) ctrl.info.cellh = ctrl.info.cellh << 1;
+  if (_Ygl->interlace == DOUBLE_INTERLACE) ctrl.info.cellh = ctrl.info.cellh << 1;
   ctrl.info.specialcolorfunction = 0;
 
     // NBG0 mode
@@ -1119,7 +1119,7 @@ static void Vdp2DrawNBG0(Vdp2* varVdp2Regs) {
         } else {
           infotmp.cellh = _Ygl->rheight;
         }
-        if (_Ygl->interlace == DOUBLE) infotmp.cellh = infotmp.cellh << 1;
+        if (_Ygl->interlace == DOUBLE_INTERLACE) infotmp.cellh = infotmp.cellh << 1;
         YglQuad(&infotmp, &ctrl.texture, &tmpc, YglTM_vdp2);
         Vdp2DrawBitmapCoordinateInc(&ctrl);
       }
@@ -1145,7 +1145,7 @@ static void Vdp2DrawNBG0(Vdp2* varVdp2Regs) {
           vdp2draw_struct infotmp = ctrl.info;
           infotmp.cellw = _Ygl->rwidth;
           infotmp.cellh = _Ygl->rheight;
-          if (_Ygl->interlace == DOUBLE) infotmp.cellh = infotmp.cellh << 1;
+          if (_Ygl->interlace == DOUBLE_INTERLACE) infotmp.cellh = infotmp.cellh << 1;
           YglQuad(&infotmp, &ctrl.texture, &tmpc, YglTM_vdp2);
           Vdp2DrawBitmapLineScroll(&ctrl, _Ygl->rwidth, _Ygl->rheight);
 
@@ -1423,7 +1423,7 @@ static void Vdp2DrawNBG1(Vdp2* varVdp2Regs)
         infotmp.cellh = (_Ygl->rheight >> 1);
       else
         infotmp.cellh = _Ygl->rheight;
-      if (_Ygl->interlace == DOUBLE) infotmp.cellh = infotmp.cellh << 1;
+      if (_Ygl->interlace == DOUBLE_INTERLACE) infotmp.cellh = infotmp.cellh << 1;
       YglQuad(&infotmp, &ctrl.texture, &tmpc, YglTM_vdp2);
       Vdp2DrawBitmapCoordinateInc(&ctrl);
     }
@@ -1452,7 +1452,7 @@ static void Vdp2DrawNBG1(Vdp2* varVdp2Regs)
           infotmp.cellh = (_Ygl->rheight >> 1);
         else
           infotmp.cellh = _Ygl->rheight;
-        if (_Ygl->interlace == DOUBLE) infotmp.cellh = infotmp.cellh << 1;
+        if (_Ygl->interlace == DOUBLE_INTERLACE) infotmp.cellh = infotmp.cellh << 1;
         YglQuad(&infotmp, &ctrl.texture, &tmpc, YglTM_vdp2);
         Vdp2DrawBitmapLineScroll(&ctrl, _Ygl->rwidth, _Ygl->rheight);
       }
@@ -2288,17 +2288,17 @@ static void Vdp2SetResolution(u16 TVMD)
 
   hratio = 1;
 
-  _Ygl->interlace = NORMAL;
+  _Ygl->interlace = NORMAL_INTERLACE;
   // Check for interlace
   switch ((TVMD >> 6) & 0x3)
   {
   case 3: // Double-density Interlace
     // height *= 2;
     hratio = 2;
-    _Ygl->interlace = DOUBLE;
+    _Ygl->interlace = DOUBLE_INTERLACE;
     break;
   case 2: // Single-density Interlace
-    _Ygl->interlace = SINGLE;
+    _Ygl->interlace = SINGLE_INTERLACE;
     break;
   case 0: // Non-interlace
   default:
@@ -2626,7 +2626,7 @@ void Vdp2GenerateWindowInfo(Vdp2 *varVdp2Regs)
   HShift = 0;
   if (_Ygl->rwidth >= 640) HShift = 0; else HShift = 1;
 
-  int step = (_Ygl->interlace == DOUBLE)?2:1;
+  int step = (_Ygl->interlace == DOUBLE_INTERLACE)?2:1;
   // Line Table mode
   if ((varVdp2Regs->LWTA0.part.U & 0x8000))
   {
@@ -2712,7 +2712,7 @@ static INLINE int Vdp2CheckWindow(vdp2draw_struct *info, int x, int y, int area,
 {
   if (y < 0) return 0;
 
-  if (_Ygl->interlace == DOUBLE) y >>= 1;
+  if (_Ygl->interlace == DOUBLE_INTERLACE) y >>= 1;
 
   if (y >= _Ygl->rheight) return 0;
   int upLx = win[y] & 0xFFFF;
@@ -3013,7 +3013,7 @@ static INLINE u32 Vdp2GetPixel32bppbmp(Vdp2Ctrl *ctrl, u32 addr) {
 
 static u32 getAlpha(vdp2draw_struct *info, int id) {
   int shift = 0;
-  if (_Ygl->interlace == DOUBLE) shift = 1;
+  if (_Ygl->interlace == DOUBLE_INTERLACE) shift = 1;
   int idx = info->draw_line + id;
   if (idx < 0) idx = 0;
   if ((idx>>shift) > yabsys.VBlankLineCount) idx = yabsys.VBlankLineCount<<shift;
@@ -3100,7 +3100,7 @@ static void FASTCALL Vdp2DrawBitmapLineScroll(Vdp2Ctrl *ctrl, int width, int hei
 {
   int i, j;
   int shift = 0;
-  if (_Ygl->interlace == DOUBLE) shift = 1;
+  if (_Ygl->interlace == DOUBLE_INTERLACE) shift = 1;
 
   for (i = 0; i < height; i++)
   {
@@ -3183,7 +3183,7 @@ static void FASTCALL Vdp2DrawBitmapCoordinateInc(Vdp2Ctrl *ctrl)
   u32 color;
   int i, j;
   int shift = 0;
-  if (_Ygl->interlace == DOUBLE) shift = 1;
+  if (_Ygl->interlace == DOUBLE_INTERLACE) shift = 1;
   int incv = 1.0 / ctrl->info.coordincy*256.0;
   int inch = 1.0 / ctrl->info.coordincx*256.0;
   for (i = 0; i < _Ygl->rheight; i ++)
@@ -3318,7 +3318,7 @@ static INLINE u32 Vdp2RotationFetchPixel(vdp2draw_struct *info, int x, int y, in
   u32 dot;
   u32 cramindex;
   int shift = 0;
-  if (_Ygl->interlace == DOUBLE) shift = 1;
+  if (_Ygl->interlace == DOUBLE_INTERLACE) shift = 1;
   u32 alpha = info->alpha_per_line[info->draw_line>>shift];
   u8 lowdot = 0x00;
   u32 priority = 0;
@@ -3658,7 +3658,7 @@ static void Vdp2DrawMapTest(Vdp2Ctrl *ctrl, int delayed) {
   ctrl->info.patternpixelwh = 8 * ctrl->info.patternwh;
   ctrl->info.draww = (int)((float)_Ygl->rwidth / ctrl->info.coordincx);
   ctrl->info.drawh = (int)((float)_Ygl->rheight / ctrl->info.coordincy);
-  if (_Ygl->interlace == DOUBLE) ctrl->info.drawh *= 2;
+  if (_Ygl->interlace == DOUBLE_INTERLACE) ctrl->info.drawh *= 2;
   ctrl->info.lineinc = ctrl->info.patternpixelwh;
 
   //ctrl->info.coordincx = 1.0f;
@@ -4070,7 +4070,7 @@ static void Vdp2DrawRBG1_part(RBGDrawInfo *rbg)
   YglCache tmpc;
   vdp2draw_struct* info = &rbg->ctrl.info;
   int shift = 0;
-  if (_Ygl->interlace == DOUBLE) shift = 1;
+  if (_Ygl->interlace == DOUBLE_INTERLACE) shift = 1;
 
   info->dst = 0;
   info->idScreen = RBG1;

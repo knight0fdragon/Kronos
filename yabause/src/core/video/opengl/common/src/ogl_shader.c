@@ -187,12 +187,12 @@ int Ygl_uniformNormalCram(void * p, YglTextureManager *tm, Vdp2 *varVdp2Regs, in
   glUniform1i(id_normal_cram_s_texture, 0);
   glUniform1i(id_normal_cram_s_color, 1);
   glUniform1f(id_normal_cram_vdp2_hratio, (float)_Ygl->vdp2hdensity);
-  glUniform1i(id_normal_cram_vdp2_interlace, (_Ygl->interlace==DOUBLE)?1:0);
+  glUniform1i(id_normal_cram_vdp2_interlace, (_Ygl->interlace==DOUBLE_INTERLACE)?1:0);
   glUniform1i(id_normal_cram_vdp2_frame, ((varVdp2Regs->TVSTAT>>1)&0x1)==1);
   if ((id == RBG0)||(id == RBG1)){
     glUniform1f(id_normal_cram_emu_height, (float)_Ygl->rheight / (float)_Ygl->height);
     glUniform1f(id_normal_cram_emu_width, (float)_Ygl->rwidth /(float)_Ygl->width);
-    if (_Ygl->interlace == NORMAL)
+    if (_Ygl->interlace == NORMAL_INTERLACE)
       glUniform1f(id_normal_cram_vheight, (float)_Ygl->height);
     else
       glUniform1f(id_normal_cram_vheight, (float)(_Ygl->height>>1));
@@ -1139,7 +1139,7 @@ int YglBlitTexture(int* prioscreens, int* modescreens, int* isRGB, int * isBlur,
     );
   YGLLOG("result => %f\n", _Ygl->vdp1hratio*_Ygl->vdp1hdensity/_Ygl->vdp2hdensity * (float)_Ygl->rheight/(float)_Ygl->height);
 
-  if (_Ygl->interlace == DOUBLE) {
+  if (_Ygl->interlace == DOUBLE_INTERLACE) {
     glUniform2f(glGetUniformLocation(vdp2blit_prg, "u_emu_vdp1_ratio"),
       _Ygl->vdp1wratio*_Ygl->vdp1wdensity/_Ygl->vdp2wdensity * (float)_Ygl->rwidth/(float)_Ygl->width,
       _Ygl->vdp1hratio*_Ygl->vdp1hdensity/_Ygl->vdp2hdensity * (float)(_Ygl->rheight<<1)/(float)_Ygl->height
@@ -1174,7 +1174,7 @@ int YglBlitTexture(int* prioscreens, int* modescreens, int* isRGB, int * isBlur,
   glUniform1i(glGetUniformLocation(vdp2blit_prg, "win1_mode"), Win1_mode);
   glUniform1i(glGetUniformLocation(vdp2blit_prg, "win_op"), Win_op);
 #ifndef __LIBRETRO__
-  if (_Ygl->interlace == NORMAL){
+  if (_Ygl->interlace == NORMAL_INTERLACE){
     //double density interlaced or progressive _ Do not mix fields. Maybe required by double density. To check
     glUniform1i(glGetUniformLocation(vdp2blit_prg, "nbFrame"),2);
   } else {
@@ -1805,7 +1805,7 @@ static const char fblitbilinear_img[] =
 GLuint textureCoord_buf[2] = {0,0};
 
 static int last_upmode = 0;
-static InterlaceMode last_interlace = NORMAL;
+static InterlaceMode last_interlace = NORMAL_INTERLACE;
 
 int YglBlitFramebuffer(u32 srcTexture, float w, float h, float dispw, float disph) {
   float width = w;
@@ -1868,7 +1868,7 @@ int YglBlitFramebuffer(u32 srcTexture, float w, float h, float dispw, float disp
     height = scale*_Ygl->rheight;
   }
   //if ((aamode == AA_NONE) && ((w != dispw) || (h != disph))) aamode = AA_BILINEAR_FILTER;
-  if (_Ygl->interlace == NORMAL) {
+  if (_Ygl->interlace == NORMAL_INTERLACE) {
     if (aamode >= AA_BOB_SECURE_FILTER) {
       aamode = AA_NONE;
     }
@@ -1904,13 +1904,13 @@ int YglBlitFramebuffer(u32 srcTexture, float w, float h, float dispw, float disp
     }
     switch(aamode) {
       case AA_NONE:
-        if (_Ygl->interlace == NORMAL)
+        if (_Ygl->interlace == NORMAL_INTERLACE)
           glShaderSource(fshader, 4, fblit_img_v, NULL);
         else
           glShaderSource(fshader, 4, fblit_img_interlace_v, NULL);
         break;
       case AA_BILINEAR_FILTER:
-        if (_Ygl->interlace == NORMAL)
+        if (_Ygl->interlace == NORMAL_INTERLACE)
           glShaderSource(fshader, 4, fblitbilinear_img_v, NULL);
         else
           glShaderSource(fshader, 4, fblitbilinear_img_interlace_v, NULL);
@@ -1931,7 +1931,7 @@ int YglBlitFramebuffer(u32 srcTexture, float w, float h, float dispw, float disp
         glShaderSource(fshader, 4, fblit_bob_ossc_debug_img_v, NULL);
         break;
       case AA_SCANLINE:
-        if (_Ygl->interlace == NORMAL)
+        if (_Ygl->interlace == NORMAL_INTERLACE)
           glShaderSource(fshader, 5, fblit_img_scanline_is_v, NULL);
         else
           glShaderSource(fshader, 5, fblit_img_scanline_is_interlace_v, NULL);

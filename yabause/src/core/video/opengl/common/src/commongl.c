@@ -721,7 +721,7 @@ static int YglGenerateScreenBuffer(){
   //Generate fbo and texture fr rbh compute shader
   glGenTextures(2, &_Ygl->rbg_compute_fbotex[0]);
   glBindTexture(GL_TEXTURE_2D, _Ygl->rbg_compute_fbotex[0]);
-  if (_Ygl->interlace == NORMAL)
+  if (_Ygl->interlace == NORMAL_INTERLACE)
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _Ygl->width, _Ygl->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
   else
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _Ygl->width, _Ygl->height>>1, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
@@ -730,7 +730,7 @@ static int YglGenerateScreenBuffer(){
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   glBindTexture(GL_TEXTURE_2D, _Ygl->rbg_compute_fbotex[1]);
-  if (_Ygl->interlace == NORMAL)
+  if (_Ygl->interlace == NORMAL_INTERLACE)
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _Ygl->width, _Ygl->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
   else
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _Ygl->width, _Ygl->height>>1, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
@@ -1042,7 +1042,7 @@ int YglInit(int width, int height, unsigned int depth) {
   glBindTexture(GL_TEXTURE_2D, 0);
   _Ygl->st = 0;
   _Ygl->aamode = AA_NONE;
-  _Ygl->interlace = NORMAL;
+  _Ygl->interlace = NORMAL_INTERLACE;
   _Ygl->stretch = ORIGINAL_RATIO;
   _Ygl->wireframe_mode = 0;
 
@@ -1527,7 +1527,7 @@ void YglSetVDP2Reg(u8 * pbuf, int start, int size){
 void YglUpdateVdp2Reg() {
   int needupdate = 0;
   int size = sizeof(char);
-  int step = (_Ygl->interlace == DOUBLE)?2:1;
+  int step = (_Ygl->interlace == DOUBLE_INTERLACE)?2:1;
   for (int i = 0; i<_Ygl->rheight; i++) {
     Vdp2 *varVdp2Regs = &Vdp2Lines[i/step];
     u8 bufline[NB_VDP2_REG*4] = {0};
@@ -2178,11 +2178,11 @@ void YglChangeResolution(int w, int h) {
 
   if (_Ygl->rheight >= 448) _Ygl->heightRatio *= 2.0f;
   if (_Ygl->rwidth >= 640) _Ygl->widthRatio *= 2.0f;
-  if (_Ygl->interlace == DOUBLE)
+  if (_Ygl->interlace == DOUBLE_INTERLACE)
     YglOrtho(&_Ygl->rbgModelView, 0.0f, (float)_Ygl->rwidth, (float)(_Ygl->rheight<<1), 0.0f, 10.0f, 0.0f);
   else
     YglOrtho(&_Ygl->rbgModelView, 0.0f, (float)_Ygl->rwidth, (float)_Ygl->rheight, 0.0f, 10.0f, 0.0f);
-  if (_Ygl->interlace != NORMAL) {
+  if (_Ygl->interlace != NORMAL_INTERLACE) {
     //Single interlace So we need Twice number of lines
     _Ygl->height *= 2;
   }

@@ -614,7 +614,7 @@ void Vdp2VBlankOUT(void) {
 
   FRAMELOG("***** VOUT %d *****", g_frame_count);
 
-   if (_Ygl->interlace == NORMAL){
+   if (_Ygl->interlace == NORMAL_INTERLACE){
      vdp2_is_odd_frame = 1;
    }else{ // p02_50.htm#TVSTAT_
      if (vdp2_is_odd_frame)
