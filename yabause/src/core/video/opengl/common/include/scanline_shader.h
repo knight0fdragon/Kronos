@@ -7,7 +7,7 @@ static const GLchar Yglprg_blit_scanline_f[] =
 
 static const GLchar Yglprg_blit_scanline_is_f[] =
 "    float alpha = 1.0f;\n"
-"    if (mod(int(gl_FragCoord.y), 2) == field) alpha = 0.3f;\n"
+"    if (mod(int(gl_FragCoord.y/scale), 2) == field) alpha = 0.3f;\n"
 "    fragColor = vec4(fragColor.xyz*alpha, 1.0);\n";
 
 #endif
