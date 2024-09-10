@@ -1114,11 +1114,7 @@ static void Vdp2DrawNBG0(Vdp2* varVdp2Regs) {
         ctrl.info.vertices[7] = _Ygl->rheight;
         vdp2draw_struct infotmp = ctrl.info;
         infotmp.cellw = _Ygl->rwidth;
-        if (_Ygl->rheight >= 448) {
-          infotmp.cellh = (_Ygl->rheight >> 1);
-        } else {
-          infotmp.cellh = _Ygl->rheight;
-        }
+        infotmp.cellh = _Ygl->rheight;
         if (_Ygl->interlace == DOUBLE_INTERLACE) infotmp.cellh = infotmp.cellh << 1;
         YglQuad(&infotmp, &ctrl.texture, &tmpc, YglTM_vdp2);
         Vdp2DrawBitmapCoordinateInc(&ctrl);
@@ -1421,10 +1417,7 @@ static void Vdp2DrawNBG1(Vdp2* varVdp2Regs)
       ctrl.info.vertices[7] = _Ygl->rheight;
       vdp2draw_struct infotmp = ctrl.info;
       infotmp.cellw = _Ygl->rwidth;
-      if (_Ygl->rheight >= 448)
-        infotmp.cellh = (_Ygl->rheight >> 1);
-      else
-        infotmp.cellh = _Ygl->rheight;
+      infotmp.cellh = _Ygl->rheight;
       if (_Ygl->interlace == DOUBLE_INTERLACE) infotmp.cellh = infotmp.cellh << 1;
       YglQuad(&infotmp, &ctrl.texture, &tmpc, YglTM_vdp2);
       Vdp2DrawBitmapCoordinateInc(&ctrl);
@@ -1450,10 +1443,7 @@ static void Vdp2DrawNBG1(Vdp2* varVdp2Regs)
         ctrl.info.vertices[7] = _Ygl->rheight;
         vdp2draw_struct infotmp = ctrl.info;
         infotmp.cellw = _Ygl->rwidth;
-        if (_Ygl->rheight >= 448)
-          infotmp.cellh = (_Ygl->rheight >> 1);
-        else
-          infotmp.cellh = _Ygl->rheight;
+        infotmp.cellh = _Ygl->rheight;
         if (_Ygl->interlace == DOUBLE_INTERLACE) infotmp.cellh = infotmp.cellh << 1;
         YglQuad(&infotmp, &ctrl.texture, &tmpc, YglTM_vdp2);
         Vdp2DrawBitmapLineScroll(&ctrl, _Ygl->rwidth, _Ygl->rheight);
