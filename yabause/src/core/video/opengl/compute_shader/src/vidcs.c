@@ -1189,6 +1189,8 @@ static void Vdp2DrawNBG0(Vdp2* varVdp2Regs) {
     else
     {
       if (ctrl.info.islinescroll) {
+        int screenH = _Ygl->rheight;
+        if (_Ygl->interlace == DOUBLE_INTERLACE) screenH <<= 1;
         ctrl.info.sh = (ctrl.regs->SCXIN0 & 0x7FF);
         ctrl.info.sv = (ctrl.regs->SCYIN0 & 0x7FF);
         ctrl.info.x = 0;
@@ -1198,13 +1200,13 @@ static void Vdp2DrawNBG0(Vdp2* varVdp2Regs) {
         ctrl.info.vertices[2] = _Ygl->rwidth;
         ctrl.info.vertices[3] = 0;
         ctrl.info.vertices[4] = _Ygl->rwidth;
-        ctrl.info.vertices[5] = _Ygl->rheight;
+        ctrl.info.vertices[5] = screenH;
         ctrl.info.vertices[6] = 0;
-        ctrl.info.vertices[7] = _Ygl->rheight;
+        ctrl.info.vertices[7] = screenH;
         vdp2draw_struct infotmp = ctrl.info;
         infotmp.cellw = _Ygl->rwidth;
         infotmp.cellh = _Ygl->rheight;
-
+        if (_Ygl->interlace == DOUBLE_INTERLACE) infotmp.cellh <<= 1;
         infotmp.flipfunction = 0;
 
         YglQuad(&infotmp, &ctrl.texture, &tmpc, YglTM_vdp2);
@@ -1498,6 +1500,8 @@ static void Vdp2DrawNBG1(Vdp2* varVdp2Regs)
       if (char_access == 0) {
         return;
       }
+      int screenH = _Ygl->rheight;
+      if (_Ygl->interlace == DOUBLE_INTERLACE) screenH <<= 1;
       ctrl.info.sh = (ctrl.regs->SCXIN1 & 0x7FF);
       ctrl.info.sv = (ctrl.regs->SCYIN1 & 0x7FF);
       ctrl.info.x = 0;
@@ -1507,12 +1511,13 @@ static void Vdp2DrawNBG1(Vdp2* varVdp2Regs)
       ctrl.info.vertices[2] = _Ygl->rwidth;
       ctrl.info.vertices[3] = 0;
       ctrl.info.vertices[4] = _Ygl->rwidth;
-      ctrl.info.vertices[5] = _Ygl->rheight;
+      ctrl.info.vertices[5] = screenH;
       ctrl.info.vertices[6] = 0;
-      ctrl.info.vertices[7] = _Ygl->rheight;
+      ctrl.info.vertices[7] = screenH;
       vdp2draw_struct infotmp = ctrl.info;
       infotmp.cellw = _Ygl->rwidth;
       infotmp.cellh = _Ygl->rheight;
+      if (_Ygl->interlace == DOUBLE_INTERLACE) infotmp.cellh <<= 1;
       infotmp.flipfunction = 0;
 
       YglQuad(&infotmp, &ctrl.texture, &tmpc, YglTM_vdp2);
@@ -3435,13 +3440,9 @@ static void Vdp2DrawMapPerLine(Vdp2Ctrl *ctrl) {
   int prepagey = -1;
   int mapid = 0;
   int premapid = -1;
-  int scaleh = 0;
 
   ctrl->info.patternpixelwh = 8 * ctrl->info.patternwh;
   ctrl->info.draww = _Ygl->rwidth;
-
-  if (_Ygl->rheight >= 448)
-    scaleh = 1;
 
   const int incv = 1.0 / ctrl->info.coordincy*256.0;
   const int res_shift = 0;
@@ -3461,10 +3462,9 @@ static void Vdp2DrawMapPerLine(Vdp2Ctrl *ctrl) {
     linemask = 0x07;
     break;
   }
-
-
-  for (v = 0; v < _Ygl->rheight; v += 1) {  // ToDo: ctrl->info.coordincy
-
+  int screenH = _Ygl->rheight;
+  if (_Ygl->interlace == DOUBLE_INTERLACE) screenH <<= 1;
+  for (v = 0; v < screenH; v++) {  // ToDo: ctrl->info.coordincy
     int targetv = 0;
 
     if (VDPLINE_SX(ctrl->info.islinescroll)) {
@@ -3557,8 +3557,9 @@ static void Vdp2DrawMapPerLine(Vdp2Ctrl *ctrl) {
         prepagex = pagex;
         prepagey = pagey;
       }
-      ctrl->info.draw_line = v>>scaleh;
-      ctrl->info.priority = getPriority(ctrl->info.idScreen, &Vdp2Lines[v>>scaleh]); //MapPerLine is called only for NBG0 and NBG1
+      ctrl->info.draw_line = v;
+      if (_Ygl->interlace == DOUBLE_INTERLACE) v>>= 1;
+      ctrl->info.priority = getPriority(ctrl->info.idScreen, &Vdp2Lines[ctrl->info.draw_line]); //MapPerLine is called only for NBG0 and NBG1
       int priority = ctrl->info.priority;
       if (ctrl->info.specialprimode == 1) {
         ctrl->info.priority = (ctrl->info.priority & 0xFFFFFFFE) | ctrl->info.specialfunction;
