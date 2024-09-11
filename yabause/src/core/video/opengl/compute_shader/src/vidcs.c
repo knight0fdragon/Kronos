@@ -2794,7 +2794,10 @@ static void Vdp2GenLineinfo(vdp2draw_struct *info)
   if (VDPLINE_SX(info->islinescroll)) bound += 0x04;
   if (VDPLINE_SZ(info->islinescroll)) bound += 0x04;
 
-  for (i = 0; i < _Ygl->rheight; i ++)
+  int height = _Ygl->rheight;
+  if (_Ygl->interlace == DOUBLE_INTERLACE) height <<= 1;
+
+  for (i = 0; i < height; i ++)
   {
     index = 0;
     if (VDPLINE_SX(info->islinescroll))
