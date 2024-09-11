@@ -3548,7 +3548,7 @@ static void Vdp2DrawMapPerLine(Vdp2Ctrl *ctrl) {
         prepagey = pagey;
       }
       ctrl->info.draw_line = v;
-      if (_Ygl->interlace == DOUBLE_INTERLACE) v>>= 1;
+      if (_Ygl->interlace == DOUBLE_INTERLACE) ctrl->info.draw_line >>= 1;
       ctrl->info.priority = getPriority(ctrl->info.idScreen, &Vdp2Lines[ctrl->info.draw_line]); //MapPerLine is called only for NBG0 and NBG1
       int priority = ctrl->info.priority;
       if (ctrl->info.specialprimode == 1) {
