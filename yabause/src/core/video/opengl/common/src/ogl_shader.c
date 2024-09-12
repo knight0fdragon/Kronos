@@ -1725,8 +1725,8 @@ static const char fblitnear_interlace_img[] =
     "     vec4 interpol = mix( val1, val2,vec4(0.5)); \n"
     "     if (distance(val1, val2) > 0.5f) return interpol;\n"
     "     if (distance(cur, interpol) < 0.15f) return cur; else return interpol;\n"
-    "}\n"
-    " else"
+    "    }\n"
+    "    else"
     "     return cur; \n"
     "} \n";
 
@@ -1741,8 +1741,8 @@ static const char fblitnear_interlace_img[] =
       "     vec4 interpol = mix( val1, val2,vec4(0.5)); \n"
       "     if (distance(val1, val2) > 0.5f) return vec4(0.0,1.0,0.0,1.0);\n"
       "     if (distance(cur, interpol) < 0.15f) return vec4(1.0,0.0,0.0,1.0); else return vec4(0.0,1.0,0.0,1.0);\n"
-      "}\n"
-      " else"
+      "    }\n"
+      "    else"
       "     return cur; \n"
       "} \n";
 
