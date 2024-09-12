@@ -1751,15 +1751,9 @@ static const char fblitnear_interlace_img[] =
       "vec4 Filter( sampler2D textureSampler, vec2 TexCoord ) \n"
       "{ \n"
       "    ivec2 coord = ivec2(vec2(textureSize(textureSampler,0))*TexCoord);\n"
-      "    vec4 cur = texture( textureSampler, TexCoord ); \n"
-      "    if ((int(coord.y/scale)&0x1)!=field) {\n"
-      "    if (field == 0) \n"
-      "     return texelFetch( textureSampler, ivec2(coord.x,coord.y-scale) , 0 ); \n"
-      "    else \n"
-      "     return texelFetch( textureSampler, ivec2(coord.x,coord.y+scale) , 0 ); \n"
-      "}\n"
-      " else"
-      "     return cur; \n"
+      "    coord.y = (((coord.y/scale)&~0x1) + field)*scale;\n"
+      "    vec4 ret = texelFetch( textureSampler, ivec2(coord.x,coord.y) , 0 ); \n"
+      " ret.r = mod(coord.y,256)/255.0;\n return ret;\n"
       "} \n";
 
       static const char fbobossc_debug_img[] =

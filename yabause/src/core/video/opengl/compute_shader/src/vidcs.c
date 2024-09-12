@@ -2013,9 +2013,11 @@ void VIDCSGetScale(float *xRatio, float *yRatio, int *xUp, int *yUp) {
   double dar = (double)GlWidth/(double)GlHeight;
   double par = 4.0/3.0;
 
-  int Intw = (int)(floor((float)GlWidth/(float)_Ygl->width));
-  int Inth = (int)(floor((float)GlHeight/(float)_Ygl->height));
-  int Int  = 1;
+  int width = (_Ygl->interlace == SINGLE_INTERLACE)?_Ygl->width*2:_Ygl->width;
+  int Intw = (int)(floor((float)GlWidth/(float)width));
+  int Inth = (int)(floor((float)GlHeight/(256.0 * _Ygl->vdp1hratio)));
+  if (_Ygl->interlace != NORMAL_INTERLACE) Inth >>= 1;
+  int Int  = 1<<(_Ygl->interlace == NORMAL_INTERLACE);
   RATIOMODE modeScreen = _Ygl->stretch;
   #ifndef __LIBRETRO__
   if (yabsys.isRotated) par = 1.0/par;
@@ -2028,7 +2030,7 @@ void VIDCSGetScale(float *xRatio, float *yRatio, int *xUp, int *yUp) {
     modeScreen = 0;
     Inth = 1;
   }
-  Int = (Inth<Intw)?Inth:Intw;
+  // Int = (Inth<Intw)?Inth:Intw;
 
   switch(modeScreen) {
     case ORIGINAL_RATIO:

@@ -192,8 +192,7 @@ void VIDCSRender(Vdp2 *varVdp2Regs) {
    int Intw = (int)(floor((float)GlWidth/(float)width));
    int Inth = (int)(floor((float)GlHeight/(256.0 * _Ygl->vdp1hratio)));
    if (_Ygl->interlace != NORMAL_INTERLACE) Inth >>= 1;
-   // printf("height %d %d %d %d\n", GlHeight, _Ygl->height, Intw, Inth);
-   int Int  = 1;
+   int Int  = 1<<(_Ygl->interlace == NORMAL_INTERLACE);
    RATIOMODE modeScreen = _Ygl->stretch;
    #ifndef __LIBRETRO__
    if (yabsys.isRotated) par = 1.0/par;
@@ -210,7 +209,7 @@ void VIDCSRender(Vdp2 *varVdp2Regs) {
      modeScreen = ORIGINAL_RATIO;
      Inth = 1;
    }
-   Int = (Inth<Intw)?Inth:Intw;
+   // Int = (Inth<Intw)?Inth:Intw;
 
    glDepthMask(GL_FALSE);
    glDisable(GL_DEPTH_TEST);
