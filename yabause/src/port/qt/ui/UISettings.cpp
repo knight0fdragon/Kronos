@@ -91,13 +91,12 @@ const Items mCartridgeTypes = Items()
 
 const Items mVideoFilterMode = Items()
 	<< Item("0", "None")
-        << Item("1", "Bilinear")
+	<< Item("1", "Bilinear")
 	<< Item("2", "BiCubic")
-	<< Item("3", "Deinterlacing Bob")
-	<< Item("4", "Deinterlacing Debug Bob")
-	<< Item("5", "Deinterlacing OSSC Bob")
-	<< Item("6", "Deinterlacing OSSC Debug Bob")
-	<< Item("7", "Deinterlacing Scanline");
+	<< Item("3", "Deinterlacing Adaptative")
+	<< Item("4", "Deinterlacing Debug Adaptative")
+	<< Item("5", "Deinterlacing Bob")
+	<< Item("6", "Scanline");
 
 const Items mUpscaleFilterMode = Items()
 	<< Item("0", "None")

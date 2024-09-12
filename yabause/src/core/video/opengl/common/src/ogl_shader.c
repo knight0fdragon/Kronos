@@ -1715,7 +1715,7 @@ static const char fblitnear_interlace_img[] =
   "     return texelFetch( textureSampler, coord, 0);\n"
   "} \n";
 
-  static const char fbobsecure_img[] =
+  static const char fboadaptative_img[] =
     "vec4 Filter( sampler2D textureSampler, vec2 TexCoord ) \n"
     "{ \n"
     "    ivec2 coord = ivec2(vec2(textureSize(textureSampler,0))*TexCoord);\n"
@@ -1731,7 +1731,7 @@ static const char fblitnear_interlace_img[] =
     "     return cur; \n"
     "} \n";
 
-    static const char fbobsecure_debug_img[] =
+    static const char fboadaptative_debug_img[] =
       "vec4 Filter( sampler2D textureSampler, vec2 TexCoord ) \n"
       "{ \n"
       "    ivec2 coord = ivec2(vec2(textureSize(textureSampler,0))*TexCoord);\n"
@@ -1747,26 +1747,14 @@ static const char fblitnear_interlace_img[] =
       "     return cur; \n"
       "} \n";
 
-    static const char fbobossc_img[] =
+    static const char fbobob_img[] =
       "vec4 Filter( sampler2D textureSampler, vec2 TexCoord ) \n"
       "{ \n"
       "    ivec2 coord = ivec2(vec2(textureSize(textureSampler,0))*TexCoord);\n"
       "    coord.y = (((coord.y/scale)&~0x1) + field)*scale;\n"
-      "    vec4 ret = texelFetch( textureSampler, ivec2(coord.x,coord.y) , 0 ); \n"
-      " ret.r = mod(coord.y,256)/255.0;\n return ret;\n"
+      "    return texelFetch( textureSampler, ivec2(coord.x,coord.y) , 0 ); \n"
       "} \n";
 
-      static const char fbobossc_debug_img[] =
-        "vec4 Filter( sampler2D textureSampler, vec2 TexCoord ) \n"
-        "{ \n"
-        "    ivec2 coord = ivec2(vec2(textureSize(textureSampler,0))*TexCoord);\n"
-        "    vec4 cur = texture( textureSampler, TexCoord ); \n"
-        "    if ((coord.y&0x1)!=field) {\n"
-        "     return vec4(1.0,0.0,0.0,1.0); \n"
-        "}\n"
-        " else"
-        "     return cur; \n"
-        "} \n";
 
 static const char fblitbilinear_img[] =
   "// Function to get a texel data from a texture with GL_NEAREST property. \n"
@@ -1814,11 +1802,10 @@ int YglBlitFramebuffer(u32 srcTexture, float w, float h, float dispw, float disp
   const GLchar * fblit_img_scanline_is_v[] = { fblit_head, fblitnear_img, fblit_img, Yglprg_blit_scanline_is_f, fblit_img_end, NULL };
   const GLchar * fblit_img_scanline_is_interlace_v[] = { fblit_head, fblitnear_interlace_img, fblit_img, Yglprg_blit_scanline_is_f, fblit_img_end, NULL };
 
-  const GLchar * fblit_bob_secure_img_v[] = { fblit_head, fbobsecure_img, fblit_img, fblit_img_end, NULL };
-  const GLchar * fblit_bob_secure_debug_img_v[] = { fblit_head, fbobsecure_debug_img, fblit_img, fblit_img_end, NULL };
+  const GLchar * fblit_adaptative_img_v[] = { fblit_head, fboadaptative_img, fblit_img, fblit_img_end, NULL };
+  const GLchar * fblit_adaptative_debug_img_v[] = { fblit_head, fboadaptative_debug_img, fblit_img, fblit_img_end, NULL };
 
-  const GLchar * fblit_bob_ossc_img_v[] = { fblit_head, fbobossc_img, fblit_img, fblit_img_end, NULL };
-  const GLchar * fblit_bob_ossc_debug_img_v[] = { fblit_head, fbobossc_debug_img, fblit_img, fblit_img_end, NULL };
+  const GLchar * fblit_bob_img_v[] = { fblit_head, fbobob_img, fblit_img, fblit_img_end, NULL };
 
   int aamode = _Ygl->aamode;
 
@@ -1912,17 +1899,14 @@ int YglBlitFramebuffer(u32 srcTexture, float w, float h, float dispw, float disp
       case AA_BICUBIC_FILTER:
         glShaderSource(fshader, 4, fblitbicubic_img_v, NULL);
         break;
-      case AA_BOB_SECURE_FILTER:
-        glShaderSource(fshader, 4, fblit_bob_secure_img_v, NULL);
+      case AA_ADAPTATIVE_FILTER:
+        glShaderSource(fshader, 4, fblit_adaptative_img_v, NULL);
         break;
-      case AA_BOB_SECURE_DEBUG_FILTER:
-        glShaderSource(fshader, 4, fblit_bob_secure_debug_img_v, NULL);
+      case AA_ADAPTATIVE_DEBUG_FILTER:
+        glShaderSource(fshader, 4, fblit_adaptative_debug_img_v, NULL);
         break;
-      case AA_BOB_OSSC_FILTER:
-        glShaderSource(fshader, 4, fblit_bob_ossc_img_v, NULL);
-        break;
-      case AA_BOB_OSSC_DEBUG_FILTER:
-        glShaderSource(fshader, 4, fblit_bob_ossc_debug_img_v, NULL);
+      case AA_BOB_FILTER:
+        glShaderSource(fshader, 4, fblit_bob_img_v, NULL);
         break;
       case AA_SCANLINE:
         if (_Ygl->interlace == NORMAL_INTERLACE)
