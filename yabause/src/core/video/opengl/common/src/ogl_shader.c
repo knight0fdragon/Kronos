@@ -1711,7 +1711,6 @@ static const char fblitnear_interlace_img[] =
   "{ \n"
   "     ivec2 texSize = textureSize(textureSampler,0);\n"
   "     ivec2 coord = ivec2(texSize*TexCoord);\n"
-  // "     coord.y = (coord.y&~0x1) | (int(gl_FragCoord.y)&0x1);\n"
   "     return texelFetch( textureSampler, coord, 0);\n"
   "} \n";
 
@@ -1800,7 +1799,7 @@ int YglBlitFramebuffer(u32 srcTexture, float w, float h, float dispw, float disp
   const GLchar * fblitbilinear_img_interlace_v[] = { fblit_head, fblitnear_interlace_img, fblit_img, fblit_img_end, NULL };
   const GLchar * fblitbicubic_img_v[] = { fblit_head, fblitbicubic_img, fblit_img, fblit_img_end, NULL };
   const GLchar * fblit_img_scanline_is_v[] = { fblit_head, fblitnear_img, fblit_img, Yglprg_blit_scanline_is_f, fblit_img_end, NULL };
-  const GLchar * fblit_img_scanline_is_interlace_v[] = { fblit_head, fblitnear_interlace_img, fblit_img, Yglprg_blit_scanline_is_f, fblit_img_end, NULL };
+  const GLchar * fblit_img_scanline_is_interlace_v[] = { fblit_head, fblitnear_interlace_img, fblit_img, Yglprg_blit_scanline_interlace_is_f, fblit_img_end, NULL };
 
   const GLchar * fblit_adaptative_img_v[] = { fblit_head, fboadaptative_img, fblit_img, fblit_img_end, NULL };
   const GLchar * fblit_adaptative_debug_img_v[] = { fblit_head, fboadaptative_debug_img, fblit_img, fblit_img_end, NULL };
@@ -1850,7 +1849,7 @@ int YglBlitFramebuffer(u32 srcTexture, float w, float h, float dispw, float disp
   }
   //if ((aamode == AA_NONE) && ((w != dispw) || (h != disph))) aamode = AA_BILINEAR_FILTER;
   if (_Ygl->interlace == NORMAL_INTERLACE) {
-    if (aamode >= AA_BOB_SECURE_FILTER) {
+    if ((aamode >= AA_ADAPTATIVE_FILTER) && (aamode < AA_SCANLINE)) {
       aamode = AA_NONE;
     }
   }
