@@ -190,7 +190,9 @@ void VIDCSRender(Vdp2 *varVdp2Regs) {
 
    int width = (_Ygl->interlace == SINGLE_INTERLACE)?_Ygl->width*2:_Ygl->width;
    int Intw = (int)(floor((float)GlWidth/(float)width));
-   int Inth = (int)(floor((float)GlHeight/(float)_Ygl->height));
+   int Inth = (int)(floor((float)GlHeight/(256.0 * _Ygl->vdp1hratio)));
+   if (_Ygl->interlace != NORMAL_INTERLACE) Inth >>= 1;
+   // printf("height %d %d %d %d\n", GlHeight, _Ygl->height, Intw, Inth);
    int Int  = 1;
    RATIOMODE modeScreen = _Ygl->stretch;
    #ifndef __LIBRETRO__

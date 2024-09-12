@@ -2131,16 +2131,16 @@ void YglChangeResolution(int w, int h) {
   // printf("Request resolution %d %d (%d) [%d %d]\n", _Ygl->resolution_mode, uh, h, uw, w);
   switch (_Ygl->resolution_mode) {
     case RES_HD: //720p
-    scale = ceil(360.0/(float)uh);
+    scale = 1; //floor(360.0/(float)uh);
     break;
     case RES_FHD: //1080p
-    scale = ceil(540.0/(float)uh);
+    scale = 2; //floor(540.0/(float)uh);
     break;
     case RES_2K: //1440p
-    scale = ceil(720.0/(float)uh);
+    scale = 3;//floor(720.0/(float)uh);
     break;
     case RES_4K: //2160
-    scale = ceil(1080/(float)uh);
+    scale = 4; //floor(1080/(float)uh);
     break;
     case RES_NATIVE: //Native
     if ((GlHeight * uw) > (GlWidth * uh)) {

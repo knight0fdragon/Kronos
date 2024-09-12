@@ -112,7 +112,6 @@ const Items mPolygonGenerationMode = Items()
 
 const Items mResolutionMode = Items()
 	<< Item("1", "SD (original resolution of the Saturn)")
-	<< Item("4", "HD")
 	<< Item("8", "Full HD")
 	<< Item("16", "2K")
 	<< Item("32", "4K")
