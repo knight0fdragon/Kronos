@@ -300,6 +300,14 @@ SHADER_VERSION_COMPUTE
 "  for (uint i=0; i<=step; i++) {\n"
 //A pixel shall be considered as part of an anti-aliased line if the distance of the pixel center to the line is shorter than (sqrt(0.5), which is the diagonal of the pixel
 //This represent the behavior of antialiasing as displayed in vdp1 spec.
+"    if ((floor(P.x/upscale.x) == 0.0) && (A.x == 0)) {\n"
+//There is an issue with polygon on the line x=0 with upscale
+//Workaround here
+"      uv.x = 0.0;\n"
+"      if (any(notEqual(upscale, vec2(1.0)))) uv.y = length(P - V0)/(length(V3 - V0) + length(floor(upscale/2.0)*2.0));\n" //uy is the ratio between P postion and the length of the line at this ux postion.
+"      else uv.y = (float(i)+0.5)/float(step+1);\n"
+"      return 1u;\n"
+"    }\n"
 "    vec3 d = antiAliasedPoint(P+vec2(0.5), A+upscale/2.0, B+upscale/2.0);\n" //Get the projection of the point P to the line segment
 "    if(((distance(d.xy, P+vec2(0.5))) < (length(upscale/2.0)+0.25)) && (d.z>=0.0) && (d.z<=1.0) ){\n" //Test the distance between the projection on line and the center of the pixel
 "      vec2 PTop = V0 + d.z*(V1 - V0);\n"
@@ -375,7 +383,7 @@ SHADER_VERSION_COMPUTE
 "int getCmd(vec2 P, uint id, uint start, uint end, out uint zone, bool wait_sysclip, out vec2 uv, out vec4 pixOut)\n"
 "{\n"
 "  for(uint i=id+start; i<id+end; i++) {\n"
-"     if (wait_sysclip && (cmd[cmdNb[i]].type != "Stringify(SYSTEM_CLIPPING)")) continue;"
+"     if (wait_sysclip && (cmd[cmdNb[i]].type != "Stringify(SYSTEM_CLIPPING)")) continue;\n"
 "     zone = pixIsInside(P, cmdNb[i], uv, pixOut);\n"
 "     if (zone != 0u) {\n"
 "       return int(i);\n"
