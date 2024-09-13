@@ -8,13 +8,13 @@ static const GLchar Yglprg_blit_scanline_f[] =
 static const GLchar Yglprg_blit_scanline_is_f[] =
 "    float alpha = 1.0f;\n"
 "    int coord = int(textureSize(u_Src,0).y*2.0*vTexCoord.y);\n"
-"    if (mod(int(coord/scale), 2) == field) alpha = 0.3f;\n"
+"    if (mod(int(coord/scale), 2) != field) alpha = 0.3f;\n"
 "    fragColor = vec4(fragColor.xyz*alpha, 1.0);\n";
 
 static const GLchar Yglprg_blit_scanline_interlace_is_f[] =
 "    float alpha = 1.0f;\n"
 "    int coord = int(textureSize(u_Src,0).y*vTexCoord.y);\n"
-"    if (mod(int(coord/scale), 2) == field) alpha = 0.3f;\n"
+"    if (mod(int(coord/scale), 2) != field) alpha = 0.3f;\n"
 "    fragColor = vec4(fragColor.xyz*alpha, 1.0);\n";
 
 #endif
