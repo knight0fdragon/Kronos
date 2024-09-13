@@ -2120,6 +2120,7 @@ void YglChangeResolution(int w, int h) {
   int par = w/h;
 
   int scale = 1;
+  int scaleLimit = 1;
   int upHeight = 4096;
   int uh = h;
   int uw = w;
@@ -2128,6 +2129,12 @@ void YglChangeResolution(int w, int h) {
     uw = w * _Ygl->vdp2hdensity; //uniformize density
   }
   int maxRes = GlHeight;
+
+  if ((GlHeight * uw) > (GlWidth * uh)) {
+    maxRes = GlWidth * uh / uw;
+  }
+  scaleLimit = floor(maxRes/(float)uh);
+  if (_Ygl->interlace == NORMAL_INTERLACE) scaleLimit>>=1;
   // printf("Request resolution %d %d (%d) [%d %d]\n", _Ygl->resolution_mode, uh, h, uw, w);
   switch (_Ygl->resolution_mode) {
     case RES_HD: //720p
@@ -2143,10 +2150,7 @@ void YglChangeResolution(int w, int h) {
     scale = 4; //floor(1080/(float)uh);
     break;
     case RES_NATIVE: //Native
-    if ((GlHeight * uw) > (GlWidth * uh)) {
-      maxRes = GlWidth * uh / uw;
-    }
-    scale = floor(maxRes/(float)uh);
+    scale = scaleLimit;
     break;
     case RES_ORIGINAL: //Original
     default:
@@ -2155,6 +2159,10 @@ void YglChangeResolution(int w, int h) {
   if (scale == 0){
     scale = 1;
   };
+  printf("Scale %d scaleLimit %d\n", scale, scaleLimit);
+  if (scale > scaleLimit) {
+    scale = scaleLimit;
+  }
   _Ygl->rwidth = w;
   _Ygl->rheight = h;
   _Ygl->height = uh * scale;

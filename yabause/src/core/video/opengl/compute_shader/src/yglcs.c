@@ -186,7 +186,10 @@ void VIDCSRender(Vdp2 *varVdp2Regs) {
    SpriteMode mode;
    GLenum DrawBuffers[8]= {GL_COLOR_ATTACHMENT0,GL_COLOR_ATTACHMENT1,GL_COLOR_ATTACHMENT2,GL_COLOR_ATTACHMENT3,GL_COLOR_ATTACHMENT4,GL_COLOR_ATTACHMENT5,GL_COLOR_ATTACHMENT6,GL_COLOR_ATTACHMENT7};
    double dar = (double)GlWidth/(double)GlHeight;
-   double par = 4.0/3.0;
+   double par = (720*_Ygl->vdp1hratio)/_Ygl->height;
+   if (yabsys.IsPal)
+      par = (768*_Ygl->vdp1hratio)/_Ygl->height;
+   if (_Ygl->interlace == NORMAL_INTERLACE) par /= 2.0;
 
    int width = (_Ygl->interlace == SINGLE_INTERLACE)?_Ygl->width*2:_Ygl->width;
    int Intw = (int)(floor((float)GlWidth/(float)width));
@@ -197,19 +200,19 @@ void VIDCSRender(Vdp2 *varVdp2Regs) {
    #ifndef __LIBRETRO__
    if (yabsys.isRotated) par = 1.0/par;
    #endif
-   if ((Intw == 0)&&(modeScreen == INTEGER_RATIO)) {
+   if ((Intw == 0)&&((modeScreen == INTEGER_RATIO)||(modeScreen == INTEGER_RATIO_FULL))) {
      if (warning == 0) YuiMsg("Window width is too small - Do not use integer scaling or reduce scaling\n");
      warning = 1;
      modeScreen = ORIGINAL_RATIO;
      Intw = 1;
    }
-   if ((Inth == 0)&&(modeScreen == INTEGER_RATIO)) {
+   if ((Inth == 0)&&((modeScreen == INTEGER_RATIO)||(modeScreen == INTEGER_RATIO_FULL))) {
      if (warning == 0) YuiMsg("Window height is too small - Do not use integer scaling or reduce scaling\n");
      warning = 1;
      modeScreen = ORIGINAL_RATIO;
      Inth = 1;
    }
-
+   if (modeScreen == INTEGER_RATIO_FULL)  Int = (Inth<Intw)?Inth:Intw;
    glDepthMask(GL_FALSE);
    glDisable(GL_DEPTH_TEST);
    glDisable(GL_BLEND);
@@ -240,7 +243,6 @@ void VIDCSRender(Vdp2 *varVdp2Regs) {
         break;
     }
     scale = MAX(w/_Ygl->rwidth, h/_Ygl->rheight);
-    if (modeScreen == INTEGER_RATIO_FULL)  Int = (Inth<Intw)?Inth:Intw;
 #else
   //Libretro is taking care to the resize
   w = width;
