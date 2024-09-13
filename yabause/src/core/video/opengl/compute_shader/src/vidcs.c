@@ -2030,7 +2030,6 @@ void VIDCSGetScale(float *xRatio, float *yRatio, int *xUp, int *yUp) {
     modeScreen = 0;
     Inth = 1;
   }
-  // Int = (Inth<Intw)?Inth:Intw;
 
   switch(modeScreen) {
     case ORIGINAL_RATIO:
@@ -2046,6 +2045,7 @@ void VIDCSGetScale(float *xRatio, float *yRatio, int *xUp, int *yUp) {
       y = 0;
       break;
     case INTEGER_RATIO:
+    case INTEGER_RATIO_FULL:
       w = Int * _Ygl->width;
       h = Int * _Ygl->height;
       x = (GlWidth-w)/2;
@@ -2054,6 +2054,7 @@ void VIDCSGetScale(float *xRatio, float *yRatio, int *xUp, int *yUp) {
     default:
        break;
    }
+   if (modeScreen == INTEGER_RATIO_FULL)  Int = (Inth<Intw)?Inth:Intw;
 
   *xRatio = w / _Ygl->rwidth;
   *yRatio = h / _Ygl->rheight;

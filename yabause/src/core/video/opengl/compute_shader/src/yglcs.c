@@ -209,7 +209,6 @@ void VIDCSRender(Vdp2 *varVdp2Regs) {
      modeScreen = ORIGINAL_RATIO;
      Inth = 1;
    }
-   // Int = (Inth<Intw)?Inth:Intw;
 
    glDepthMask(GL_FALSE);
    glDisable(GL_DEPTH_TEST);
@@ -231,6 +230,7 @@ void VIDCSRender(Vdp2 *varVdp2Regs) {
        y = 0;
        break;
      case INTEGER_RATIO:
+     case INTEGER_RATIO_FULL:
        w = Int * width;
        h = Int * _Ygl->height;
        x = (GlWidth-w)/2;
@@ -240,6 +240,7 @@ void VIDCSRender(Vdp2 *varVdp2Regs) {
         break;
     }
     scale = MAX(w/_Ygl->rwidth, h/_Ygl->rheight);
+    if (modeScreen == INTEGER_RATIO_FULL)  Int = (Inth<Intw)?Inth:Intw;
 #else
   //Libretro is taking care to the resize
   w = width;

@@ -119,7 +119,8 @@ const Items mResolutionMode = Items()
 const Items mAspectRatio = Items()
 	<< Item("0", "Original aspect ratio")
 	<< Item("1", "Stretch to window")
-	<< Item("2", "Integer scaling");
+	<< Item("2", "Pixel Perfect - Full screen")
+	<< Item("3", "Pixel Perfect");
 
 const Items mMeshMode = Items()
 	<< Item("0", "Original")
