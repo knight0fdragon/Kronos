@@ -2135,6 +2135,7 @@ void YglChangeResolution(int w, int h) {
   }
   scaleLimit = floor(maxRes/(float)uh);
   if (_Ygl->interlace == NORMAL_INTERLACE) scaleLimit>>=1;
+  if (scaleLimit == 0)scaleLimit = 1;
   // printf("Request resolution %d %d (%d) [%d %d]\n", _Ygl->resolution_mode, uh, h, uw, w);
   switch (_Ygl->resolution_mode) {
     case RES_HD: //720p
