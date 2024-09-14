@@ -2159,7 +2159,6 @@ void YglChangeResolution(int w, int h) {
   if (scale == 0){
     scale = 1;
   };
-  printf("Scale %d scaleLimit %d\n", scale, scaleLimit);
   if (scale > scaleLimit) {
     scale = scaleLimit;
   }
