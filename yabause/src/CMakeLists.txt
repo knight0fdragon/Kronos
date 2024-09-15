@@ -258,11 +258,21 @@ endif()
 include(CheckCSourceCompiles)
 
 # variadic macros
-check_c_source_compiles("#define MACRO(...) puts(__VA_ARGS__)
-	int main(int argc, char ** argv) { MACRO(\"foo\"); }"
-	VARIADIC_MACROS_OK)
+check_c_source_compiles("
+  #include <stdarg.h>
+  #include <stdlib.h>
+  #include <stdio.h>
+  #define MACRO(...) puts(__VA_ARGS__)
+	int main(int argc, char ** argv) {
+   MACRO(\"foo\");
+  }
+" VARIADIC_MACROS_OK)
+
 if (VARIADIC_MACROS_OK)
 	add_definitions(-DHAVE_C99_VARIADIC_MACROS=1)
+else(VARIADIC_MACROS_OK)
+	message(STATUS "Error - NO VARAIADIC Macros supported")
+	return ()
 endif (VARIADIC_MACROS_OK)
 
 # gettimeofday
