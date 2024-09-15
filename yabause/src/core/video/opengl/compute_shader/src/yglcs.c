@@ -186,7 +186,7 @@ void VIDCSRender(Vdp2 *varVdp2Regs) {
    SpriteMode mode;
    GLenum DrawBuffers[8]= {GL_COLOR_ATTACHMENT0,GL_COLOR_ATTACHMENT1,GL_COLOR_ATTACHMENT2,GL_COLOR_ATTACHMENT3,GL_COLOR_ATTACHMENT4,GL_COLOR_ATTACHMENT5,GL_COLOR_ATTACHMENT6,GL_COLOR_ATTACHMENT7};
    double dar = (double)GlWidth/(double)GlHeight;
-   double par = (720*_Ygl->vdp1hratio)/_Ygl->height;
+   double par = (640*_Ygl->vdp1hratio)/_Ygl->height;
    if (yabsys.IsPal)
       par = (768*_Ygl->vdp1hratio)/_Ygl->height;
    if (_Ygl->interlace == NORMAL_INTERLACE) par /= 2.0;
