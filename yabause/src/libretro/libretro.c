@@ -548,11 +548,12 @@ static s16 *sound_buf;
 
 static int SNDLIBRETROInit(void) {
     int vertfreq = (retro_get_region() == RETRO_REGION_PAL ? 50 : 60);
-    soundlen = (SAMPLERATE / vertfreq);
-    soundbufsize = soundlen * NUMSOUNDBLOCKS * 2 * 2;
+    soundlen = (SAMPLERATE / vertfreq) * sizeof(s16) * 2;
+    soundbufsize = soundlen * NUMSOUNDBLOCKS;
     if ((sound_buf = (s16 *)malloc(soundbufsize)) == NULL)
         return -1;
     memset(sound_buf, 0, soundbufsize);
+    audio_size = soundbufsize;
     return 0;
 }
 
@@ -565,13 +566,14 @@ static int SNDLIBRETROReset(void) { return 0; }
 
 static int SNDLIBRETROChangeVideoFormat(int vertfreq)
 {
-  soundlen = (SAMPLERATE / vertfreq);
-  soundbufsize = soundlen * NUMSOUNDBLOCKS * 2 * 2;
+  soundlen = (SAMPLERATE / vertfreq) * sizeof(s16) * 2;
+  soundbufsize = soundlen * NUMSOUNDBLOCKS;
     if (sound_buf)
         free(sound_buf);
     if ((sound_buf = (s16 *)malloc(soundbufsize)) == NULL)
         return -1;
     memset(sound_buf, 0, soundbufsize);
+    audio_size = soundbufsize;
     return 0;
 }
 
@@ -608,7 +610,7 @@ static void SNDLIBRETROUpdateAudio(u32 *leftchanbuffer, u32 *rightchanbuffer, u3
    sdlConvert32uto16s((int32_t*)leftchanbuffer, (int32_t*)rightchanbuffer, sound_buf, num_samples);
    audio_batch_cb(sound_buf, num_samples);
 
-   audio_size -= num_samples;
+   audio_size += num_samples * sizeof(s16) * 2;
 }
 
 static u32 SNDLIBRETROGetAudioSpace(void) { return audio_size; }
@@ -736,7 +738,6 @@ void YuiSwapBuffers(void)
    if (resolution_need_update || (prev_game_width != game_width) || (prev_game_height != game_height)) {
      retro_reinit_av_info();
    }
-   audio_size += soundlen;
    frame_expected--;
    video_cb(RETRO_HW_FRAME_BUFFER_VALID, game_width, game_height, 0);
 }
@@ -1836,8 +1837,10 @@ void retro_run(void)
    // It appears polling can happen outside of HandleEvents
    update_inputs();
    frame_expected++;
-   if (rendering_started)
-      YabauseExec();
+   if (rendering_started) {
+     audio_size -= soundlen;
+     YabauseExec();
+   }
 }
 
 #ifdef ANDROID
