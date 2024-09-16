@@ -539,6 +539,7 @@ PerInterface_struct PERLIBRETROJoy = {
 // SNDLIBRETRO
 #define SNDCORE_LIBRETRO   11
 #define SAMPLERATE         44100
+#define NUMSOUNDBLOCKS  4
 
 static u32 audio_size;
 static u32 soundlen;
@@ -547,8 +548,8 @@ static s16 *sound_buf;
 
 static int SNDLIBRETROInit(void) {
     int vertfreq = (retro_get_region() == RETRO_REGION_PAL ? 50 : 60);
-    soundlen = (SAMPLERATE * 100 + (vertfreq >> 1)) / vertfreq;
-    soundbufsize = (soundlen<<2 * sizeof(s16));
+    soundlen = (SAMPLERATE / vertfreq);
+    soundbufsize = soundlen * NUMSOUNDBLOCKS * 2 * 2;
     if ((sound_buf = (s16 *)malloc(soundbufsize)) == NULL)
         return -1;
     memset(sound_buf, 0, soundbufsize);
@@ -564,8 +565,8 @@ static int SNDLIBRETROReset(void) { return 0; }
 
 static int SNDLIBRETROChangeVideoFormat(int vertfreq)
 {
-    soundlen = (SAMPLERATE * 100 + (vertfreq >> 1)) / vertfreq;
-    soundbufsize = (soundlen<<2 * sizeof(s16));
+  soundlen = (SAMPLERATE / vertfreq);
+  soundbufsize = soundlen * NUMSOUNDBLOCKS * 2 * 2;
     if (sound_buf)
         free(sound_buf);
     if ((sound_buf = (s16 *)malloc(soundbufsize)) == NULL)
@@ -735,7 +736,7 @@ void YuiSwapBuffers(void)
    if (resolution_need_update || (prev_game_width != game_width) || (prev_game_height != game_height)) {
      retro_reinit_av_info();
    }
-   audio_size = soundlen;
+   audio_size += soundlen;
    frame_expected--;
    video_cb(RETRO_HW_FRAME_BUFFER_VALID, game_width, game_height, 0);
 }
