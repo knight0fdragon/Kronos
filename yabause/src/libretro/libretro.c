@@ -1805,30 +1805,33 @@ void retro_run(void)
       int prev_force_downsampling = force_downsampling;
       int prev_multitap[2] = {multitap[0],multitap[1]};
       bool prev_service_enabled = service_enabled;
-      check_variables();
-      // If resolution_mode > initial_resolution_mode, we'll need a restart to reallocate the max size for buffer
-      if (resolution_mode > initial_resolution_mode)
-      {
-         log_cb(RETRO_LOG_INFO, "Restart the core for the new resolution\n");
-         resolution_mode = initial_resolution_mode;
+      bool var_updated = false;
+      if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &var_updated) && var_updated) {
+        check_variables();
+        // If resolution_mode > initial_resolution_mode, we'll need a restart to reallocate the max size for buffer
+        if (resolution_mode > initial_resolution_mode)
+        {
+          log_cb(RETRO_LOG_INFO, "Restart the core for the new resolution\n");
+          resolution_mode = initial_resolution_mode;
+        }
+        if (native_resolution_mode > initial_native_resolution_mode)
+        {
+          log_cb(RETRO_LOG_INFO, "Restart the core for the new resolution\n");
+          native_resolution_mode = initial_native_resolution_mode;
+        }
+        resolution_need_update = (prev_resolution_mode != resolution_mode || prev_force_downsampling != force_downsampling);
+        if (prev_resolution_mode != resolution_mode && VIDCore)
+        VIDCore->SetSettingValue(VDP_SETTING_RESOLUTION_MODE, resolution_mode);
+        if(PERCore && (prev_multitap[0] != multitap[0] || prev_multitap[1] != multitap[1] || prev_service_enabled != service_enabled))
+        PERCore->Init();
+        if (VIDCore) VIDCore->SetSettingValue(VDP_SETTING_MESH_MODE, (force_downsampling ? IMPROVED_MESH : mesh_mode)); // we want improved mesh with downsampling, otherwise it'll cause gfx glitches
+        if (VIDCore) VIDCore->SetSettingValue(VDP_SETTING_BANDING_MODE, banding_mode);
+        if (VIDCore) VIDCore->SetSettingValue(VDP_SETTING_WIREFRAME, wireframe_mode);
+        // changing video format on the fly is causing issues
+        //if (g_videoformattype != -1)
+        //   YabauseSetVideoFormat(g_videoformattype);
+        YabauseSetSkipframe(g_skipframe);
       }
-      if (native_resolution_mode > initial_native_resolution_mode)
-      {
-         log_cb(RETRO_LOG_INFO, "Restart the core for the new resolution\n");
-         native_resolution_mode = initial_native_resolution_mode;
-      }
-      resolution_need_update = (prev_resolution_mode != resolution_mode || prev_force_downsampling != force_downsampling);
-      if (prev_resolution_mode != resolution_mode && VIDCore)
-         VIDCore->SetSettingValue(VDP_SETTING_RESOLUTION_MODE, resolution_mode);
-      if(PERCore && (prev_multitap[0] != multitap[0] || prev_multitap[1] != multitap[1] || prev_service_enabled != service_enabled))
-         PERCore->Init();
-      if (VIDCore) VIDCore->SetSettingValue(VDP_SETTING_MESH_MODE, (force_downsampling ? IMPROVED_MESH : mesh_mode)); // we want improved mesh with downsampling, otherwise it'll cause gfx glitches
-      if (VIDCore) VIDCore->SetSettingValue(VDP_SETTING_BANDING_MODE, banding_mode);
-      if (VIDCore) VIDCore->SetSettingValue(VDP_SETTING_WIREFRAME, wireframe_mode);
-      // changing video format on the fly is causing issues
-      //if (g_videoformattype != -1)
-      //   YabauseSetVideoFormat(g_videoformattype);
-      YabauseSetSkipframe(g_skipframe);
    }
    // It appears polling can happen outside of HandleEvents
    update_inputs();
