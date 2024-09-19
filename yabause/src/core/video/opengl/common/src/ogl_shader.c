@@ -148,7 +148,7 @@ SHADER_VERSION
 "  if (u_interlace != 0) {\n"
 // "    pos.x = int(v_texcoord.x);\n"
 // "    pos.y = int(floor((v_texcoord.y*2.0+u_frame)/u_scale.y));\n"
-"    pos.y = int(v_texcoord.y)&~0x1+u_frame;\n"
+"    pos.y = (int(v_texcoord.y)&(~0x1))+u_frame;\n"
 "  }\n"
 "  vec4 txindex = texelFetch( s_texture, pos ,0 );\n"
 "  if(txindex.a == 0.0) { discard; }\n"
