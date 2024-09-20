@@ -145,11 +145,11 @@ SHADER_VERSION
 "  linepos.y = 0; \n "
 "  linepos.x = int( (u_vheight-gl_FragCoord.y) * u_emu_height);\n"
 "  ivec2 pos = ivec2(v_texcoord.xy);\n"
-"  if (u_interlace != 0) {\n"
-// "    pos.x = int(v_texcoord.x);\n"
-// "    pos.y = int(floor((v_texcoord.y*2.0+u_frame)/u_scale.y));\n"
-"    pos.y = (int(v_texcoord.y)&(~0x1))+u_frame;\n"
-"  }\n"
+// "  if (u_interlace != 0) {\n"
+// // "    pos.x = int(v_texcoord.x);\n"
+// // "    pos.y = int(floor((v_texcoord.y*2.0+u_frame)/u_scale.y));\n"
+// "    pos.y = (int(v_texcoord.y)&(~0x1))+u_frame;\n"
+// "  }\n"
 "  vec4 txindex = texelFetch( s_texture, pos ,0 );\n"
 "  if(txindex.a == 0.0) { discard; }\n"
 "  int msb = int(txindex.b * 255.0)&0x1; \n"
@@ -192,10 +192,7 @@ int Ygl_uniformNormalCram(void * p, YglTextureManager *tm, Vdp2 *varVdp2Regs, in
   if ((id == RBG0)||(id == RBG1)){
     glUniform1f(id_normal_cram_emu_height, (float)_Ygl->rheight / (float)_Ygl->height);
     glUniform1f(id_normal_cram_emu_width, (float)_Ygl->rwidth /(float)_Ygl->width);
-    if (_Ygl->interlace == NORMAL_INTERLACE)
-      glUniform1f(id_normal_cram_vheight, (float)_Ygl->height);
-    else
-      glUniform1f(id_normal_cram_vheight, (float)(_Ygl->height>>1));
+    glUniform1f(id_normal_cram_vheight, (float)_Ygl->height);
     glUniform1f(id_normal_cram_vwidth, (float)_Ygl->width);
   } else {
     glUniform1f(id_normal_cram_emu_height, 1.0f);
@@ -1139,17 +1136,10 @@ int YglBlitTexture(int* prioscreens, int* modescreens, int* isRGB, int * isBlur,
     );
   YGLLOG("result => %f\n", _Ygl->vdp1hratio*_Ygl->vdp1hdensity/_Ygl->vdp2hdensity * (float)_Ygl->rheight/(float)_Ygl->height);
 
-  if (_Ygl->interlace == DOUBLE_INTERLACE) {
-    glUniform2f(glGetUniformLocation(vdp2blit_prg, "u_emu_vdp1_ratio"),
-      _Ygl->vdp1wratio*_Ygl->vdp1wdensity/_Ygl->vdp2wdensity * (float)_Ygl->rwidth/(float)_Ygl->width,
-      _Ygl->vdp1hratio*_Ygl->vdp1hdensity/_Ygl->vdp2hdensity * (float)(_Ygl->rheight<<1)/(float)_Ygl->height
-    );
-  } else {
-    glUniform2f(glGetUniformLocation(vdp2blit_prg, "u_emu_vdp1_ratio"),
-      _Ygl->vdp1wratio*_Ygl->vdp1wdensity/_Ygl->vdp2wdensity * (float)_Ygl->rwidth/(float)_Ygl->width,
-      _Ygl->vdp1hratio*_Ygl->vdp1hdensity/_Ygl->vdp2hdensity * (float)_Ygl->rheight/(float)_Ygl->height
-    );
-  }
+  glUniform2f(glGetUniformLocation(vdp2blit_prg, "u_emu_vdp1_ratio"),
+    _Ygl->vdp1wratio*_Ygl->vdp1wdensity/_Ygl->vdp2wdensity * (float)_Ygl->rwidth/(float)_Ygl->width,
+    _Ygl->vdp1hratio*_Ygl->vdp1hdensity/_Ygl->vdp2hdensity * (float)_Ygl->rheight/(float)_Ygl->height
+  );
   glUniform1f(glGetUniformLocation(vdp2blit_prg, "u_emu_vdp2_width"),(float)(_Ygl->width) / (float)(_Ygl->rwidth));
   glUniform1f(glGetUniformLocation(vdp2blit_prg, "u_vheight"), (float)_Ygl->height);
   glUniform2f(glGetUniformLocation(vdp2blit_prg, "vdp1Ratio"), _Ygl->vdp1wratio, _Ygl->vdp1hratio);//((float)_Ygl->rwidth*(float)_Ygl->vdp1wratio * (float)_Ygl->vdp1wdensity)/((float)_Ygl->vdp1width*(float)_Ygl->vdp2wdensity), ((float)_Ygl->rheight*(float)_Ygl->vdp1hratio * (float)_Ygl->vdp1hdensity)/((float)_Ygl->vdp1height * (float)_Ygl->vdp2hdensity));

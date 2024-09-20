@@ -189,13 +189,13 @@ void VIDCSRender(Vdp2 *varVdp2Regs) {
    double par = (640*_Ygl->vdp1hratio)/_Ygl->height;
    if (yabsys.IsPal)
       par = (768*_Ygl->vdp1hratio)/_Ygl->height;
-   if (_Ygl->interlace == NORMAL_INTERLACE) par /= 2.0;
+   if (_Ygl->interlace != DOUBLE_INTERLACE) par /= 2.0;
 
-   int width = (_Ygl->interlace == SINGLE_INTERLACE)?_Ygl->width*2:_Ygl->width;
+   int width = _Ygl->width;
    int Intw = (int)(floor((float)GlWidth/(float)width));
    int Inth = (int)(floor((float)GlHeight/(256.0 * _Ygl->vdp1hratio)));
-   if (_Ygl->interlace != NORMAL_INTERLACE) Inth >>= 1;
-   int Int  = 1<<(_Ygl->interlace == NORMAL_INTERLACE);
+   if (_Ygl->interlace == DOUBLE_INTERLACE) Inth >>= 1;
+   int Int  = 1<<(_Ygl->interlace != DOUBLE_INTERLACE);
    RATIOMODE modeScreen = _Ygl->stretch;
    #ifndef __LIBRETRO__
    if (yabsys.isRotated) par = 1.0/par;
@@ -301,13 +301,8 @@ void VIDCSRender(Vdp2 *varVdp2Regs) {
 
   for (int i = 0; i < SPRITE; i++) {
     if ((i == RBG0) || (i == RBG1)) {
-      if (_Ygl->interlace == NORMAL_INTERLACE) {
-        glViewport(0, 0, _Ygl->width, _Ygl->height);
-        glScissor(0, 0, _Ygl->width, _Ygl->height);
-      } else {
-        glViewport(0, 0, _Ygl->width, _Ygl->height>>1);
-        glScissor(0, 0, _Ygl->width, _Ygl->height>>1);
-      }
+      glViewport(0, 0, _Ygl->width, _Ygl->height);
+      glScissor(0, 0, _Ygl->width, _Ygl->height);
       glBindFramebuffer(GL_FRAMEBUFFER, _Ygl->rbg_compute_fbo);
       if ( i == RBG0)
         glDrawBuffers(1, &DrawBuffers[0]);

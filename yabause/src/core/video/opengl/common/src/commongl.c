@@ -721,19 +721,13 @@ static int YglGenerateScreenBuffer(){
   //Generate fbo and texture fr rbh compute shader
   glGenTextures(2, &_Ygl->rbg_compute_fbotex[0]);
   glBindTexture(GL_TEXTURE_2D, _Ygl->rbg_compute_fbotex[0]);
-  if (_Ygl->interlace == NORMAL_INTERLACE)
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _Ygl->width, _Ygl->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-  else
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _Ygl->width, _Ygl->height>>1, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _Ygl->width, _Ygl->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   glBindTexture(GL_TEXTURE_2D, _Ygl->rbg_compute_fbotex[1]);
-  if (_Ygl->interlace == NORMAL_INTERLACE)
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _Ygl->width, _Ygl->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-  else
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _Ygl->width, _Ygl->height>>1, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _Ygl->width, _Ygl->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -2119,6 +2113,11 @@ void YglChangeResolution(int w, int h) {
   float ratio = (float)w/(float)h;
   int par = w/h;
 
+  if (_Ygl->interlace == DOUBLE_INTERLACE) {
+    //Single interlace So we need Twice number of lines
+    h *= 2;
+  }
+
   int scale = 1;
   int scaleLimit = 1;
   int upHeight = 4096;
@@ -2185,14 +2184,7 @@ void YglChangeResolution(int w, int h) {
   _Ygl->heightRatio = (float)_Ygl->height/(float)_Ygl->rheight;
 
   if (_Ygl->rwidth >= 640) _Ygl->widthRatio *= 2.0f;
-  if (_Ygl->interlace == DOUBLE_INTERLACE)
-    YglOrtho(&_Ygl->rbgModelView, 0.0f, (float)_Ygl->rwidth, (float)(_Ygl->rheight<<1), 0.0f, 10.0f, 0.0f);
-  else
-    YglOrtho(&_Ygl->rbgModelView, 0.0f, (float)_Ygl->rwidth, (float)_Ygl->rheight, 0.0f, 10.0f, 0.0f);
-  if (_Ygl->interlace != NORMAL_INTERLACE) {
-    //Single interlace So we need Twice number of lines
-    _Ygl->height *= 2;
-  }
+  YglOrtho(&_Ygl->rbgModelView, 0.0f, (float)_Ygl->rwidth, (float)_Ygl->rheight, 0.0f, 10.0f, 0.0f);
 }
 
 void VIDCSSync(){

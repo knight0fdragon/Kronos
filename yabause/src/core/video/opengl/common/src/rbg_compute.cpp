@@ -2352,16 +2352,16 @@ DEBUGWIP("Init\n");
 
   glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_paraA_);
 	if ( rbg->ctrl.info.idScreen == RBG0 ) {
-       glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(vdp2rotationparameter_struct), (void*)&rbg->paraA);
-       glBufferSubData(GL_SHADER_STORAGE_BUFFER, struct_size_, sizeof(vdp2rotationparameter_struct), (void*)&rbg->paraB);
+		glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(vdp2rotationparameter_struct), (void*)&rbg->paraA);
+		glBufferSubData(GL_SHADER_STORAGE_BUFFER, struct_size_, sizeof(vdp2rotationparameter_struct), (void*)&rbg->paraB);
 	} else {
 		glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(vdp2rotationparameter_struct), (void*)&rbg->paraB);
 		glBufferSubData(GL_SHADER_STORAGE_BUFFER, struct_size_, sizeof(vdp2rotationparameter_struct), (void*)&rbg->paraA);
 	}
        ErrorHandle("glBufferSubData");
        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, ssbo_paraA_);
-
        uniform.vres_scale = (float)_Ygl->heightRatio;
+			 if (_Ygl->interlace == DOUBLE_INTERLACE) uniform.vres_scale *= 2.0;
        uniform.hres_scale = (float)_Ygl->widthRatio;
        uniform.cellw = rbg->ctrl.info.cellw;
        uniform.cellh = rbg->ctrl.info.cellh;
@@ -2378,15 +2378,15 @@ DEBUGWIP("Init\n");
   uniform.transparencyenable = rbg->ctrl.info.transparencyenable;
   uniform.specialcolormode = rbg->ctrl.info.specialcolormode;
   uniform.specialcode = rbg->ctrl.info.specialcode;
-       uniform.colornumber = rbg->ctrl.info.colornumber;
-       uniform.window_area_mode = rbg->ctrl.info.RotWinMode;
-       uniform.priority = rbg->ctrl.info.priority;
-       uniform.startLine = rbg->ctrl.info.startLine;
-       uniform.endLine = rbg->ctrl.info.endLine;
-       uniform.specialprimode = rbg->ctrl.info.specialprimode;
-			 uniform.alpha_lncl = ((~(varVdp2Regs->CCRLB & 0x1F) << 3) | NONE)/255.0f;
-			 uniform.lncl_table_addr = Vdp2RamReadWord(NULL, Vdp2Ram, (varVdp2Regs->LCTA.all & 0x7FFFF)<<1);
-			 uniform.cram_mode = Vdp2Internal.ColorMode;
+   uniform.colornumber = rbg->ctrl.info.colornumber;
+   uniform.window_area_mode = rbg->ctrl.info.RotWinMode;
+   uniform.priority = rbg->ctrl.info.priority;
+   uniform.startLine = rbg->ctrl.info.startLine;
+   uniform.endLine = rbg->ctrl.info.endLine;
+   uniform.specialprimode = rbg->ctrl.info.specialprimode;
+	 uniform.alpha_lncl = ((~(varVdp2Regs->CCRLB & 0x1F) << 3) | NONE)/255.0f;
+	 uniform.lncl_table_addr = Vdp2RamReadWord(NULL, Vdp2Ram, (varVdp2Regs->LCTA.all & 0x7FFFF)<<1);
+	 uniform.cram_mode = Vdp2Internal.ColorMode;
 
   glBindBuffer(GL_UNIFORM_BUFFER, scene_uniform);
        glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(RBGUniform), (void*)&uniform);
