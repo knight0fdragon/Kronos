@@ -1137,8 +1137,8 @@ class RBGGenerator{
 
   void * mapped_vram = nullptr;
 
-	int local_size_x = 10;
-	int local_size_y = 10;
+	int local_size_x = 8;
+	int local_size_y = 8;
 
 protected:
   RBGGenerator() {
@@ -1293,12 +1293,6 @@ public:
 
   //-----------------------------------------------
   void init( int width, int height ) {
-
-    GLint maxInvocations;
-    glGetIntegerv(GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS, &maxInvocations);
-
-    local_size_x = sqrtf(maxInvocations);
-    local_size_y = sqrtf(maxInvocations);
 
     int length = sizeof(prg_generate_rbg_base) + 64;
     snprintf(prg_generate_rbg,length,prg_generate_rbg_base,local_size_x,local_size_y);

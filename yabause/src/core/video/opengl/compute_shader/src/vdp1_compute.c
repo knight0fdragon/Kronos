@@ -18,8 +18,8 @@
 
 extern vdp2rotationparameter_struct  Vdp1ParaA;
 
-static int local_size_x = 10;
-static int local_size_y = 10;
+static int local_size_x = 8;
+static int local_size_y = 8;
 
 
 static int tex_width;
@@ -645,12 +645,6 @@ u32* vdp1_read(int frame) {
 
 void vdp1_compute_init(int width, int height, float ratiow, float ratioh)
 {
-	GLint maxInvocations;
-	glGetIntegerv(GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS, &maxInvocations);
-
-	local_size_x = sqrtf(maxInvocations);
-	local_size_y = sqrtf(maxInvocations);
-
 	int length = sizeof(vdp1_write_f_base) + 64;
 	snprintf(vdp1_write_f,length,vdp1_write_f_base,local_size_x,local_size_y);
 
