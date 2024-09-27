@@ -485,8 +485,6 @@ static void Vdp2DrawRotation_in_sync(RBGDrawInfo * rbg)
     info->vertices[5] = (screenHeight * info->endLine)/yabsys.VBlankLineCount;
     info->vertices[6] = 0;
     info->vertices[7] = (screenHeight * info->endLine)/yabsys.VBlankLineCount;
-    info->cellw = rbg->hres;
-    info->cellh = rbg->vres;
     info->flipfunction = 0;
     info->cor = 0x00;
     info->cog = 0x00;
