@@ -185,34 +185,32 @@ void VIDCSRender(Vdp2 *varVdp2Regs) {
    int drawScreen[enBGMAX];
    SpriteMode mode;
    GLenum DrawBuffers[8]= {GL_COLOR_ATTACHMENT0,GL_COLOR_ATTACHMENT1,GL_COLOR_ATTACHMENT2,GL_COLOR_ATTACHMENT3,GL_COLOR_ATTACHMENT4,GL_COLOR_ATTACHMENT5,GL_COLOR_ATTACHMENT6,GL_COLOR_ATTACHMENT7};
-   double dar = (double)GlWidth/(double)GlHeight;
-   double par = (640*_Ygl->vdp1hratio)/_Ygl->height;
-   if (yabsys.IsPal)
-      par = (768*_Ygl->vdp1hratio)/_Ygl->height;
-   if (_Ygl->interlace != DOUBLE_INTERLACE) par /= 2.0;
+   int width = _Ygl->width*2.0/_Ygl->vdp2wdensity;
+   int height = _Ygl->height;
 
-   int width = _Ygl->width;
-   int Intw = (int)(floor((float)GlWidth/(float)width));
-   int Inth = (int)(floor((float)GlHeight/(256.0 * _Ygl->vdp1hratio)));
-   if (_Ygl->interlace == DOUBLE_INTERLACE) Inth >>= 1;
-   int Int  = 1<<(_Ygl->interlace != DOUBLE_INTERLACE);
+  float Intw = (float)GlWidth/(float)width;
+  float Inth = (float)GlHeight/(float)height;
+
+   if (_Ygl->interlace != DOUBLE_INTERLACE) {
+     height = height*2.0;
+     Inth /= 2.0;
+   }
+   float Int  = 1.0;
    RATIOMODE modeScreen = _Ygl->stretch;
-   #ifndef __LIBRETRO__
-   if (yabsys.isRotated) par = 1.0/par;
-   #endif
-   if ((Intw == 0)&&((modeScreen == INTEGER_RATIO)||(modeScreen == INTEGER_RATIO_FULL))) {
+
+   if ((floor(Intw) == 0)&&((modeScreen == INTEGER_RATIO)||(modeScreen == INTEGER_RATIO_FULL))) {
      if (warning == 0) YuiMsg("Window width is too small - Do not use integer scaling or reduce scaling\n");
      warning = 1;
      modeScreen = ORIGINAL_RATIO;
-     Intw = 1;
+     Intw = 1.0;
    }
-   if ((Inth == 0)&&((modeScreen == INTEGER_RATIO)||(modeScreen == INTEGER_RATIO_FULL))) {
+   if ((floor(Inth) == 0)&&((modeScreen == INTEGER_RATIO)||(modeScreen == INTEGER_RATIO_FULL))) {
      if (warning == 0) YuiMsg("Window height is too small - Do not use integer scaling or reduce scaling\n");
      warning = 1;
      modeScreen = ORIGINAL_RATIO;
-     Inth = 1;
+     Inth = 1.0;
    }
-   if (modeScreen == INTEGER_RATIO_FULL)  Int = (Inth<Intw)?Inth:Intw;
+   if (modeScreen != INTEGER_RATIO)  Int = (Inth<Intw)?Inth:Intw;
    glDepthMask(GL_FALSE);
    glDisable(GL_DEPTH_TEST);
    glDisable(GL_BLEND);
@@ -220,12 +218,6 @@ void VIDCSRender(Vdp2 *varVdp2Regs) {
    glBindVertexArray(_Ygl->vao);
 #ifndef __LIBRETRO__
    switch(modeScreen) {
-     case ORIGINAL_RATIO:
-       w = (dar>par)?(double)GlHeight*par:GlWidth;
-       h = (dar>par)?(double)GlHeight:(double)GlWidth/par;
-       x = (GlWidth-w)/2;
-       y = (GlHeight-h)/2;
-       break;
      case STRETCH_RATIO:
        w = GlWidth;
        h = GlHeight;
@@ -234,8 +226,10 @@ void VIDCSRender(Vdp2 *varVdp2Regs) {
        break;
      case INTEGER_RATIO:
      case INTEGER_RATIO_FULL:
+      Int = floor(Int);
+      case ORIGINAL_RATIO:
        w = Int * width;
-       h = Int * _Ygl->height;
+       h = Int * height;
        x = (GlWidth-w)/2;
        y = (GlHeight-h)/2;
        break;
