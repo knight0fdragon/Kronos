@@ -185,30 +185,54 @@ void VIDCSRender(Vdp2 *varVdp2Regs) {
    int drawScreen[enBGMAX];
    SpriteMode mode;
    GLenum DrawBuffers[8]= {GL_COLOR_ATTACHMENT0,GL_COLOR_ATTACHMENT1,GL_COLOR_ATTACHMENT2,GL_COLOR_ATTACHMENT3,GL_COLOR_ATTACHMENT4,GL_COLOR_ATTACHMENT5,GL_COLOR_ATTACHMENT6,GL_COLOR_ATTACHMENT7};
-   int width = _Ygl->width*2.0/_Ygl->vdp2wdensity;
+   RATIOMODE modeScreen = _Ygl->stretch;
+
+   int width = (_Ygl->width*2.0)/(_Ygl->vdp2wdensity);
    int height = _Ygl->height;
 
-  float Intw = (float)GlWidth/(float)width;
-  float Inth = (float)GlHeight/(float)height;
+   double dar = (double)GlWidth/(double)GlHeight;
+   double par = 4.0/3.0;
 
-   if (_Ygl->interlace != DOUBLE_INTERLACE) {
-     height = height*2.0;
-     Inth /= 2.0;
+   float Intw = (float)GlWidth/(float)width;
+   float Inth = (float)GlHeight/(float)height;
+
+    if (_Ygl->interlace != DOUBLE_INTERLACE) {
+      height = height*2.0;
+      Inth /= 2.0;
+    }
+    float Int  = 1.0;
+
+   if (modeScreen == ORIGINAL_RATIO) {
+     if (yabsys.CurSH2FreqType == CLKTYPE_26MHZ) {
+       if (yabsys.IsPal)
+        //4:3 corresponds to 720*576
+        par = (((float)width/720.0) * 4.0) / (((float)height/576.0) * 3.0) ;
+       else
+        //4:3 corresponds to 720*480
+        par = (((float)width/720.0) * 4.0) / (((float)height/480.0) * 3.0) ;
+     } else {
+       if (yabsys.IsPal)
+        //4:3 corresponds to 768*576
+        par = (((float)width/768.0) * 4.0) / (((float)height/576.0) * 3.0) ;
+       else
+        //4:3 corresponds to 768*480
+        par = (((float)width/768.0) * 4.0) / (((float)height/480.0) * 3.0) ;
+     }
    }
-   float Int  = 1.0;
-   RATIOMODE modeScreen = _Ygl->stretch;
 
    if ((floor(Intw) == 0)&&((modeScreen == INTEGER_RATIO)||(modeScreen == INTEGER_RATIO_FULL))) {
      if (warning == 0) YuiMsg("Window width is too small - Do not use integer scaling or reduce scaling\n");
      warning = 1;
      modeScreen = ORIGINAL_RATIO;
      Intw = 1.0;
+     width = _Ygl->width*2.0/_Ygl->vdp2wdensity;
    }
    if ((floor(Inth) == 0)&&((modeScreen == INTEGER_RATIO)||(modeScreen == INTEGER_RATIO_FULL))) {
      if (warning == 0) YuiMsg("Window height is too small - Do not use integer scaling or reduce scaling\n");
      warning = 1;
      modeScreen = ORIGINAL_RATIO;
      Inth = 1.0;
+     width = _Ygl->width*2.0/_Ygl->vdp2wdensity;
    }
    if (modeScreen != INTEGER_RATIO)  Int = (Inth<Intw)?Inth:Intw;
    glDepthMask(GL_FALSE);
@@ -224,10 +248,15 @@ void VIDCSRender(Vdp2 *varVdp2Regs) {
        x = 0;
        y = 0;
        break;
+    case ORIGINAL_RATIO:
+       w = (dar>par)?(double)GlHeight*par:GlWidth;
+       h = (dar>par)?(double)GlHeight:(double)GlWidth/par;
+       x = (GlWidth-w)/2;
+       y = (GlHeight-h)/2;
+       break;
      case INTEGER_RATIO:
      case INTEGER_RATIO_FULL:
       Int = floor(Int);
-      case ORIGINAL_RATIO:
        w = Int * width;
        h = Int * height;
        x = (GlWidth-w)/2;

@@ -2111,7 +2111,6 @@ void setupMaxSize() {
 void YglChangeResolution(int w, int h) {
   YglLoadIdentity(&_Ygl->rbgModelView);
   float ratio = (float)w/(float)h;
-  int par = w/h;
 
   if (_Ygl->interlace == DOUBLE_INTERLACE) {
     //Single interlace So we need Twice number of lines
