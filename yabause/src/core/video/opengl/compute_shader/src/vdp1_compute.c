@@ -485,10 +485,7 @@ int vdp1_add(vdp1cmd_struct* cmd, int clipcmd) {
 		}
 	}
 	if (clipcmd == 0) {
-		if (cmd->type != FB_WRITE) VIDCSGenerateBufferVdp1(cmd);
-		else {
-			requireCompute = 1;
-		}
+		VIDCSGenerateBufferVdp1(cmd);
 		if (_Ygl->meshmode != ORIGINAL_MESH) {
 			//Hack for Improved MESH
 			//Games like J.League Go Go Goal or Sailor Moon are using MSB shadow with VDP2 in RGB/Palette mode

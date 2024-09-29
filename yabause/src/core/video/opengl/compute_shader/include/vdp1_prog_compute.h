@@ -21,9 +21,8 @@ extern "C" {
 #define LINE 3
 #define DISTORTED 4
 #define QUAD 5
-#define FB_WRITE 6
-#define SYSTEM_CLIPPING 7
-#define USER_CLIPPING 8
+#define SYSTEM_CLIPPING 6
+#define USER_CLIPPING 7
 
 #define NB_COARSE_RAST_X 16
 #define NB_COARSE_RAST_Y 16
@@ -343,14 +342,6 @@ SHADER_VERSION_COMPUTE
 // "  }\n"
 // "  return 0u;\n"
 "}\n"
-"uint isFBOverwrite( vec2 P,out vec4 pixOut) {\n"
-"    vec4 pix = imageLoad(FBSurface, ivec2(vec2(P.x,P.y)/upscale));\n"
-"    if (pix.a > 0.0) { \n"
-"      pixOut = vec4(pix.rg, 0.0,0.0); \n"
-"      return 1u;\n"
-"    }\n"
-"    return 0u;\n"
-"}\n"
 
 "uint pixIsInside (vec2 Pin, uint idx, out vec2 uv, out vec4 pixOut){\n"
 "  vec2 Quad[4];\n"
@@ -361,7 +352,6 @@ SHADER_VERSION_COMPUTE
 "  Quad[1] = vec2(cmd[idx].CMDXB,cmd[idx].CMDYB)*upscale;\n"
 "  Quad[2] = vec2(cmd[idx].CMDXC,cmd[idx].CMDYC)*upscale;\n"
 "  Quad[3] = vec2(cmd[idx].CMDXD,cmd[idx].CMDYD)*upscale;\n"
-"  if (cmd[idx].type == "Stringify(FB_WRITE)") return isFBOverwrite(Pin, pixOut);\n"
 "  if ((cmd[idx].type == "Stringify(DISTORTED)") || (cmd[idx].type == "Stringify(POLYGON)")) {\n"
 "    return isOnAQuadLine(Pin, Quad[0], Quad[1], Quad[2], Quad[3], vec2(cmd[idx].uAstepx, cmd[idx].uAstepy)*upscale, vec2(cmd[idx].uBstepx, cmd[idx].uBstepy)*upscale, uint(float(cmd[idx].nbStep)), uv);\n"
 "  } else {\n"
@@ -603,14 +593,10 @@ SHADER_VERSION_COMPUTE
 "    gouraudcoord = texcoord;\n"
 "    if ((pixcmd.flip & 0x1u) == 0x1u) texcoord.x = 1.0 - texcoord.x;\n" //invert horizontally
 "    if ((pixcmd.flip & 0x2u) == 0x2u) texcoord.y = 1.0 - texcoord.y - 1.0f/float(pixcmd.h);\n" //invert vertically
-"    if (pixcmd.type == "Stringify(FB_WRITE)") {\n"
-"       newColor = pixFB;\n"
-"    } else {\n"
-"     if (pixcmd.type <= "Stringify(LINE)") {\n"
-"       newColor = extractPolygonColor(pixcmd);\n"
-"     } else if (pixcmd.type <= "Stringify(QUAD)") {\n"
-"       newColor = ReadSpriteColor(pixcmd, texcoord, texel, discarded);\n"
-"     }\n"
+"    if (pixcmd.type <= "Stringify(LINE)") {\n"
+"      newColor = extractPolygonColor(pixcmd);\n"
+"    } else if (pixcmd.type <= "Stringify(QUAD)") {\n"
+"      newColor = ReadSpriteColor(pixcmd, texcoord, texel, discarded);\n"
 "    }\n"
 "    if (discarded) continue;\n"
 "    else drawn = true;\n"

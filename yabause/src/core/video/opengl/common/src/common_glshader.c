@@ -388,7 +388,7 @@ static const GLchar Yglprg_vdp2_sprite_type_E[] =
 static const GLchar Yglprg_vdp2_sprite_type_F[] =
 "FBCol getVDP1PixelCode(vec2 col, bool odd) {\n"
 "//Sprite type F\n"
-"  if (odd && ((uint(col.y*255.0) & 0x80u)==0x80u)) col.x = float(uint(col.x * 255.0) | 0x80u)/255.0\n;"
+"  if (odd && ((uint(col.y*255.0) & 0x80u)==0x80u)) col.x = float(uint(col.x * 255.0) | 0x80u)/255.0;\n"
 "  FBCol ret = zeroFBCol();\n"
 "  if (col.x != 0.0) ret.valid = 1;\n"
 "  else return ret;\n"

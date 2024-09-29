@@ -45,7 +45,6 @@ static YglCacheHash * YglgetNewCash(YglTextureManager * tm) {
 }
 
 int YglIsCached(YglTextureManager * tm, u64 addr, YglCache * c) {
-
   u32 hashkey;
   hashkey = YglgetHash(addr);  /* get hash */
 
