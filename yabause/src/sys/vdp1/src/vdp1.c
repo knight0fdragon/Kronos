@@ -242,8 +242,8 @@ void FASTCALL Vdp1FrameBufferWriteByte(SH2_struct *context, u8* mem, u32 addr, u
    u32* buf = getVDP1WriteFramebuffer(_Ygl->drawframe);
    PRINT_FB("W B 0x%x@0x%x line %d(%d) frame %d\n", val, addr, yabsys.LineCount, yabsys.DecilineCount, _Ygl->drawframe);
    if (Vdp1Regs->TVMR & 0x1) {
-     buf[addr>>2] = (val&0xFF)|0xFF000000;
-     syncVdp1FBBuffer(addr>>2);
+     buf[addr] = (val&0xFF)|0xFF000000;
+     syncVdp1FBBuffer(addr);
    } else {
      buf[addr>>1] = (val&0xFF)|0xFF000000;
      syncVdp1FBBuffer(addr>>1);
@@ -261,10 +261,10 @@ void FASTCALL Vdp1FrameBufferWriteWord(SH2_struct *context, u8* mem, u32 addr, u
   u32* buf = getVDP1WriteFramebuffer(_Ygl->drawframe);
   PRINT_FB("W W 0x%x@0x%x line %d(%d) frame %d\n", val, addr, yabsys.LineCount, yabsys.DecilineCount, _Ygl->drawframe);
   if (Vdp1Regs->TVMR & 0x1) {
-    buf[addr>>2] = ((val>>8)&0xFF)|0xFF000000;
-    syncVdp1FBBuffer(addr>>2);
-    buf[(addr>>2)+1] = (val&0xFF)|0xFF000000;
-    syncVdp1FBBuffer((addr>>2)+1);
+    buf[addr] = ((val>>8)&0xFF)|0xFF000000;
+    syncVdp1FBBuffer(addr);
+    buf[addr+1] = (val&0xFF)|0xFF000000;
+    syncVdp1FBBuffer(addr+1);
   } else {
     buf[addr>>1] = (val&0xFFFF)|0xFF000000;
     syncVdp1FBBuffer(addr>>1);
@@ -282,14 +282,14 @@ void FASTCALL Vdp1FrameBufferWriteLong(SH2_struct *context, u8* mem, u32 addr, u
   u32* buf = getVDP1WriteFramebuffer(_Ygl->drawframe);
   PRINT_FB("W L 0x%x@0x%x line %d(%d) frame %d %s\n", val, addr, yabsys.LineCount, yabsys.DecilineCount, _Ygl->drawframe, (context==NULL)?"DMA":"CPU");
   if (Vdp1Regs->TVMR & 0x1) {
-    buf[addr>>2] = ((val>>24)&0xFF)|0xFF000000;
-    syncVdp1FBBuffer(addr<<2);
-    buf[(addr>>2)+1] = ((val>>16)&0xFF)|0xFF000000;
-    syncVdp1FBBuffer((addr>>2)+1);
-    buf[(addr>>2)+2] = ((val>>8)&0xFF)|0xFF000000;
-    syncVdp1FBBuffer((addr>>2)+2);
-    buf[(addr>>2)+3] = (val&0xFF)|0xFF000000;
-    syncVdp1FBBuffer((addr>>2)+3);
+    buf[addr] = ((val>>24)&0xFF)|0xFF000000;
+    syncVdp1FBBuffer(addr);
+    buf[addr+1] = ((val>>16)&0xFF)|0xFF000000;
+    syncVdp1FBBuffer(addr+1);
+    buf[addr+2] = ((val>>8)&0xFF)|0xFF000000;
+    syncVdp1FBBuffer(addr+2);
+    buf[addr+3] = (val&0xFF)|0xFF000000;
+    syncVdp1FBBuffer(addr+3);
   } else {
     buf[addr>>1] = ((val>>16)&0xFFFF)|0xFF000000;
     syncVdp1FBBuffer(addr>>1);
