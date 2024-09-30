@@ -1855,7 +1855,7 @@ if (rbg->ctrl.regs->RPMD == 0x03)
 
     //If no VRAM access is granted to RBG0 character pattern table , just abort.
       int charAddrBk = (((info->charaddr >> 16)& 0xF) >> ((rbg->ctrl.regs->VRSIZE >> 15)&0x1)) >> 1;
-      if (((rbg->ctrl.regs->RAMCTL>>(charAddrBk<<1))&0x3) != 0x3) {
+      if ((((rbg->ctrl.regs->RAMCTL>>(charAddrBk<<1))&0x3) != 0x3) && ((rbg->ctrl.regs->RPMD & 0x3) < 0x2)) {
         pushRBG(rbg);
         return;
       }
