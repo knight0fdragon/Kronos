@@ -184,6 +184,8 @@ void FASTCALL Vdp1RamWriteLong(SH2_struct *context, u8* mem, u32 addr, u32 val) 
 
 u8 FASTCALL Vdp1FrameBufferReadByte(SH2_struct *context, u8* mem, u32 addr) {
    addr &= 0x3FFFF;
+   //Bad limitation, FB shall be different size depending mode
+   if (addr/512 >= 256) return 0;
    u32* buf = getVDP1ReadFramebuffer();
    vdp1_clock -= 2;
    if (context != NULL) context->cycles += 2;
@@ -200,6 +202,8 @@ u8 FASTCALL Vdp1FrameBufferReadByte(SH2_struct *context, u8* mem, u32 addr) {
 
 u16 FASTCALL Vdp1FrameBufferReadWord(SH2_struct *context, u8* mem, u32 addr) {
    addr &= 0x3FFFF;
+   //Bad limitation, FB shall be different size depending mode
+   if (addr/512 >= 256) return 0;
    u32* buf = getVDP1ReadFramebuffer();
    vdp1_clock -= 2;
    if (context != NULL) context->cycles += 2;
@@ -218,6 +222,8 @@ u16 FASTCALL Vdp1FrameBufferReadWord(SH2_struct *context, u8* mem, u32 addr) {
 u32 FASTCALL Vdp1FrameBufferReadLong(SH2_struct *context, u8* mem, u32 addr) {
   printf("FB R L @%x\n", addr);
    addr &= 0x3FFFF;
+   //Bad limitation, FB shall be different size depending mode
+   if (addr/512 >= 256) return 0;
    u32* buf = getVDP1ReadFramebuffer();
    vdp1_clock -= 4;
    if (context != NULL) context->cycles += 4;
@@ -239,6 +245,8 @@ u32 FASTCALL Vdp1FrameBufferReadLong(SH2_struct *context, u8* mem, u32 addr) {
 
 void FASTCALL Vdp1FrameBufferWriteByte(SH2_struct *context, u8* mem, u32 addr, u8 val) {
    addr &= 0x3FFFF;
+   //Bad limitation, FB shall be different size depending mode
+   if (addr/512 >= 256) return;
    u32* buf = getVDP1WriteFramebuffer(_Ygl->drawframe);
    PRINT_FB("W B 0x%x@0x%x line %d(%d) frame %d\n", val, addr, yabsys.LineCount, yabsys.DecilineCount, _Ygl->drawframe);
    if (Vdp1Regs->TVMR & 0x1) {
@@ -258,6 +266,8 @@ void FASTCALL Vdp1FrameBufferWriteByte(SH2_struct *context, u8* mem, u32 addr, u
 
 void FASTCALL Vdp1FrameBufferWriteWord(SH2_struct *context, u8* mem, u32 addr, u16 val) {
   addr &= 0x3FFFF;
+  //Bad limitation, FB shall be different size depending mode
+  if (addr/512 >= 256) return;
   u32* buf = getVDP1WriteFramebuffer(_Ygl->drawframe);
   PRINT_FB("W W 0x%x@0x%x line %d(%d) frame %d\n", val, addr, yabsys.LineCount, yabsys.DecilineCount, _Ygl->drawframe);
   if (Vdp1Regs->TVMR & 0x1) {
@@ -279,6 +289,8 @@ void FASTCALL Vdp1FrameBufferWriteWord(SH2_struct *context, u8* mem, u32 addr, u
 
 void FASTCALL Vdp1FrameBufferWriteLong(SH2_struct *context, u8* mem, u32 addr, u32 val) {
   addr &= 0x3FFFF;
+  //Bad limitation, FB shall be different size depending mode
+  if (addr/512 >= 256) return;
   u32* buf = getVDP1WriteFramebuffer(_Ygl->drawframe);
   PRINT_FB("W L 0x%x@0x%x line %d(%d) frame %d %s\n", val, addr, yabsys.LineCount, yabsys.DecilineCount, _Ygl->drawframe, (context==NULL)?"DMA":"CPU");
   if (Vdp1Regs->TVMR & 0x1) {
