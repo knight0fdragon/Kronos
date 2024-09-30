@@ -230,7 +230,6 @@ SHADER_VERSION_COMPUTE
 "layout(local_size_x = %d, local_size_y = %d) in;\n"
 "layout(rgba8, binding = 0) uniform image2D outSurface;\n"
 "layout(rgba8, binding = 1) writeonly uniform image2D meshSurface;\n"
-"layout(rgba8, binding = 2) readonly uniform image2D FBSurface;\n"
 "layout(std430, binding = 3) readonly buffer VDP1RAM { uint Vdp1Ram[]; };\n"
 "layout(std430, binding = 4) readonly buffer NB_CMD { uint nbCmd[]; };\n"
 "layout(std430, binding = 5) readonly buffer CMD { \n"
