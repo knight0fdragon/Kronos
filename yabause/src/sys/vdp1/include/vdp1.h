@@ -197,12 +197,18 @@ u32 FASTCALL	Vdp1RamReadLong(SH2_struct *context, u8*, u32);
 void FASTCALL	Vdp1RamWriteByte(SH2_struct *context, u8*, u32, u8);
 void FASTCALL	Vdp1RamWriteWord(SH2_struct *context, u8*, u32, u16);
 void FASTCALL	Vdp1RamWriteLong(SH2_struct *context, u8*, u32, u32);
-u8 FASTCALL Vdp1FrameBufferReadByte(SH2_struct *context, u8*, u32);
-u16 FASTCALL Vdp1FrameBufferReadWord(SH2_struct *context, u8*, u32);
-u32 FASTCALL Vdp1FrameBufferReadLong(SH2_struct *context, u8*, u32);
-void FASTCALL Vdp1FrameBufferWriteByte(SH2_struct *context, u8*, u32, u8);
-void FASTCALL Vdp1FrameBufferWriteWord(SH2_struct *context, u8*, u32, u16);
-void FASTCALL Vdp1FrameBufferWriteLong(SH2_struct *context, u8*, u32, u32);
+u8 FASTCALL Vdp1FrameBuffer16bReadByte(SH2_struct *context, u8*, u32);
+u16 FASTCALL Vdp1FrameBuffer16bReadWord(SH2_struct *context, u8*, u32);
+u32 FASTCALL Vdp1FrameBuffer16bReadLong(SH2_struct *context, u8*, u32);
+void FASTCALL Vdp1FrameBuffer16bWriteByte(SH2_struct *context, u8*, u32, u8);
+void FASTCALL Vdp1FrameBuffer16bWriteWord(SH2_struct *context, u8*, u32, u16);
+void FASTCALL Vdp1FrameBuffer16bWriteLong(SH2_struct *context, u8*, u32, u32);
+u8 FASTCALL Vdp1FrameBuffer8bReadByte(SH2_struct *context, u8*, u32);
+u16 FASTCALL Vdp1FrameBuffer8bReadWord(SH2_struct *context, u8*, u32);
+u32 FASTCALL Vdp1FrameBuffer8bReadLong(SH2_struct *context, u8*, u32);
+void FASTCALL Vdp1FrameBuffer8bWriteByte(SH2_struct *context, u8*, u32, u8);
+void FASTCALL Vdp1FrameBuffer8bWriteWord(SH2_struct *context, u8*, u32, u16);
+void FASTCALL Vdp1FrameBuffer8bWriteLong(SH2_struct *context, u8*, u32, u32);
 
 extern void Vdp1SetRaster(int is352);
 

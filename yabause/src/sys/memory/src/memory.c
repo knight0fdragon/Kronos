@@ -650,12 +650,12 @@ void MappedMemoryInit()
                                 &Vdp1RamWriteWord,
                                 &Vdp1RamWriteLong,
                                 &Vdp1Ram);
-   FillMemoryArea(0x5C8, 0x5CB, &Vdp1FrameBufferReadByte,
-                                &Vdp1FrameBufferReadWord,
-                                &Vdp1FrameBufferReadLong,
-                                &Vdp1FrameBufferWriteByte,
-                                &Vdp1FrameBufferWriteWord,
-                                &Vdp1FrameBufferWriteLong,
+   FillMemoryArea(0x5C8, 0x5CB, &Vdp1FrameBuffer16bReadByte,
+                                &Vdp1FrameBuffer16bReadWord,
+                                &Vdp1FrameBuffer16bReadLong,
+                                &Vdp1FrameBuffer16bWriteByte,
+                                &Vdp1FrameBuffer16bWriteWord,
+                                &Vdp1FrameBuffer16bWriteLong,
                                 &VoidMem);
    FillMemoryArea(0x5D0, 0x5D7, &Vdp1ReadByte,
                                 &Vdp1ReadWord,
@@ -707,6 +707,30 @@ void MappedMemoryInit()
      &BupRamMemoryWriteWord,
      &BupRamMemoryWriteLong,
      &BupRam);
+}
+
+void switchFB16bit()
+{
+  FillMemoryArea(0x5C8, 0x5CB,
+    &Vdp1FrameBuffer16bReadByte,
+    &Vdp1FrameBuffer16bReadWord,
+    &Vdp1FrameBuffer16bReadLong,
+    &Vdp1FrameBuffer16bWriteByte,
+    &Vdp1FrameBuffer16bWriteWord,
+    &Vdp1FrameBuffer16bWriteLong,
+    &VoidMem);
+}
+
+void switchFB8bit()
+{
+  FillMemoryArea(0x5C8, 0x5CB,
+    &Vdp1FrameBuffer8bReadByte,
+    &Vdp1FrameBuffer8bReadWord,
+    &Vdp1FrameBuffer8bReadLong,
+    &Vdp1FrameBuffer8bWriteByte,
+    &Vdp1FrameBuffer8bWriteWord,
+    &Vdp1FrameBuffer8bWriteLong,
+    &VoidMem);
 }
 
 u8 FASTCALL DMAMappedMemoryReadByte(u32 addr) {

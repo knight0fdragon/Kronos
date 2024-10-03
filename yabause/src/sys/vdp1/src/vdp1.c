@@ -182,80 +182,60 @@ void FASTCALL Vdp1RamWriteLong(SH2_struct *context, u8* mem, u32 addr, u32 val) 
 
 //////////////////////////////////////////////////////////////////////////////
 
-u8 FASTCALL Vdp1FrameBufferReadByte(SH2_struct *context, u8* mem, u32 addr) {
+u8 FASTCALL Vdp1FrameBuffer16bReadByte(SH2_struct *context, u8* mem, u32 addr) {
    addr &= 0x3FFFF;
    //Bad limitation, FB shall be different size depending mode
-   if (addr/512 >= 256) return 0;
+   u32 pixIdx = addr>>1;
+   if (pixIdx/512 >= 256) return 0;
    u32* buf = getVDP1ReadFramebuffer();
    vdp1_clock -= 2;
    if (context != NULL) context->cycles += 2;
-   PRINT_FB("R B 0x%x@0x%x\n", buf[addr*4]&0xFF,addr);
-   if (Vdp1Regs->TVMR & 0x1) {
-     return T1ReadLong((u8*)buf, addr*4) & 0xFF;
-   } else {
-     //take care of half pixel.
-     return T1ReadLong((u8*)buf, addr*2) & 0xFF;
-   }
+   PRINT_FB("R B 0x%x@0x%x\n", buf[pixIdx]&0xFF,addr);
+   //take care of half pixel.
+   return T1ReadLong((u8*)buf, pixIdx*4) & 0xFF;
 }
 
 //////////////////////////////////////////////////////////////////////////////
 
-u16 FASTCALL Vdp1FrameBufferReadWord(SH2_struct *context, u8* mem, u32 addr) {
+u16 FASTCALL Vdp1FrameBuffer16bReadWord(SH2_struct *context, u8* mem, u32 addr) {
    addr &= 0x3FFFF;
    //Bad limitation, FB shall be different size depending mode
-   if (addr/512 >= 256) return 0;
+   u32 pixIdx = addr>>1;
+   if (pixIdx/512 >= 256) return 0;
    u32* buf = getVDP1ReadFramebuffer();
    vdp1_clock -= 2;
    if (context != NULL) context->cycles += 2;
-   PRINT_FB("R W 0x%x@0x%x (%d, %d)\n", T1ReadLong((u8*)buf, addr*4) & 0xFFFF, addr, yabsys.LineCount, yabsys.DecilineCount);
-   if (Vdp1Regs->TVMR & 0x1) {
-     u8 val1 = T1ReadLong((u8*)buf, addr*4) & 0xFF;
-     u8 val2 = T1ReadLong((u8*)buf, addr*4+4) & 0xFF;
-     return (val1<<8) | val2;
-   } else {
-     return T1ReadLong((u8*)buf, addr*2) & 0xFFFF;
-   }
+   PRINT_FB("R W 0x%x@0x%x (%d, %d)\n", T1ReadLong((u8*)buf, pixIdx*4) & 0xFFFF, addr, yabsys.LineCount, yabsys.DecilineCount);
+   return T1ReadLong((u8*)buf, pixIdx*4) & 0xFFFF;
 }
 
 //////////////////////////////////////////////////////////////////////////////
 
-u32 FASTCALL Vdp1FrameBufferReadLong(SH2_struct *context, u8* mem, u32 addr) {
+u32 FASTCALL Vdp1FrameBuffer16bReadLong(SH2_struct *context, u8* mem, u32 addr) {
   printf("FB R L @%x\n", addr);
    addr &= 0x3FFFF;
    //Bad limitation, FB shall be different size depending mode
-   if (addr/512 >= 256) return 0;
+   u32 pixIdx = addr>>1;
+   if (pixIdx/512 >= 256) return 0;
    u32* buf = getVDP1ReadFramebuffer();
    vdp1_clock -= 4;
    if (context != NULL) context->cycles += 4;
-   if (Vdp1Regs->TVMR & 0x1) {
-     u8 val1 = T1ReadLong((u8*)buf, addr*4) & 0xFF;
-     u8 val2 = T1ReadLong((u8*)buf, (addr+1)*4) & 0xFF;
-     u8 val3 = T1ReadLong((u8*)buf, (addr+2)*4) & 0xFF;
-     u8 val4 = T1ReadLong((u8*)buf, (addr+3)*4) & 0xFF;
-     PRINT_FB("R L 0x%x@0x%x\n", (val1<<24) | (val2<<16) | (val3<<8) | (val4),addr);
-     return (val1<<24) | (val2<<16) | (val3<<8) | (val4) ;
-   } else {
-     u8 val1 = T1ReadLong((u8*)buf, addr*2) & 0xFFFF;
-     u8 val2 = T1ReadLong((u8*)buf, (addr+2)*2) & 0xFFFF;
-     return (val1<<16) | val2;
-   }
+   u8 val1 = T1ReadLong((u8*)buf, pixIdx*4) & 0xFFFF;
+   u8 val2 = T1ReadLong((u8*)buf, (pixIdx+1)*4) & 0xFFFF;
+   return (val1<<16) | val2;
 }
 
 //////////////////////////////////////////////////////////////////////////////
 
-void FASTCALL Vdp1FrameBufferWriteByte(SH2_struct *context, u8* mem, u32 addr, u8 val) {
+void FASTCALL Vdp1FrameBuffer16bWriteByte(SH2_struct *context, u8* mem, u32 addr, u8 val) {
    addr &= 0x3FFFF;
    //Bad limitation, FB shall be different size depending mode
-   if (addr/512 >= 256) return;
+   u32 pixIdx = addr>>1;
+   if (pixIdx/512 >= 256) return;
    u32* buf = getVDP1WriteFramebuffer(_Ygl->drawframe);
-   PRINT_FB("W B 0x%x@0x%x line %d(%d) frame %d\n", val, addr, yabsys.LineCount, yabsys.DecilineCount, _Ygl->drawframe);
-   if (Vdp1Regs->TVMR & 0x1) {
-     buf[addr] = (val&0xFF)|0xFF000000;
-     syncVdp1FBBuffer(addr);
-   } else {
-     buf[addr>>1] = (val&0xFF)|0xFF000000;
-     syncVdp1FBBuffer(addr>>1);
-   }
+   PRINT_FB("W B 0x%x@0x%x line %d(%d) frame %d\n", val, pixIdx, yabsys.LineCount, yabsys.DecilineCount, _Ygl->drawframe);
+   buf[pixIdx] = (val&0xFF)|0xFF000000;
+   syncVdp1FBBuffer(pixIdx);
    vdp1_clock -= 2;
    if (context != NULL) context->cycles += 2;
    _Ygl->FBDirty[_Ygl->drawframe] = 1;
@@ -264,21 +244,15 @@ void FASTCALL Vdp1FrameBufferWriteByte(SH2_struct *context, u8* mem, u32 addr, u
 
 //////////////////////////////////////////////////////////////////////////////
 
-void FASTCALL Vdp1FrameBufferWriteWord(SH2_struct *context, u8* mem, u32 addr, u16 val) {
+void FASTCALL Vdp1FrameBuffer16bWriteWord(SH2_struct *context, u8* mem, u32 addr, u16 val) {
   addr &= 0x3FFFF;
   //Bad limitation, FB shall be different size depending mode
-  if (addr/512 >= 256) return;
+  u32 pixIdx = addr>>1;
+  if (pixIdx/512 >= 256) return;
   u32* buf = getVDP1WriteFramebuffer(_Ygl->drawframe);
-  PRINT_FB("W W 0x%x@0x%x line %d(%d) frame %d\n", val, addr, yabsys.LineCount, yabsys.DecilineCount, _Ygl->drawframe);
-  if (Vdp1Regs->TVMR & 0x1) {
-    buf[addr] = ((val>>8)&0xFF)|0xFF000000;
-    syncVdp1FBBuffer(addr);
-    buf[addr+1] = (val&0xFF)|0xFF000000;
-    syncVdp1FBBuffer(addr+1);
-  } else {
-    buf[addr>>1] = (val&0xFFFF)|0xFF000000;
-    syncVdp1FBBuffer(addr>>1);
-  }
+  PRINT_FB("W W 0x%x@0x%x line %d(%d) frame %d\n", val, pixIdx, yabsys.LineCount, yabsys.DecilineCount, _Ygl->drawframe);
+  buf[pixIdx] = (val&0xFFFF)|0xFF000000;
+  syncVdp1FBBuffer(pixIdx);
   vdp1_clock -= 2;
   if (context != NULL) context->cycles += 2;
   _Ygl->FBDirty[_Ygl->drawframe] = 1;
@@ -287,33 +261,130 @@ void FASTCALL Vdp1FrameBufferWriteWord(SH2_struct *context, u8* mem, u32 addr, u
 
 //////////////////////////////////////////////////////////////////////////////
 
-void FASTCALL Vdp1FrameBufferWriteLong(SH2_struct *context, u8* mem, u32 addr, u32 val) {
+void FASTCALL Vdp1FrameBuffer16bWriteLong(SH2_struct *context, u8* mem, u32 addr, u32 val) {
   addr &= 0x3FFFF;
   //Bad limitation, FB shall be different size depending mode
-  if (addr/512 >= 256) return;
+  u32 pixIdx = addr>>1;
+  if (pixIdx/512 >= 256) return;
   u32* buf = getVDP1WriteFramebuffer(_Ygl->drawframe);
   PRINT_FB("W L 0x%x@0x%x line %d(%d) frame %d %s\n", val, addr, yabsys.LineCount, yabsys.DecilineCount, _Ygl->drawframe, (context==NULL)?"DMA":"CPU");
-  if (Vdp1Regs->TVMR & 0x1) {
-    buf[addr] = ((val>>24)&0xFF)|0xFF000000;
-    syncVdp1FBBuffer(addr);
-    buf[addr+1] = ((val>>16)&0xFF)|0xFF000000;
-    syncVdp1FBBuffer(addr+1);
-    buf[addr+2] = ((val>>8)&0xFF)|0xFF000000;
-    syncVdp1FBBuffer(addr+2);
-    buf[addr+3] = (val&0xFF)|0xFF000000;
-    syncVdp1FBBuffer(addr+3);
-  } else {
-    buf[addr>>1] = ((val>>16)&0xFFFF)|0xFF000000;
-    syncVdp1FBBuffer(addr>>1);
-    buf[(addr>>1)+1] = ((val)&0xFFFF)|0xFF000000;
-    syncVdp1FBBuffer((addr>>1)+1);
-  }
+  buf[pixIdx] = ((val>>16)&0xFFFF)|0xFF000000;
+  syncVdp1FBBuffer(pixIdx);
+  buf[pixIdx+1] = ((val)&0xFFFF)|0xFF000000;
+  syncVdp1FBBuffer(pixIdx+1);
   vdp1_clock -= 4;
   if (context != NULL) context->cycles += 4;
   _Ygl->FBDirty[_Ygl->drawframe] = 1;
   _Ygl->vdp1IsNotEmpty[_Ygl->drawframe] = yabsys.LineCount;
 }
 
+//////////////////////////////////////////////////////////////////////////////
+
+u8 FASTCALL Vdp1FrameBuffer8bReadByte(SH2_struct *context, u8* mem, u32 addr) {
+   addr &= 0x3FFFF;
+   //Bad limitation, FB shall be different size depending mode
+   u32 pixIdx = addr;
+   if (pixIdx/512 >= 256) return 0;
+   u32* buf = getVDP1ReadFramebuffer();
+   vdp1_clock -= 2;
+   if (context != NULL) context->cycles += 2;
+   PRINT_FB("R B 0x%x@0x%x\n", buf[pixIdx]&0xFF,addr);
+   return T1ReadLong((u8*)buf, pixIdx*4) & 0xFF;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+u16 FASTCALL Vdp1FrameBuffer8bReadWord(SH2_struct *context, u8* mem, u32 addr) {
+   addr &= 0x3FFFF;
+   //Bad limitation, FB shall be different size depending mode
+   u32 pixIdx = addr;
+   if (pixIdx/512 >= 256) return 0;
+   u32* buf = getVDP1ReadFramebuffer();
+   vdp1_clock -= 2;
+   if (context != NULL) context->cycles += 2;
+   PRINT_FB("R W 0x%x@0x%x (%d, %d)\n", T1ReadLong((u8*)buf, pixIdx*4) & 0xFFFF, addr, yabsys.LineCount, yabsys.DecilineCount);
+   u8 val1 = T1ReadLong((u8*)buf, pixIdx*4) & 0xFF;
+   u8 val2 = T1ReadLong((u8*)buf, (pixIdx+1)*4) & 0xFF;
+   return (val1<<8) | val2;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+u32 FASTCALL Vdp1FrameBuffer8bReadLong(SH2_struct *context, u8* mem, u32 addr) {
+  printf("FB R L @%x\n", addr);
+   addr &= 0x3FFFF;
+   //Bad limitation, FB shall be different size depending mode
+   u32 pixIdx = addr;
+   if (pixIdx/512 >= 256) return 0;
+   u32* buf = getVDP1ReadFramebuffer();
+   vdp1_clock -= 4;
+   if (context != NULL) context->cycles += 4;
+   u8 val1 = T1ReadLong((u8*)buf, pixIdx*4) & 0xFF;
+   u8 val2 = T1ReadLong((u8*)buf, (pixIdx+1)*4) & 0xFF;
+   u8 val3 = T1ReadLong((u8*)buf, (pixIdx+2)*4) & 0xFF;
+   u8 val4 = T1ReadLong((u8*)buf, (pixIdx+3)*4) & 0xFF;
+   PRINT_FB("R L 0x%x@0x%x\n", (val1<<24) | (val2<<16) | (val3<<8) | (val4),addr);
+   return (val1<<24) | (val2<<16) | (val3<<8) | (val4) ;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+void FASTCALL Vdp1FrameBuffer8bWriteByte(SH2_struct *context, u8* mem, u32 addr, u8 val) {
+   addr &= 0x3FFFF;
+   //Bad limitation, FB shall be different size depending mode
+   u32 pixIdx = addr;
+   if (pixIdx/512 >= 256) return;
+   u32* buf = getVDP1WriteFramebuffer(_Ygl->drawframe);
+   PRINT_FB("W B 0x%x@0x%x line %d(%d) frame %d\n", val, pixIdx, yabsys.LineCount, yabsys.DecilineCount, _Ygl->drawframe);
+   buf[pixIdx] = (val&0xFF)|0xFF000000;
+   syncVdp1FBBuffer(pixIdx);
+   vdp1_clock -= 2;
+   if (context != NULL) context->cycles += 2;
+   _Ygl->FBDirty[_Ygl->drawframe] = 1;
+   _Ygl->vdp1IsNotEmpty[_Ygl->drawframe] = yabsys.LineCount;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+void FASTCALL Vdp1FrameBuffer8bWriteWord(SH2_struct *context, u8* mem, u32 addr, u16 val) {
+  addr &= 0x3FFFF;
+  //Bad limitation, FB shall be different size depending mode
+  u32 pixIdx = addr;
+  if (pixIdx/512 >= 256) return;
+  u32* buf = getVDP1WriteFramebuffer(_Ygl->drawframe);
+  PRINT_FB("W W 0x%x@0x%x line %d(%d) frame %d\n", val, pixIdx, yabsys.LineCount, yabsys.DecilineCount, _Ygl->drawframe);
+  buf[pixIdx] = ((val>>8)&0xFF)|0xFF000000;
+  syncVdp1FBBuffer(pixIdx);
+  buf[pixIdx+1] = (val&0xFF)|0xFF000000;
+  syncVdp1FBBuffer(pixIdx+1);
+  vdp1_clock -= 2;
+  if (context != NULL) context->cycles += 2;
+  _Ygl->FBDirty[_Ygl->drawframe] = 1;
+  _Ygl->vdp1IsNotEmpty[_Ygl->drawframe] = yabsys.LineCount;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+void FASTCALL Vdp1FrameBuffer8bWriteLong(SH2_struct *context, u8* mem, u32 addr, u32 val) {
+  addr &= 0x3FFFF;
+  //Bad limitation, FB shall be different size depending mode
+  u32 pixIdx = addr;
+  if (pixIdx/512 >= 256) return;
+  u32* buf = getVDP1WriteFramebuffer(_Ygl->drawframe);
+  PRINT_FB("W L 0x%x@0x%x line %d(%d) frame %d %s\n", val, pixIdx, yabsys.LineCount, yabsys.DecilineCount, _Ygl->drawframe, (context==NULL)?"DMA":"CPU");
+  buf[pixIdx] = ((val>>24)&0xFF)|0xFF000000;
+  syncVdp1FBBuffer(pixIdx);
+  buf[pixIdx+1] = ((val>>16)&0xFF)|0xFF000000;
+  syncVdp1FBBuffer(pixIdx+1);
+  buf[pixIdx+2] = ((val>>8)&0xFF)|0xFF000000;
+  syncVdp1FBBuffer(pixIdx+2);
+  buf[pixIdx+3] = (val&0xFF)|0xFF000000;
+  syncVdp1FBBuffer(pixIdx+3);
+  vdp1_clock -= 4;
+  if (context != NULL) context->cycles += 4;
+  _Ygl->FBDirty[_Ygl->drawframe] = 1;
+  _Ygl->vdp1IsNotEmpty[_Ygl->drawframe] = yabsys.LineCount;
+}
 //////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////
@@ -423,6 +494,7 @@ void Vdp1Reset(void) {
    Vdp1Regs->PTMR = 0;
    Vdp1Regs->MODR = 0x1000; // VDP1 Version 1
    Vdp1Regs->TVMR = 0;
+   switchFB16bit();
    Vdp1Regs->ENDR = 0;
    VDP1_MASK = 0xFFFF;
    VIDCore->Vdp1Reset();
@@ -583,6 +655,10 @@ void FASTCALL Vdp1WriteWord(SH2_struct *context, u8* mem, u32 addr, u16 val) {
   switch(addr) {
     case 0x0:
       if ((Vdp1Regs->FBCR & 3) != 3) val = (val & (~0x4));
+      if ((val & 0x1)!=(Vdp1Regs->TVMR & 0x1)) {
+        if (val & 0x1) switchFB8bit();
+        else switchFB16bit();
+      }
       Vdp1Regs->TVMR = val;
       FRAMELOG("TVMR => Write VBE=%d FCM=%d FCT=%d line = %d (%d)\n", (Vdp1Regs->TVMR >> 3) & 0x01, (Vdp1Regs->FBCR & 0x02) >> 1, (Vdp1Regs->FBCR & 0x01),  yabsys.LineCount, yabsys.DecilineCount);
     break;
@@ -1834,7 +1910,7 @@ int Vdp1SaveState(void ** stream)
 
 #ifdef IMPROVED_SAVESTATES
    for (i = 0; i < 0x40000; i++)
-      back_framebuffer[i] = Vdp1FrameBufferReadByte(NULL, NULL, i);
+      back_framebuffer[i] = Vdp1FrameBuffer16bReadByte(NULL, NULL, i);
 
    MemStateWrite((void *)back_framebuffer, 0x40000, 1, stream);
 #endif
@@ -1868,7 +1944,7 @@ int Vdp1LoadState(const void * stream, UNUSED int version, int size)
    YglGenerate();
 
    for (i = 0; i < 0x40000; i++)
-      Vdp1FrameBufferWriteByte(NULL, NULL, i, back_framebuffer[i]);
+      Vdp1FrameBuffer16bWriteByte(NULL, NULL, i, back_framebuffer[i]);
 #endif
    if (version > 1) {
      int size = 0;
@@ -1884,7 +1960,8 @@ int Vdp1LoadState(const void * stream, UNUSED int version, int size)
      memset((void *)(&Vdp1External), 0, sizeof(Vdp1External_struct));
    }
    Vdp1External.updateVdp1Ram = 1;
-
+   if (Vdp1Regs->TVMR & 0x1) switchFB8bit();
+   else switchFB16bit();
    return size;
 }
 

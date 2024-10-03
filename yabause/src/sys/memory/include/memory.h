@@ -354,6 +354,9 @@ extern "C" {
   }
 
   void MappedMemoryInit(void);
+  void switchFB8bit();
+  void switchFB16bit();
+
   u8 FASTCALL SH2MappedMemoryReadByte(SH2_struct *context, u32 addr);
   u16 FASTCALL SH2MappedMemoryReadWord(SH2_struct *context, u32 addr);
   u32 FASTCALL SH2MappedMemoryReadLong(SH2_struct *context, u32 addr);
