@@ -1162,7 +1162,7 @@ int YglBlitTexture(int* prioscreens, int* modescreens, int* isRGB, int * isBlur,
   glUniform1i(glGetUniformLocation(vdp2blit_prg, "win1"), Win1);
   glUniform1i(glGetUniformLocation(vdp2blit_prg, "win1_mode"), Win1_mode);
   glUniform1i(glGetUniformLocation(vdp2blit_prg, "win_op"), Win_op);
-#ifndef __LIBRETRO__
+// #ifndef __LIBRETRO__
   if (_Ygl->interlace == NORMAL_INTERLACE){
     //double density interlaced or progressive _ Do not mix fields. Maybe required by double density. To check
     glUniform1i(glGetUniformLocation(vdp2blit_prg, "nbFrame"),2);
@@ -1173,9 +1173,9 @@ int YglBlitTexture(int* prioscreens, int* modescreens, int* isRGB, int * isBlur,
     else
     glUniform1i(glGetUniformLocation(vdp2blit_prg, "nbFrame"),0);
   }
-#else
-  glUniform1i(glGetUniformLocation(vdp2blit_prg, "nbFrame"),-1);
-#endif
+// #else
+  // glUniform1i(glGetUniformLocation(vdp2blit_prg, "nbFrame"),-1);
+// #endif
 
   YglMatrix m;
 
@@ -1687,6 +1687,11 @@ static const char fblit_img[] =
   " pix = floor(pix) + min(fract(pix) / (abs(dFdx(pix)) + abs(dFdy(pix))), 1.0) - 0.5;\n"
   " fragColor = Filter( u_Src, pix/texSize ); \n";
 
+  static const char fblit_retro_img[] =
+  "void main()\n"
+  "{\n"
+  " fragColor = Filter( u_Src, vTexCoord ); \n";
+
 static const char fblit_img_end[] =
   "} \n";
 
@@ -1755,6 +1760,8 @@ int YglBlitFramebuffer(u32 srcTexture, float w, float h, float dispw, float disp
   float height = h;
   int decim;
   u32 tex = srcTexture;
+  const GLchar * fblit_img_retro_v[] = { fblit_head, fblitnear_img, fblit_retro_img, fblit_img_end, NULL };
+  const GLchar * fblit_img_retro_interlace_v[] = { fblit_head, fblitnear_interlace_img, fblit_retro_img, fblit_img_end, NULL };
   const GLchar * fblit_img_v[] = { fblit_head, fblitnear_img, fblit_img, fblit_img_end, NULL };
   const GLchar * fblit_img_interlace_v[] = { fblit_head, fblitnear_interlace_img, fblit_img, fblit_img_end, NULL };
   const GLchar * fblit_img_scanline_is_v[] = { fblit_head, fblitnear_img, fblit_img, Yglprg_blit_scanline_is_f, fblit_img_end, NULL };
@@ -1784,6 +1791,9 @@ int YglBlitFramebuffer(u32 srcTexture, float w, float h, float dispw, float disp
     1.0f, 1.0f };
 
   float nbLines = h;//yabsys.IsPal?625.0f:525.0f;
+#ifdef __LIBRETRO__
+  nbLines = height;
+#endif
   if ((_Ygl->stretch == INTEGER_RATIO) || (_Ygl->stretch == INTEGER_RATIO_FULL)) nbLines = height;
 
   if (_Ygl->upmode != UP_NONE) {
@@ -1840,6 +1850,7 @@ int YglBlitFramebuffer(u32 srcTexture, float w, float h, float dispw, float disp
       blit_prg = -1;
       return -1;
     }
+#ifndef __LIBRETRO__
     switch(aamode) {
       case AA_NONE:
         if (_Ygl->interlace == NORMAL_INTERLACE)
@@ -1863,6 +1874,12 @@ int YglBlitFramebuffer(u32 srcTexture, float w, float h, float dispw, float disp
           glShaderSource(fshader, 5, fblit_img_scanline_is_interlace_v, NULL);
         break;
     }
+#else
+    if (_Ygl->interlace == NORMAL_INTERLACE)
+      glShaderSource(fshader, 4, fblit_img_retro_v, NULL);
+    else
+      glShaderSource(fshader, 4, fblit_img_retro_interlace_v, NULL);
+#endif
     glCompileShader(fshader);
     glGetShaderiv(fshader, GL_COMPILE_STATUS, &compiled);
     if (compiled == GL_FALSE) {
