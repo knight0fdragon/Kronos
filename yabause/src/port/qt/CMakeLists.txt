@@ -221,6 +221,7 @@ yab_port_success(kronos-qt)
 configure_file(kronos.desktop.in ${YAB_PORT_NAME}.desktop)
 
 if (WIN32)
+	set(QT_BINARY_DIR "${Qt5_Dir}/bin")
 	install(TARGETS kronos-qt DESTINATION ".")
 	if (SDL_FOUND)
 		get_filename_component(SDL_BINARY_DIR ${SDL_LIBRARY} PATH)
@@ -239,60 +240,41 @@ if (WIN32)
 		endif ()
 	endif ()
 	if(Qt5_FOUND)
-		install(FILES ${QT_BINARY_DIR}/Qt5Core.dll DESTINATION ".")
-		install(FILES ${QT_BINARY_DIR}/Qt5Gui.dll DESTINATION ".")
-		install(FILES ${QT_BINARY_DIR}/Qt5OpenGL.dll DESTINATION ".")
-		install(FILES ${QT_BINARY_DIR}/Qt5Widgets.dll DESTINATION ".")
-		install(FILES ${QT_BINARY_DIR}/Qt5Multimedia.dll DESTINATION ".")
-		install(FILES ${QT_BINARY_DIR}/Qt5Network.dll DESTINATION ".")
-		if(${CMAKE_BUILD_TYPE} STREQUAL Debug)
-		    message("Adding Qt debug libs")
-			install(FILES ${QT_BINARY_DIR}/Qt5Cored.dll DESTINATION ".")
-			install(FILES ${QT_BINARY_DIR}/Qt5Guid.dll DESTINATION ".")
-			install(FILES ${QT_BINARY_DIR}/Qt5OpenGLd.dll DESTINATION ".")
-			install(FILES ${QT_BINARY_DIR}/Qt5Widgetsd.dll DESTINATION ".")
-			install(FILES ${QT_BINARY_DIR}/Qt5Multimediad.dll DESTINATION ".")
-			install(FILES ${QT_BINARY_DIR}/Qt5Networkd.dll DESTINATION ".")
-		endif ()
-		if (NOT MSYS2_BUILD)
-			install(DIRECTORY ${QT_BINARY_DIR}/ DESTINATION "." FILES_MATCHING PATTERN "icudt*.dll")
-			install(DIRECTORY ${QT_BINARY_DIR}/ DESTINATION "." FILES_MATCHING PATTERN "icuin*.dll")
-			install(DIRECTORY ${QT_BINARY_DIR}/ DESTINATION "." FILES_MATCHING PATTERN "icuuc*.dll")
-		else()
-			install(DIRECTORY ${QT_BINARY_DIR}/ DESTINATION "." FILES_MATCHING PATTERN "libicudt*.dll" PATTERN "libicudtd*.dll" EXCLUDE)
-			install(DIRECTORY ${QT_BINARY_DIR}/ DESTINATION "." FILES_MATCHING PATTERN "libicuin*.dll" PATTERN "libicuind*.dll" EXCLUDE)
-			install(DIRECTORY ${QT_BINARY_DIR}/ DESTINATION "." FILES_MATCHING PATTERN "libicuuc*.dll" PATTERN "libicuucd*.dll" EXCLUDE)
-			install(DIRECTORY ${QT_BINARY_DIR}/ DESTINATION "." FILES_MATCHING PATTERN "libbz2-*.dll")
-			install(DIRECTORY ${QT_BINARY_DIR}/ DESTINATION "." FILES_MATCHING PATTERN "libfreetype-*.dll")
-			install(DIRECTORY ${QT_BINARY_DIR}/ DESTINATION "." FILES_MATCHING PATTERN "libglib*.dll")
-			install(DIRECTORY ${QT_BINARY_DIR}/ DESTINATION "." FILES_MATCHING PATTERN "libgraphite2*.dll")
-			install(DIRECTORY ${QT_BINARY_DIR}/ DESTINATION "." FILES_MATCHING PATTERN "libharfbuzz-*.dll" PATTERN "libharfbuzz-gobject*.dll" EXCLUDE PATTERN "libharfbuzz-icu*.dll" EXCLUDE)
-			install(DIRECTORY ${QT_BINARY_DIR}/ DESTINATION "." FILES_MATCHING PATTERN "libpcre16*.dll" PATTERN "libpcre-*.dll")
-			install(DIRECTORY ${QT_BINARY_DIR}/ DESTINATION "." FILES_MATCHING PATTERN "libiconv*.dll")
-			install(DIRECTORY ${QT_BINARY_DIR}/ DESTINATION "." FILES_MATCHING PATTERN "libintl*.dll")
-			install(DIRECTORY ${QT_BINARY_DIR}/ DESTINATION "." FILES_MATCHING PATTERN "libpng*.dll")
-		endif()
-		install(FILES ${QT_PLUGINS_DIR}/platforms/qwindows.dll DESTINATION "platforms")
-	endif()
+    get_target_property(_qt5_qmake_location Qt5::qmake IMPORTED_LOCATION)
 
+    execute_process(
+        COMMAND "${_qt5_qmake_location}" -query QT_INSTALL_PREFIX
+        RESULT_VARIABLE return_code
+        OUTPUT_VARIABLE qt5_install_prefix
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
 #	install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/../../AUTHORS    DESTINATION "." RENAME AUTHORS.txt)
+    set(imported_location "${qt5_install_prefix}/bin/windeployqt.exe")
 #	install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/../../ChangeLog  DESTINATION "." RENAME ChangeLog.txt)
+    if(EXISTS ${imported_location})
+        add_executable(Qt5::windeployqt IMPORTED)
 #	install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/../../COPYING    DESTINATION "." RENAME COPYING.txt)
+        set_target_properties(Qt5::windeployqt PROPERTIES
+            IMPORTED_LOCATION ${imported_location}
+        )
+    endif()
+	endif()
 #	install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/../../README     DESTINATION "." RENAME README.txt)
+  if(TARGET Qt5::windeployqt)
 #	install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/../../README.WIN DESTINATION "." RENAME README.WIN.txt)
+    add_custom_command(TARGET kronos-qt
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_CURRENT_BINARY_DIR}/windeployqt"
+        COMMAND set PATH=%PATH%$<SEMICOLON>${qt5_install_prefix}/bin
+        COMMAND Qt5::windeployqt --dir "${CMAKE_CURRENT_BINARY_DIR}/windeployqt" "$<TARGET_FILE_DIR:kronos-qt>/$<TARGET_FILE_NAME:kronos-qt>"
+    )
 
-	if (MINGW)
-		get_filename_component( Mingw_Path ${CMAKE_CXX_COMPILER} PATH )
-		if("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "x86_64" OR "${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "AMD64")
-			install(DIRECTORY ${Mingw_Path}/
+    install(
+        DIRECTORY
+        "${CMAKE_CURRENT_BINARY_DIR}/windeployqt/"
 				DESTINATION "."
-				FILES_MATCHING PATTERN "libgcc_s_*.dll" PATTERN "libstdc++-*.dll" PATTERN "libwinpthread-*.dll")
-		else()
-			install(DIRECTORY ${Mingw_Path}/
-				DESTINATION "."
-				FILES_MATCHING PATTERN "libgcc_s_*.dll" PATTERN "mingwm10.dll")
+    )
 		endif()
-	endif ()
 
   if (MSVC)
     set (CMAKE_EXE_LINKER_FLAGS /SAFESEH:NO )
