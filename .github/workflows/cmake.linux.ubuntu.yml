@@ -12,8 +12,8 @@ env:
   BUILD_TYPE: Release
 
 jobs:
-   ubuntu_release_job:
-     name: Releasing for Ubuntu
+  build:
+    name: Releasing for Ubuntu
     # The CMake configure and build commands are platform agnostic and should work equally
     # well on Windows or Mac.  You can convert this to a matrix build if you need
     # cross-platform coverage.
@@ -21,39 +21,40 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Preparing environment
+    - name: Preparing environment
       run: |
-          echo "Installing required packages."
-          sudo apt-get update
-          sudo apt-get install -y cmake qt5-default qtmultimedia5-dev libqt5opengl5-dev libsdl2-dev
-          echo "Cloning sources"
-      - name: Checkout Code
-        uses: actions/checkout@v4
+        echo "Installing required packages."
+        sudo apt-get update
+        sudo apt-get install -y cmake qtbase5-dev qtchooser qt5-qmake qtbase5-dev-tools qtmultimedia5-dev libqt5opengl5-dev libsdl2-dev
+        echo "Cloning sources"
+    - name: Checkout Code
+      uses: actions/checkout@v4
 
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
       # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
-        run: |
-          cmake -S ${{github.workspace}}/yabause -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+      run: |
+        cmake -S ${{github.workspace}}/yabause -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
 
     - name: Build
       # Build your program with the given configuration
-        shell: bash
-        run: |
-          echo "Compiling"
-          cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
-          cpack -G DEB
-          NAME=$(find build/ -maxdepth 1 -iname "kronos-*.deb")
-          echo "ReleaseFile=$NAME" >> "$GITHUB_ENV"
-          echo "ArtifactName=$NAME" >> "$GITHUB_ENV"
-      - name: Binary upload
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{env.ArtifactName}}
-          path: ${{env.ReleaseFile}}
+      shell: bash
+      run: |
+        echo "Compiling"
+        cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+        cd ${{github.workspace}}/build
+        cpack -G DEB
+        NAME=$(ls kronos*.deb)
+        echo "ReleaseFile=${{github.workspace}}/build/$NAME" >> "$GITHUB_ENV"
+        echo "ArtifactName=$NAME" >> "$GITHUB_ENV"
+    - name: Binary upload
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{env.ArtifactName}}
+        path: ${{env.ReleaseFile}}
     #- name: Test
       #working-directory: ${{github.workspace}}/build
-      # Execute tests defined by the CMake configuration.  
+      # Execute tests defined by the CMake configuration.
       # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
       #run: ctest -C ${{env.BUILD_TYPE}}
-      
+
