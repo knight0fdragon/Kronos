@@ -51,7 +51,7 @@ SHADER_VERSION_COMPUTE
 "  if (pix.a != 0.0) imageStore(outSurface,texel,vec4(pix.r, pix.g, 0.0, 0.0));\n"
 "}\n";
 
-static char vdp1_write_f[ sizeof(vdp1_write_f_base) + 64 ] = {};
+static char vdp1_write_f[ sizeof(vdp1_write_f_base) + 64 ];
 
 static const char vdp1_read_f_base[] =
 SHADER_VERSION_COMPUTE
@@ -75,7 +75,7 @@ SHADER_VERSION_COMPUTE
 "  Vdp1FB[idx] = val;\n"
 "}\n";
 
-static char vdp1_read_f[ sizeof(vdp1_read_f_base) + 64 ] = {};
+static char vdp1_read_f[ sizeof(vdp1_read_f_base) + 64 ];
 
 static const char vdp1_clear_f_base[] =
 SHADER_VERSION_COMPUTE
@@ -100,7 +100,7 @@ SHADER_VERSION_COMPUTE
 "  imageStore(outMesh, texel, vec4(0.0));\n"
 "}\n";
 
-static char vdp1_clear_f[ sizeof(vdp1_clear_f_base) + 64 ] = {};
+static char vdp1_clear_f[ sizeof(vdp1_clear_f_base) + 64 ];
 
 static const char vdp1_clear_mesh_f_base[] =
 SHADER_VERSION_COMPUTE
@@ -118,7 +118,7 @@ SHADER_VERSION_COMPUTE
 "  imageStore(outMesh0, texel, vec4(0.0));\n"
 "  imageStore(outMesh1, texel, vec4(0.0));\n"
 "}\n";
-static char vdp1_clear_mesh_f[ sizeof(vdp1_clear_mesh_f_base) + 64 ] = {};
+static char vdp1_clear_mesh_f[ sizeof(vdp1_clear_mesh_f_base) + 64 ];
 
 #define COLINDEX(A) \
 "int col"Stringify(A)" = (int("Stringify(A)".r*255.0) | (int("Stringify(A)".g*255.0)<<8));\n"
@@ -603,7 +603,7 @@ SHADER_VERSION_COMPUTE
      COLINDEX(finalColor)
      COLINDEX(newColor);
 
-static char vdp1_start_f[ sizeof(vdp1_start_f_base) + 64 ] = {};
+static char vdp1_start_f[ sizeof(vdp1_start_f_base) + 64 ];
 
 static const char vdp1_banding_f[] =
 "    if ((pixcmd.CMDPMOD & 0x8000u) == 0x8000u) {\n"

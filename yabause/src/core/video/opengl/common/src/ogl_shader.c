@@ -1122,26 +1122,26 @@ int YglBlitTexture(int* prioscreens, int* modescreens, int* isRGB, int * isBlur,
     rheight %d\n\
     height %d\n\
     vdp1 height %d\n \
-    vdp1 HRatio %f\n\
+    vdp1 Ratio %f\n\
     vdp1hdensity %f\n\
     vdp2hdensity %f\n\
     ",
     _Ygl->rheight,
     _Ygl->height,
     _Ygl->vdp1height,
-    _Ygl->vdp1hratio,
+    _Ygl->vdp1ratio,
     _Ygl->vdp1hdensity,
     _Ygl->vdp2hdensity
     );
-  YGLLOG("result => %f\n", _Ygl->vdp1hratio*_Ygl->vdp1hdensity/_Ygl->vdp2hdensity * (float)_Ygl->rheight/(float)_Ygl->height);
+  YGLLOG("result => %f\n", _Ygl->vdp1ratio*_Ygl->vdp1hdensity/_Ygl->vdp2hdensity * (float)_Ygl->rheight/(float)_Ygl->height);
 
   glUniform2f(glGetUniformLocation(vdp2blit_prg, "u_emu_vdp1_ratio"),
-    _Ygl->vdp1wratio*_Ygl->vdp1wdensity/_Ygl->vdp2wdensity * (float)_Ygl->rwidth/(float)_Ygl->width,
-    _Ygl->vdp1hratio*_Ygl->vdp1hdensity/_Ygl->vdp2hdensity * (float)_Ygl->rheight/(float)_Ygl->height
+    _Ygl->vdp1ratio*_Ygl->vdp1wdensity/_Ygl->vdp2wdensity * (float)_Ygl->rwidth/(float)_Ygl->width,
+    _Ygl->vdp1ratio*_Ygl->vdp1hdensity/_Ygl->vdp2hdensity * (float)_Ygl->rheight/(float)_Ygl->height
   );
   glUniform1f(glGetUniformLocation(vdp2blit_prg, "u_emu_vdp2_width"),(float)(_Ygl->width) / (float)(_Ygl->rwidth));
   glUniform1f(glGetUniformLocation(vdp2blit_prg, "u_vheight"), (float)_Ygl->height);
-  glUniform2f(glGetUniformLocation(vdp2blit_prg, "vdp1Ratio"), _Ygl->vdp1wratio, _Ygl->vdp1hratio);//((float)_Ygl->rwidth*(float)_Ygl->vdp1wratio * (float)_Ygl->vdp1wdensity)/((float)_Ygl->vdp1width*(float)_Ygl->vdp2wdensity), ((float)_Ygl->rheight*(float)_Ygl->vdp1hratio * (float)_Ygl->vdp1hdensity)/((float)_Ygl->vdp1height * (float)_Ygl->vdp2hdensity));
+  glUniform2f(glGetUniformLocation(vdp2blit_prg, "vdp1Ratio"), _Ygl->vdp1ratio, _Ygl->vdp1ratio);//((float)_Ygl->rwidth*(float)_Ygl->vdp1ratio * (float)_Ygl->vdp1wdensity)/((float)_Ygl->vdp1width*(float)_Ygl->vdp2wdensity), ((float)_Ygl->rheight*(float)_Ygl->vdp1ratio * (float)_Ygl->vdp1hdensity)/((float)_Ygl->vdp1height * (float)_Ygl->vdp2hdensity));
   glUniform1i(glGetUniformLocation(vdp2blit_prg, "ram_mode"), Vdp2Internal.ColorMode);
   glUniform1i(glGetUniformLocation(vdp2blit_prg, "extended_cc"), ((varVdp2Regs->CCCTL & 0x8400) == 0x400) );
   glUniform1i(glGetUniformLocation(vdp2blit_prg, "u_lncl"),lncl_val); //_Ygl->prioVa
@@ -1938,7 +1938,7 @@ int YglBlitFramebuffer(u32 srcTexture, float w, float h, float dispw, float disp
   if (decim < 2) decim = 2;
   glUniform1f(u_d, (float)decim);
   glUniform1i(u_f, (Vdp2Regs->TVSTAT>>1)&0x1);
-  glUniform1i(u_s, _Ygl->vdp1hratio);
+  glUniform1i(u_s, _Ygl->vdp1ratio);
 
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, tex);

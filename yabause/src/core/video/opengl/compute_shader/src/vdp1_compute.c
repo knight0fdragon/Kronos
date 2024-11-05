@@ -24,8 +24,7 @@ static int local_size_y = 8;
 
 static int tex_width;
 static int tex_height;
-static float tex_ratiow;
-static float tex_ratioh;
+static int tex_ratio;
 static int struct_size;
 
 static int work_groups_x;
@@ -542,10 +541,10 @@ int vdp1_add(vdp1cmd_struct* cmd, int clipcmd) {
     int blkx = i * (tex_width/NB_COARSE_RAST_X);
     for (int j = 0; j<NB_COARSE_RAST_Y; j++) {
       int blky = j*(tex_height/NB_COARSE_RAST_Y);
-      if (!(blkx > maxx*_Ygl->vdp1wratio
-        || (blkx + (tex_width/NB_COARSE_RAST_X)) < minx*_Ygl->vdp1wratio
-        || (blky + (tex_height/NB_COARSE_RAST_Y)) < miny*_Ygl->vdp1hratio
-        || blky > maxy*_Ygl->vdp1hratio)
+      if (!(blkx > maxx*_Ygl->vdp1ratio
+        || (blkx + (tex_width/NB_COARSE_RAST_X)) < minx*_Ygl->vdp1ratio
+        || (blky + (tex_height/NB_COARSE_RAST_Y)) < miny*_Ygl->vdp1ratio
+        || blky > maxy*_Ygl->vdp1ratio)
 			  || (clipcmd!=0)) {
 					if (cmd->w == 0) cmd->w = 1;
 					if (cmd->h == 0) cmd->h = 1;
@@ -595,8 +594,7 @@ void vdp1_clear(int id, float *col, int* lim) {
 
 void vdp1_write() {
 	int progId = WRITE;
-	float wratio = 1.0f/_Ygl->vdp1wratio;
-	float hratio = 1.0f/_Ygl->vdp1hratio;
+	float ratio = 1.0f/_Ygl->vdp1ratio;
 
 	if (prg_vdp1[progId] == 0) {
     prg_vdp1[progId] = createProgram(sizeof(a_prg_vdp1[progId]) / sizeof(char*), (const GLchar**)a_prg_vdp1[progId]);
@@ -605,7 +603,7 @@ void vdp1_write() {
 
 	glBindImageTexture(0, get_vdp1_tex(_Ygl->drawframe), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
 	glBindImageTexture(1, _Ygl->vdp1AccessTex[_Ygl->drawframe], 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA8);
-	glUniform2f(2, wratio, hratio);
+	glUniform2f(2, ratio, ratio);
 
 	glDispatchCompute(work_groups_x, work_groups_y, 1); //might be better to launch only the right number of workgroup
 	glBindImageTexture(0, 0, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
@@ -614,8 +612,7 @@ void vdp1_write() {
 
 u32* vdp1_read(int frame) {
 	int progId = READ;
-	float wratio = 1.0f/_Ygl->vdp1wratio;
-	float hratio = 1.0f/_Ygl->vdp1hratio;
+	float ratio = 1.0f/_Ygl->vdp1ratio;
 	if (prg_vdp1[progId] == 0){
 		prg_vdp1[progId] = createProgram(sizeof(a_prg_vdp1[progId]) / sizeof(char*), (const GLchar**)a_prg_vdp1[progId]);
 	}
@@ -623,7 +620,7 @@ u32* vdp1_read(int frame) {
 
 	glBindImageTexture(0, get_vdp1_tex(frame), 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA8);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, ssbo_vdp1access_);
-	glUniform2f(2, wratio, hratio);
+	glUniform2f(2, ratio, ratio);
 
 	glDispatchCompute(work_groups_x, work_groups_y, 1); //might be better to launch only the right number of workgroup
 
@@ -640,7 +637,7 @@ u32* vdp1_read(int frame) {
 }
 
 
-void vdp1_compute_init(int width, int height, float ratiow, float ratioh)
+void vdp1_compute_init(int width, int height, float ratio)
 {
 	int length = sizeof(vdp1_write_f_base) + 64;
 	snprintf(vdp1_write_f,length,vdp1_write_f_base,local_size_x,local_size_y);
@@ -660,8 +657,7 @@ void vdp1_compute_init(int width, int height, float ratiow, float ratioh)
   int am = sizeof(vdp1cmd_struct) % 16;
   tex_width = width;
   tex_height = height;
-	tex_ratiow = ratiow;
-	tex_ratioh = ratioh;
+	tex_ratio = (int)ratio;
   struct_size = sizeof(vdp1cmd_struct);
   if (am != 0) {
     struct_size += 16 - am;
@@ -775,7 +771,7 @@ void vdp1_compute() {
   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, ssbo_nbcmd_);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, ssbo_cmd_);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, ssbo_cmd_list_);
-	glUniform2f(7, tex_ratiow, tex_ratioh);
+	glUniform2f(7, tex_ratio, tex_ratio);
 	glUniform2i(8, Vdp1Regs->systemclipX2, Vdp1Regs->systemclipY2);
 	glUniform4i(9, Vdp1Regs->userclipX1, Vdp1Regs->userclipY1, Vdp1Regs->userclipX2, Vdp1Regs->userclipY2);
 

@@ -122,12 +122,12 @@ int VIDCSVdp1Reset(void);
 extern vdp2rotationparameter_struct  Vdp1ParaA;
 
 void VIDCSVdp1Draw();
-void VIDCSVdp1NormalSpriteDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs, u8* back_framebuffer);
-void VIDCSVdp1ScaledSpriteDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs, u8* back_framebuffer);
-void VIDCSVdp1DistortedSpriteDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs, u8* back_framebuffer);
-void VIDCSVdp1PolygonDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs, u8* back_framebuffer);
-void VIDCSVdp1PolylineDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs, u8* back_framebuffer);
-void VIDCSVdp1LineDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs, u8* back_framebuffer);
+void VIDCSVdp1NormalSpriteDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs);
+void VIDCSVdp1ScaledSpriteDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs);
+void VIDCSVdp1DistortedSpriteDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs);
+void VIDCSVdp1PolygonDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs);
+void VIDCSVdp1PolylineDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs);
+void VIDCSVdp1LineDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs);
 void VIDCSVdp1UserClipping(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs);
 void VIDCSVdp1SystemClipping(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs);
 void VIDCSVdp1DrawFB(void);
@@ -607,8 +607,7 @@ int VIDCSInit(void)
   for (int i=0; i<SPRITE; i++)
     YglReset(_Ygl->vdp2levels[i]);
 
-  _Ygl->vdp1wratio = 1.0;
-  _Ygl->vdp1hratio = 1.0;
+  _Ygl->vdp1ratio = 1.0;
 
   _Ygl->vdp1wdensity = 1.0;
   _Ygl->vdp1hdensity = 1.0;
@@ -733,14 +732,14 @@ void VIDCSVdp1Draw()
 
   _Ygl->msb_shadow_count_[_Ygl->drawframe] = 0;
 
-  Vdp1DrawCommands(Vdp1Ram, Vdp1Regs, NULL);
+  Vdp1DrawCommands(Vdp1Ram, Vdp1Regs);
 
   _Ygl->vpd1_running = 0;
 }
 
 //////////////////////////////////////////////////////////////////////////////
 
-void VIDCSVdp1NormalSpriteDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs, u8* back_framebuffer)
+void VIDCSVdp1NormalSpriteDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs)
 {
   LOG_CMD("%d\n", __LINE__);
 
@@ -772,7 +771,7 @@ int getBestMode(vdp1cmd_struct* cmd) {
   return ret;
 }
 
-void VIDCSVdp1ScaledSpriteDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs, u8* back_framebuffer)
+void VIDCSVdp1ScaledSpriteDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs)
 {
 
   if (((cmd->CMDPMOD >> 3) & 0x7u) == 5) {
@@ -788,7 +787,7 @@ void VIDCSVdp1ScaledSpriteDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs, u8* b
   LOG_CMD("%d\n", __LINE__);
 }
 
-void VIDCSVdp1DistortedSpriteDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs, u8* back_framebuffer)
+void VIDCSVdp1DistortedSpriteDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs)
 {
   LOG_CMD("%d\n", __LINE__);
 
@@ -817,7 +816,7 @@ void VIDCSVdp1DistortedSpriteDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs, u8
   return;
 }
 
-void VIDCSVdp1PolygonDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs, u8* back_framebuffer)
+void VIDCSVdp1PolygonDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs)
 {
   cmd->SPCTL = Vdp2Lines[0].SPCTL;
   // cmd->type = POLYGON;
@@ -841,7 +840,7 @@ void VIDCSVdp1PolygonDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs, u8* back_f
   return;
 }
 
-void VIDCSVdp1PolylineDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs, u8* back_framebuffer)
+void VIDCSVdp1PolylineDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs)
 {
   LOG_CMD("%d\n", __LINE__);
 
@@ -854,7 +853,7 @@ void VIDCSVdp1PolylineDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs, u8* back_
 
 //////////////////////////////////////////////////////////////////////////////
 
-void VIDCSVdp1LineDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs, u8* back_framebuffer)
+void VIDCSVdp1LineDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs)
 {
   LOG_CMD("%d\n", __LINE__);
 
@@ -1999,7 +1998,7 @@ void VIDCSGetScale(float *xRatio, float *yRatio, int *xUp, int *yUp) {
 
   int width = (_Ygl->interlace == SINGLE_INTERLACE)?_Ygl->width*2:_Ygl->width;
   int Intw = (int)(floor((float)GlWidth/(float)width));
-  int Inth = (int)(floor((float)GlHeight/(256.0 * _Ygl->vdp1hratio)));
+  int Inth = (int)(floor((float)GlHeight/(256.0 * _Ygl->vdp1ratio)));
   if (_Ygl->interlace != NORMAL_INTERLACE) Inth >>= 1;
   int Int  = 1<<(_Ygl->interlace == NORMAL_INTERLACE);
   RATIOMODE modeScreen = _Ygl->stretch;
@@ -2339,32 +2338,6 @@ void VIDCSSetSettingValueMode(int type, int value) {
        YglChangeResolution(_Ygl->rwidth, _Ygl->rheight);
     }
     break;
-  case VDP_SETTING_POLYGON_MODE:
-    if ((POLYGONMODE)value == GPU_TESSERATION && _Ygl->polygonmode != GPU_TESSERATION) {
-      int maj, min;
-      glGetIntegerv(GL_MAJOR_VERSION, &maj);
-      glGetIntegerv(GL_MINOR_VERSION, &min);
-#if defined(_OGL3_)
-      if ((maj >=4) && (min >=2)) {
-        if (glPatchParameteri) {
-          _Ygl->polygonmode = (POLYGONMODE)value;
-        } else {
-          YuiMsg("GPU tesselation is not possible - fallback on CPU tesselation\n");
-          _Ygl->polygonmode = CPU_TESSERATION;
-        }
-      } else {
-        YuiMsg("GPU tesselation is not possible - fallback on CPU tesselation\n");
-        _Ygl->polygonmode = CPU_TESSERATION;
-      }
-#else
-      _Ygl->polygonmode = CPU_TESSERATION;
-#endif
-    } else {
-
-
-      _Ygl->polygonmode = (POLYGONMODE)value;
-    }
-  break;
   case VDP_SETTING_ASPECT_RATIO:
     _Ygl->stretch = (RATIOMODE)value;
   break;

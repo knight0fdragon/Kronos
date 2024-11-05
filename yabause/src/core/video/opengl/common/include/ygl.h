@@ -408,13 +408,6 @@ typedef enum
 
 typedef enum
 {
-    PERSPECTIVE_CORRECTION = 0,
-    CPU_TESSERATION,
-    GPU_TESSERATION
-} POLYGONMODE;
-
-typedef enum
-{
     ORIGINAL_MESH = 0,
     IMPROVED_MESH
 } MESHMODE;
@@ -447,7 +440,6 @@ typedef enum
 
 typedef enum {
     VDP_SETTING_FILTERMODE = 0,
-    VDP_SETTING_POLYGON_MODE,
     VDP_SETTING_RESOLUTION_MODE,
     VDP_SETTING_UPSCALMODE,
     VDP_SETTING_ASPECT_RATIO,
@@ -615,7 +607,6 @@ typedef struct {
 
    AAMODE aamode;
    UPMODE upmode;
-   POLYGONMODE polygonmode;
    MESHMODE meshmode;
    BANDINGMODE bandingmode;
    int wireframe_mode;
@@ -658,8 +649,7 @@ typedef struct {
 
    int useLineColorOffset[2];
 
-   float vdp1wratio;
-   float vdp1hratio;
+   float vdp1ratio;
 
    float vdp1wdensity;
    float vdp1hdensity;

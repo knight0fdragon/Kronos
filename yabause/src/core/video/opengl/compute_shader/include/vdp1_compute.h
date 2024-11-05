@@ -21,7 +21,7 @@ enum
   NB_PRG
 };
 
-extern void vdp1_compute_init(int width, int height, float ratiow, float ratioh);
+extern void vdp1_compute_init(int width, int height, float ratio);
 extern void vdp1_compute();
 extern int get_vdp1_tex(int);
 extern int get_vdp1_mesh(int);

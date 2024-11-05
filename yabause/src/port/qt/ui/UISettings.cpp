@@ -102,11 +102,6 @@ const Items mUpscaleFilterMode = Items()
 	<< Item("2", "4xBRZ")
 	<< Item("3", "6xBRZ");
 
-const Items mPolygonGenerationMode = Items()
-	<< Item("0", "Triangles using perspective correction")
-	<< Item("1", "CPU Tesselation")
-	<< Item("2", "GPU Tesselation");
-
 const Items mResolutionMode = Items()
 	<< Item("1", "SD (original resolution of the Saturn)")
 	<< Item("8", "Full HD")
@@ -418,40 +413,9 @@ void UISettings::changeFilterMode(int id)
     if (VIDCore != NULL) VIDCore->SetSettingValue(VDP_SETTING_FILTERMODE, (mVideoFilterMode.at(id).id).toInt());
 }
 
-void UISettings::changeVideoMode(int id)
-{
-	// if (VIDCoreList[id]->id == 1) {//OpenGL
-	// 	//Tesselation on
-	// 	Tesselation->setVisible(true);
-	// 	cbPolygonGeneration->setVisible(true);
-	// 	//Gouraud off
-	// 	BandingMode->setVisible(false);
-	// 	cbBandingModeFilter->setVisible(false);
-	// 	//Wireframe off
-	// 	Wireframe->setVisible(false);
-	// 	cbWireframeFilter->setVisible(false);
-	// }
-	if (VIDCoreList[id]->id == VIDCORE_CS) {//Compute Shader
-		//Tesselation offcol4
-		Tesselation->setVisible(false);
-		cbPolygonGeneration->setVisible(false);
-		//Gouraud on
-		BandingMode->setVisible(true);
-		cbBandingModeFilter->setVisible(true);
-		//Wireframe on
-		Wireframe->setVisible(true);
-		cbWireframeFilter->setVisible(true);
-	}
-}
-
 void UISettings::changeUpscaleMode(int id)
 {
     if (VIDCore != NULL) VIDCore->SetSettingValue(VDP_SETTING_UPSCALMODE, (mUpscaleFilterMode.at(id).id).toInt());
-}
-
-void UISettings::changePolygonMode(int id)
-{
-    if (VIDCore != NULL) VIDCore->SetSettingValue(VDP_SETTING_POLYGON_MODE, (mPolygonGenerationMode.at(id).id).toInt());
 }
 
 void UISettings::on_cbCartridge_currentIndexChanged( int id )
@@ -508,12 +472,6 @@ void UISettings::loadCores()
 	for ( int i = 0; CDCoreList[i] != NULL; i++ )
 		cbCdRom->addItem( QtYabause::translate( CDCoreList[i]->Name ), CDCoreList[i]->id );
 
-	// VDI Drivers
-	for ( int i = 0; VIDCoreList[i] != NULL; i++ )
-		cbVideoCore->addItem( QtYabause::translate( VIDCoreList[i]->Name ), VIDCoreList[i]->id );
-
-		connect(cbVideoCore, SIGNAL(currentIndexChanged(int)), this, SLOT(changeVideoMode(int)));
-
 #if YAB_PORT_OSD
 	// OSD Drivers
 	for ( int i = 0; OSDCoreList[i] != NULL; i++ )
@@ -534,12 +492,6 @@ void UISettings::loadCores()
 		cbUpscaleMode->addItem(QtYabause::translate(it.Name), it.id);
 
         connect(cbUpscaleMode, SIGNAL(currentIndexChanged(int)), this, SLOT(changeUpscaleMode(int)));
-
-	// Polygon Generation
-	foreach(const Item& it, mPolygonGenerationMode)
-		cbPolygonGeneration->addItem(QtYabause::translate(it.Name), it.id);
-
-		connect(cbPolygonGeneration, SIGNAL(currentIndexChanged(int)), this, SLOT(changePolygonMode(int)));
 
 	// Resolution
   foreach(const Item& it, mResolutionMode)
@@ -719,13 +671,6 @@ void UISettings::loadSettings()
 	else
 		dteBaseTime->setDateTime( QDateTime(QDate(1998, 1, 1), QTime(12, 0, 0)) );
 
-	// video
-	if (s->value( "Video/VideoCore", QtYabause::defaultVIDCore().id ).toInt() != VIDCORE_CS) {
-		cbVideoCore->setCurrentIndex(cbVideoCore->findData(VIDCORE_CS));
-	} else {
-		cbVideoCore->setCurrentIndex( cbVideoCore->findData( s->value( "Video/VideoCore", QtYabause::defaultVIDCore().id ).toInt() ) );
-	}
-	changeVideoMode(cbVideoCore->currentIndex());
 #if YAB_PORT_OSD
 	cbOSDCore->setCurrentIndex( cbOSDCore->findData( s->value( "Video/OSDCore", QtYabause::defaultOSDCore().id ).toInt() ) );
 #endif
@@ -733,7 +678,6 @@ void UISettings::loadSettings()
 
 	cbFilterMode->setCurrentIndex(cbFilterMode->findData(s->value("Video/filter_type", mVideoFilterMode.at(0).id).toInt()));
         cbUpscaleMode->setCurrentIndex(cbUpscaleMode->findData(s->value("Video/upscale_type", mUpscaleFilterMode.at(0).id).toInt()));
-	cbPolygonGeneration->setCurrentIndex(cbPolygonGeneration->findData(s->value("Video/polygon_generation_mode", mPolygonGenerationMode.at(1).id).toInt()));
 	cbResolution->setCurrentIndex(cbResolution->findData(s->value("Video/resolution_mode", mResolutionMode.at(0).id).toInt()));
   cbAspectRatio->setCurrentIndex(cbAspectRatio->findData(s->value("Video/AspectRatio", mAspectRatio.at(0).id).toInt()));
 	cbWireframeFilter->setCurrentIndex(cbWireframeFilter->findData(s->value("Video/Wireframe", mWireframe.at(0).id).toInt()));
@@ -832,7 +776,6 @@ void UISettings::saveSettings()
 	s->setValue( "autostart", cbAutostart->isChecked() );
 
 	// video
-	s->setValue( "Video/VideoCore", cbVideoCore->itemData( cbVideoCore->currentIndex() ).toInt() );
 #if YAB_PORT_OSD
 	s->setValue( "Video/OSDCore", cbOSDCore->itemData( cbOSDCore->currentIndex() ).toInt() );
 #endif
@@ -849,7 +792,6 @@ void UISettings::saveSettings()
 	s->setValue( "Video/Fullscreen", cbFullscreen->isChecked() );
 	s->setValue( "Video/filter_type", cbFilterMode->itemData(cbFilterMode->currentIndex()).toInt());
 	s->setValue( "Video/upscale_type", cbUpscaleMode->itemData(cbUpscaleMode->currentIndex()).toInt());
-	s->setValue( "Video/polygon_generation_mode", cbPolygonGeneration->itemData(cbPolygonGeneration->currentIndex()).toInt());
 	s->setValue("Video/resolution_mode", cbResolution->itemData(cbResolution->currentIndex()).toInt());
 
 	s->setValue( "General/ClockSync", cbClockSync->isChecked() );
