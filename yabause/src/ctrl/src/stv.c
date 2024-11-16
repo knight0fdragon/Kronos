@@ -2326,7 +2326,7 @@ Game GameList[NB_STV_GAMES]={
   {
     "znpwfv",
     NULL,
-    "Zen Nippon Pro-Wrestling Featuring Virtua (J 971123 V1.000)",
+    "Zen Nippon Pro-Wres Featuring Virtua (J 971123 V1.000)",
     STV_REGION_JP,
     0,
     0,
@@ -2352,7 +2352,7 @@ Game GameList[NB_STV_GAMES]={
   {
     "znpwfvt",
     "znpwfv",
-    "Zen Nippon Pro-Wrestling Featuring Virtua (T 971123 V1.000)",
+    "All Japan Pro-Wrestling Featuring Virtua (T 971123 V1.000)",
     STV_REGION_TW,
     0,
     0,
