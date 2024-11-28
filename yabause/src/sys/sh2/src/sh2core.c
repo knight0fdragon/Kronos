@@ -137,15 +137,16 @@ void SH2EvaluateInterrupt(SH2_struct *sh) {
 
 
 static void SH2StandardExecFast(SH2_struct *context, u32 cycles) {
+  SH2Core->Exec(context, cycles);
+}
+
+static void SH2StandardExecDebug(SH2_struct *context, u32 cycles) {
   int oldbp = context->bp.inbreakpoint;
   SH2Core->Exec(context, cycles);
   if (context->bp.inbreakpoint && !oldbp) {
     context->bp.BreakpointCallBack(context, 0, &context->bp.BreakpointUserData);
     context->bp.inbreakpoint = 0;
   }
-}
-static void SH2StandardExecDebug(SH2_struct *context, u32 cycles) {
-  SH2Core->Exec(context, cycles);
 }
 
 static sh2regs_struct oldRegs;
