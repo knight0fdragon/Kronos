@@ -429,7 +429,6 @@ int SH2KronosInterpreterInit(void)
    }
    cacheCode[0][0][0x7d600>>1] = BUPDetectInit;
    cacheCode[1][0][0x7d600>>1] = BUPDetectInit;
-
    SH2ClearCodeBreakpoints(MSH2);
    SH2ClearCodeBreakpoints(SSH2);
    SH2ClearMemoryBreakpoints(MSH2);
@@ -455,7 +454,6 @@ void SH2KronosInterpreterDeInit(void)
 
 void SH2KronosInterpreterReset(UNUSED SH2_struct *context)
 {
-  SH2KronosInterpreterInit();
 }
 
 //////////////////////////////////////////////////////////////////////////////
