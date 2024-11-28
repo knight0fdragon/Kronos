@@ -569,7 +569,7 @@ static INLINE void SH2HandleBreakpoints(SH2_struct *context)
        if (context->regs.PC == context->bp.codebreakpoint[i].addr)  {
          context->bp.inbreakpoint = 1;
          context->bp.BreakpointUserData.PCAddress = (context->isDelayed != 0)?context->isDelayed:context->regs.PC;
-         context->bp.BreakpointUserData.PCAddress = (context->isDelayed != 0)?context->isDelayed:context->regs.PC;
+         context->bp.BreakpointUserData.BPAddress = (context->isDelayed != 0)?context->isDelayed:context->regs.PC;
          return;
        }
      }

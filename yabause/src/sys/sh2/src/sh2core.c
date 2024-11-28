@@ -144,8 +144,8 @@ static void SH2StandardExecDebug(SH2_struct *context, u32 cycles) {
   int oldbp = context->bp.inbreakpoint;
   SH2Core->Exec(context, cycles);
   if (context->bp.inbreakpoint && !oldbp) {
-    context->bp.BreakpointCallBack(context, 0, &context->bp.BreakpointUserData);
     context->bp.inbreakpoint = 0;
+    context->bp.BreakpointCallBack(context, 0, &context->bp.BreakpointUserData);
   }
 }
 
@@ -155,8 +155,8 @@ static void SH2BlockableExecDebug(SH2_struct *context, u32 cycles) {
     int oldbp = context->bp.inbreakpoint;
     SH2Core->ExecSave(context, cycles, &oldRegs);
     if (context->bp.inbreakpoint && !oldbp) {
-      context->bp.BreakpointCallBack(context, 0, &context->bp.BreakpointUserData);
       context->bp.inbreakpoint = 0;
+      context->bp.BreakpointCallBack(context, 0, &context->bp.BreakpointUserData);
     }
   } else {
     context->cycles += cycles;
