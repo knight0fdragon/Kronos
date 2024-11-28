@@ -552,8 +552,7 @@ void SH2HandleStepOverOut(SH2_struct *context)
       case SH2ST_STEPOUT: // Step Out
          {
             u16 inst;
-
-            if (context->stepOverOut.levels < 0 && context->regs.PC == context->regs.PR)
+            if ((context->stepOverOut.levels < 0) && (context->regs.PC == context->regs.PR))
             {
                context->stepOverOut.enabled = 0;
                context->stepOverOut.callBack(context, context->regs.PC, (void *)context->stepOverOut.type);
