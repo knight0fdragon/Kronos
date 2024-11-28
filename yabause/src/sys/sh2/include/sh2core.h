@@ -561,7 +561,7 @@ typedef struct
    void(*updateInterruptReturnHandling)(SH2_struct *context);
 } SH2Interface_struct;
 
-static INLINE void SH2HandleBreakpoints(SH2_struct *context)
+static INLINE int SH2HandleBreakpoints(SH2_struct *context)
 {
    int i;
    if (context->bp.inbreakpoint == 0) {
@@ -570,10 +570,11 @@ static INLINE void SH2HandleBreakpoints(SH2_struct *context)
          context->bp.inbreakpoint = 1;
          context->bp.BreakpointUserData.PCAddress = (context->isDelayed != 0)?context->isDelayed:context->regs.PC;
          context->bp.BreakpointUserData.BPAddress = (context->isDelayed != 0)?context->isDelayed:context->regs.PC;
-         return;
+         return 1;
        }
      }
    }
+   return 0;
 }
 
 extern SH2_struct *MSH2;

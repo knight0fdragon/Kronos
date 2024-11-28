@@ -527,8 +527,9 @@ FASTCALL void SH2KronosDebugInterpreterExecSave(SH2_struct *context, u32 cycles,
       int ubcinterrupt=0, ubcflag=0;
 #endif
 
-      SH2HandleBreakpoints(context);
-
+      if (SH2HandleBreakpoints(context)) {
+        return;
+      }
 
 #ifdef SH2_UBC
       if (context->onchip.BBRA & (BBR_CPA_CPU | BBR_IDA_INST | BBR_RWA_READ)) // Break on cpu, instruction, read cycles
@@ -637,8 +638,9 @@ FASTCALL void SH2KronosDebugInterpreterExec(SH2_struct *context, u32 cycles)
 
    {
      context->doNotInterrupt = 0;
-     SH2HandleBreakpoints(context);
-
+     if (SH2HandleBreakpoints(context)) {
+       return;
+     }
 #ifdef SH2_UBC
       int ubcinterrupt=0, ubcflag=0;
 #endif
