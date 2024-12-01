@@ -59,7 +59,8 @@ extern void BiosBUPVerify(SH2_struct * context);
 extern void BiosBUPGetDate(SH2_struct * context);
 extern void BiosBUPSetDate(SH2_struct * context);
 
-#define INTERRUPT_HANDLING_DELAY 2
+//SH2 hardware manual says that interrupt takes 13 cycles at least before execution due to decoding process
+#define INTERRUPT_HANDLING_DELAY 13
 
 void decode(SH2_struct *context);
 

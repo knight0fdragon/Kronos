@@ -1359,6 +1359,7 @@ void FASTCALL OnchipWriteLong(SH2_struct *context, u32 addr, u32 val)  {
       case 0x124:
       {
          s32 divisor = (s32) context->onchip.DVSR;
+         context->cycles += 39;
          if (divisor == 0)
          {
             // Regardless of what DVDNTL is set to, the top 3 bits
@@ -1428,7 +1429,7 @@ void FASTCALL OnchipWriteLong(SH2_struct *context, u32 addr, u32 val)  {
          s64 dividend = context->onchip.DVDNTH;
          dividend = (s64)(((u64)dividend) << 32);
          dividend |= val;
-
+        context->cycles += 39;
          if (divisor == 0)
          {
             if (context->onchip.DVDNTH & 0x80000000)
