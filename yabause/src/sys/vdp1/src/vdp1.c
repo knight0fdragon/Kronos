@@ -126,9 +126,15 @@ static void abortVdp1() {
   }
 }
 //////////////////////////////////////////////////////////////////////////////
+static u32 lastVRamBankCol = 0;
 
 u8 FASTCALL Vdp1RamReadByte(SH2_struct *context, u8* mem, u32 addr) {
    addr &= 0x7FFFF;
+   int rowBank = ((addr>>9)&0x3FF);
+   if (rowBank != lastVRamBankCol) {
+    lastVRamBankCol = rowBank;
+    if ((context) && (!context->cacheOn)) context->cycles += 2;
+   }
    return T1ReadByte(mem, addr);
 }
 
@@ -136,6 +142,11 @@ u8 FASTCALL Vdp1RamReadByte(SH2_struct *context, u8* mem, u32 addr) {
 
 u16 FASTCALL Vdp1RamReadWord(SH2_struct *context, u8* mem, u32 addr) {
     addr &= 0x07FFFF;
+    int rowBank = ((addr>>9)&0x3FF);
+    if (rowBank != lastVRamBankCol) {
+     lastVRamBankCol = rowBank;
+     if ((context) && (!context->cacheOn)) context->cycles += 2;
+    }
     return T1ReadWord(mem, addr);
 }
 
@@ -143,15 +154,26 @@ u16 FASTCALL Vdp1RamReadWord(SH2_struct *context, u8* mem, u32 addr) {
 
 u32 FASTCALL Vdp1RamReadLong(SH2_struct *context, u8* mem, u32 addr) {
    addr &= 0x7FFFF;
+   int rowBank = ((addr>>9)&0x3FF);
+   if (rowBank != lastVRamBankCol) {
+    lastVRamBankCol = rowBank;
+    if ((context) && (!context->cacheOn)) context->cycles += 2;
+   }
    return T1ReadLong(mem, addr);
 }
 
 //////////////////////////////////////////////////////////////////////////////
 
 static int Vdp1LoopAddr = -1;
-
 void FASTCALL Vdp1RamWriteByte(SH2_struct *context, u8* mem, u32 addr, u8 val) {
    addr &= 0x7FFFF;
+   int rowBank = ((addr>>9)&0x3FF);
+   if (rowBank != lastVRamBankCol) {
+    lastVRamBankCol = rowBank;
+    if (context) context->cycles += 2;
+   }
+   if (context)context->cycles += 1;
+
    // printf("Write 0x%x @ 0x%x (%d %d)\n", val, addr, yabsys.LineCount, yabsys.DecilineCount);
    Vdp1External.updateVdp1Ram = 1;
    if( (Vdp1External.status&VDP1_STATUS_MASK) == VDP1_STATUS_RUNNING) vdp1_clock -= 1;
@@ -164,6 +186,12 @@ void FASTCALL Vdp1RamWriteByte(SH2_struct *context, u8* mem, u32 addr, u8 val) {
 
 void FASTCALL Vdp1RamWriteWord(SH2_struct *context, u8* mem, u32 addr, u16 val) {
    addr &= 0x7FFFF;
+   int rowBank = ((addr>>9)&0x3FF);
+   if (rowBank != lastVRamBankCol) {
+    lastVRamBankCol = rowBank;
+    if (context) context->cycles += 2;
+   }
+   if (context)context->cycles += 1;
    // printf("Write 0x%x @ 0x%x (%d %d)\n", val, addr, yabsys.LineCount, yabsys.DecilineCount);
    Vdp1External.updateVdp1Ram = 1;
    if( (Vdp1External.status&VDP1_STATUS_MASK) == VDP1_STATUS_RUNNING) vdp1_clock -= 2;
@@ -176,6 +204,12 @@ void FASTCALL Vdp1RamWriteWord(SH2_struct *context, u8* mem, u32 addr, u16 val) 
 
 void FASTCALL Vdp1RamWriteLong(SH2_struct *context, u8* mem, u32 addr, u32 val) {
    addr &= 0x7FFFF;
+   int rowBank = ((addr>>9)&0x3FF);
+   if (rowBank != lastVRamBankCol) {
+    lastVRamBankCol = rowBank;
+    if (context) context->cycles += 2;
+   }
+   if (context)context->cycles += 3;
    // printf("Write 0x%x @ 0x%x (%d %d)\n", val, addr, yabsys.LineCount, yabsys.DecilineCount);
    Vdp1External.updateVdp1Ram = 1;
    if( (Vdp1External.status&VDP1_STATUS_MASK) == VDP1_STATUS_RUNNING) vdp1_clock -= 4;
