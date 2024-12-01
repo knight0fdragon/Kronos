@@ -918,6 +918,7 @@ void FASTCALL SH2MappedMemoryWriteByte(SH2_struct *context, u32 addr, u8 val)
 {
    int id = addr >> 29;
    if (context == NULL) id =1;
+   context->cycles += 1;
    SH2WriteNotify(context, addr, 1);
    switch (id)
    {
@@ -987,6 +988,7 @@ void FASTCALL SH2MappedMemoryWriteWord(SH2_struct *context, u32 addr, u16 val)
 {
    int id = addr >> 29;
    if (context == NULL) id =1;
+   context->cycles += 1;
    SH2WriteNotify(context, addr, 2);
    switch (id)
    {
@@ -1058,6 +1060,7 @@ void FASTCALL SH2MappedMemoryWriteLong(SH2_struct *context, u32 addr, u32 val)
 {
    int id = addr >> 29;
    if (context == NULL) id =1;
+   context->cycles += 2;
    SH2WriteNotify(context, addr, 4);
    switch (id)
    {
