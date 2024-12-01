@@ -646,9 +646,10 @@ void SH2SetRegisters(SH2_struct *context, sh2regs_struct * r)
 //////////////////////////////////////////////////////////////////////////////
 
 void SH2WriteNotify(SH2_struct *context, u32 start, u32 length) {
-   if (context == NULL) return;
-   if (SH2Core->WriteNotify)
-      SH2Core->WriteNotify(context, start, length);
+   if (SH2Core->WriteNotify) {
+     SH2Core->WriteNotify(MSH2, start, length);
+     SH2Core->WriteNotify(SSH2, start, length);
+   }
 }
 
 //////////////////////////////////////////////////////////////////////////////
