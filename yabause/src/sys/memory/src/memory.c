@@ -314,15 +314,27 @@ static void FASTCALL UnhandledMemoryWriteLong(SH2_struct *context, UNUSED u8* me
 
 //////////////////////////////////////////////////////////////////////////////
 
+u32 lastHWRamBankCol = 0;
+
 static u8 FASTCALL HighWramMemoryReadByte(SH2_struct *context, u8* mem, u32 addr)
 {
-   return T2ReadByte(mem, addr & 0xFFFFF);
+  int rowBank = ((addr>>10)&0x3FF);
+  if (rowBank != lastHWRamBankCol) {
+   lastHWRamBankCol = rowBank;
+   if ((context) && (!context->cacheOn)) context->cycles += 2;
+  }
+  return T2ReadByte(mem, addr & 0xFFFFF);
 }
 
 //////////////////////////////////////////////////////////////////////////////
 
 static u16 FASTCALL HighWramMemoryReadWord(SH2_struct *context, u8* mem, u32 addr)
 {
+    int rowBank = ((addr>>10)&0x3FF);
+    if (rowBank != lastHWRamBankCol) {
+     lastHWRamBankCol = rowBank;
+     if ((context) && (!context->cacheOn)) context->cycles += 2;
+    }
    return T2ReadWord(mem, addr & 0xFFFFF);
 }
 
@@ -330,6 +342,11 @@ static u16 FASTCALL HighWramMemoryReadWord(SH2_struct *context, u8* mem, u32 add
 
 static u32 FASTCALL HighWramMemoryReadLong(SH2_struct *context, u8* mem, u32 addr)
 {
+  int rowBank = ((addr>>10)&0x3FF);
+  if (rowBank != lastHWRamBankCol) {
+   lastHWRamBankCol = rowBank;
+   if ((context) && (!context->cacheOn)) context->cycles += 2;
+  }
    return T2ReadLong(mem, addr & 0xFFFFF);
 }
 
@@ -337,6 +354,11 @@ static u32 FASTCALL HighWramMemoryReadLong(SH2_struct *context, u8* mem, u32 add
 
 static void FASTCALL HighWramMemoryWriteByte(SH2_struct *context, u8* mem, u32 addr, u8 val)
 {
+  int rowBank = ((addr>>10)&0x3FF);
+  if (rowBank != lastHWRamBankCol) {
+   lastHWRamBankCol = rowBank;
+   if (context) context->cycles += 2;
+  }
    T2WriteByte(mem, addr & 0xFFFFF, val);
 }
 
@@ -344,6 +366,11 @@ static void FASTCALL HighWramMemoryWriteByte(SH2_struct *context, u8* mem, u32 a
 
 static void FASTCALL HighWramMemoryWriteWord(SH2_struct *context, u8* mem, u32 addr, u16 val)
 {
+  int rowBank = ((addr>>10)&0x3FF);
+  if (rowBank != lastHWRamBankCol) {
+   lastHWRamBankCol = rowBank;
+   if (context) context->cycles += 2;
+  }
    T2WriteWord(mem, addr & 0xFFFFF, val);
 }
 
@@ -351,6 +378,11 @@ static void FASTCALL HighWramMemoryWriteWord(SH2_struct *context, u8* mem, u32 a
 
 static void FASTCALL HighWramMemoryWriteLong(SH2_struct *context, u8* mem, u32 addr, u32 val)
 {
+  int rowBank = ((addr>>10)&0x3FF);
+  if (rowBank != lastHWRamBankCol) {
+   lastHWRamBankCol = rowBank;
+   if (context) context->cycles += 2;
+  }
    T2WriteLong(mem, addr & 0xFFFFF, val);
 }
 
@@ -918,7 +950,6 @@ void FASTCALL SH2MappedMemoryWriteByte(SH2_struct *context, u32 addr, u8 val)
 {
    int id = addr >> 29;
    if (context == NULL) id =1;
-   context->cycles += 1;
    SH2WriteNotify(context, addr, 1);
    switch (id)
    {
@@ -988,7 +1019,6 @@ void FASTCALL SH2MappedMemoryWriteWord(SH2_struct *context, u32 addr, u16 val)
 {
    int id = addr >> 29;
    if (context == NULL) id =1;
-   context->cycles += 1;
    SH2WriteNotify(context, addr, 2);
    switch (id)
    {
@@ -1060,7 +1090,6 @@ void FASTCALL SH2MappedMemoryWriteLong(SH2_struct *context, u32 addr, u32 val)
 {
    int id = addr >> 29;
    if (context == NULL) id =1;
-   context->cycles += 2;
    SH2WriteNotify(context, addr, 4);
    switch (id)
    {
