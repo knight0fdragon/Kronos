@@ -919,7 +919,6 @@ int vdp1_add_upscale(vdp1cmd_struct* cmd, int clipcmd) {
 			.y = MAX(A.y, B.y)
 		};
 
-		glUniform2i(10, tl.x, tl.y);
 		vdp1_compute(cmd, tl, br);
 	}
 
@@ -1770,6 +1769,7 @@ void vdp1_compute(vdp1cmd_struct* cmd, point tl, point br) {
 		if (VIDCore->startVdp1Render) VIDCore->startVdp1Render();
 	}
 
+	glUniform2i(10, tl.x, tl.y);
 	if (Vdp1External.updateVdp1Ram != 0) {
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_vdp1ram_);
 		glBufferSubData(GL_SHADER_STORAGE_BUFFER, vdp1Ram_update_start, vdp1Ram_update_end-vdp1Ram_update_start, (void*)&Vdp1Ram[vdp1Ram_update_start]);
