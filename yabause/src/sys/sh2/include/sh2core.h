@@ -519,6 +519,7 @@ typedef struct SH2_struct_s
     void (*SH2InterruptibleExec)(struct SH2_struct_s *context, u32 cycles);
     u32 blockingMask;
     u32 isDelayed;
+    u32 divcycles;
 //ENd debug
 } SH2_struct;
 

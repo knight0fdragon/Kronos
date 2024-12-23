@@ -370,6 +370,7 @@ CACHE_LOG("%s reset\n", (context==SSH2)?"SSH2":"MSH2" );
    // Internal variables
    context->target_cycles = 0x00000000;
    context->cycles = 0;
+   context->divcycles = 0;
    context->frtcycles = 0;
    context->wdtcycles = 0;
 
@@ -924,27 +925,34 @@ u32 FASTCALL OnchipReadLong(SH2_struct *context, u32 addr) {
    {
       case 0x100:
       case 0x120:
+         context->cycles += MAX((int)context->divcycles - (int)context->cycles,0);
          return context->onchip.DVSR;
       case 0x104: // DVDNT
       case 0x124:
+         context->cycles += MAX((int)context->divcycles - (int)context->cycles,0);
          return context->onchip.DVDNTL;
       case 0x108:
       case 0x128:
+         context->cycles += MAX((int)context->divcycles - (int)context->cycles,0);
          return context->onchip.DVCR;
       case 0x10C:
       case 0x12C:
          return context->onchip.VCRDIV;
       case 0x110:
       case 0x130:
+         context->cycles += MAX((int)context->divcycles - (int)context->cycles,0);
          return context->onchip.DVDNTH;
       case 0x114:
       case 0x134:
+         context->cycles += MAX((int)context->divcycles - (int)context->cycles,0);
          return context->onchip.DVDNTL;
       case 0x118: // Acts as a separate register, but is set to the same value
       case 0x138: // as DVDNTH after division
+         context->cycles += MAX((int)context->divcycles - (int)context->cycles,0);
          return context->onchip.DVDNTUH;
       case 0x11C: // Acts as a separate register, but is set to the same value
       case 0x13C: // as DVDNTL after division
+         context->cycles += MAX((int)context->divcycles - (int)context->cycles,0);
          return context->onchip.DVDNTUL;
       case 0x180:
          return context->onchip.SAR0;
@@ -1354,13 +1362,14 @@ void FASTCALL OnchipWriteLong(SH2_struct *context, u32 addr, u32 val)  {
      break;
       case 0x100:
       case 0x120:
+        context->cycles += MAX((int)context->divcycles - (int)context->cycles,0);
          context->onchip.DVSR = val;
          return;
       case 0x104: // 32-bit / 32-bit divide operation
       case 0x124:
       {
          s32 divisor = (s32) context->onchip.DVSR;
-         context->cycles += 39;
+         context->divcycles = context->cycles + 39;
          if (divisor == 0)
          {
             // Regardless of what DVDNTL is set to, the top 3 bits
@@ -1422,6 +1431,7 @@ void FASTCALL OnchipWriteLong(SH2_struct *context, u32 addr, u32 val)  {
          return;
       case 0x110:
       case 0x130:
+         context->cycles += MAX((int)context->divcycles - (int)context->cycles,0);
          context->onchip.DVDNTH = val;
          return;
       case 0x114:
@@ -1430,7 +1440,7 @@ void FASTCALL OnchipWriteLong(SH2_struct *context, u32 addr, u32 val)  {
          s64 dividend = context->onchip.DVDNTH;
          dividend = (s64)(((u64)dividend) << 32);
          dividend |= val;
-        context->cycles += 39;
+         context->divcycles = context->cycles + 39;
          if (divisor == 0)
          {
             if (context->onchip.DVDNTH & 0x80000000)
@@ -1481,10 +1491,12 @@ void FASTCALL OnchipWriteLong(SH2_struct *context, u32 addr, u32 val)  {
       }
       case 0x118:
       case 0x138:
+         context->cycles += MAX((int)context->divcycles - (int)context->cycles,0);
          context->onchip.DVDNTUH = val;
          return;
       case 0x11C:
       case 0x13C:
+         context->cycles += MAX((int)context->divcycles - (int)context->cycles,0);
          context->onchip.DVDNTUL = val;
          return;
       case 0x140:
@@ -1713,7 +1725,7 @@ void InvalidateCache(SH2_struct *ctx) {
   memset(ctx->cacheTagArray, 0x0, 64*4*sizeof(u32));
   SH2WriteNotify(ctx, 0, 0x1000);
 #endif
-  context->cycles += 1;
+  ctx->cycles += 1;
 }
 
 void enableCache(SH2_struct *context) {
