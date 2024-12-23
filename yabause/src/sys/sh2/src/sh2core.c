@@ -1713,7 +1713,6 @@ void InvalidateCache(SH2_struct *ctx) {
   memset(ctx->cacheTagArray, 0x0, 64*4*sizeof(u32));
   SH2WriteNotify(ctx, 0, 0x1000);
 #endif
-  ctx->cycles += 512; //256 lines of purge in a row. Each line costs 2 cycles (without impact on memory access)
 }
 
 void enableCache(SH2_struct *context) {
@@ -1905,7 +1904,6 @@ void CacheInvalidate(SH2_struct *context,u32 addr){
   if (way <= 0x3) context->cacheTagArray[line][way] = 0x0;
   context->cacheLRU[line] = 0;
 #endif
-  context->cycles += 2; //Pugrge itself takes 2 cycles
 }
 
 u32 FASTCALL AddressArrayReadLong(SH2_struct *context,u32 addr) {
