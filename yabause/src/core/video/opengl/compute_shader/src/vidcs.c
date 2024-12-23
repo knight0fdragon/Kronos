@@ -145,6 +145,11 @@ extern void VIDCSRender(Vdp2 *varVdp2Regs);
 extern void VIDCSRenderVDP1(void);
 extern void VIDCSFinsihDraw(void);
 
+extern void startVdp1RenderUpscale();
+extern void endVdp1RenderUpscale();
+extern void startVdp1Render();
+extern void endVdp1Render();
+
  int VIDCSVdp2Reset(void);
  void VIDCSVdp2Draw(void);
 extern void VIDCSGetGlSize(int *width, int *height);
