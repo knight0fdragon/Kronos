@@ -775,7 +775,7 @@ Game GameList[NB_STV_GAMES]={
     0,
     0,
     NULL,
-    NULL,
+    NV_2P,
     {
         HEADER_BLOB,    "epr20416.13", 0x0000001, 0x0100000, 0x8bf0176d,
         GAME_BYTE_BLOB, "epr20416.13", 0x0200000, 0x0100000, 0x8bf0176d,
