@@ -40,8 +40,10 @@ extern void SH2ExecCb(SH2_struct *context);
 
 static void SH2delay(SH2_struct * sh, u32 addr)
 {
+   sh->isDelayed = addr;
    sh->instruction = krfetchlist[(addr >> 20) & 0xFFF](sh, addr);
    opcodeTable[sh->instruction](sh);
+   sh->isDelayed = 0;
 }
 
 static void SH2next(SH2_struct * sh)
@@ -50,6 +52,10 @@ static void SH2next(SH2_struct * sh)
 }
 
 //////////////////////////////////////////////////////////////////////////////
+void SH2InfiniteLoop(SH2_struct * sh)
+{
+  sh->cycles = sh->target_cycles;
+}
 
 void SH2undecoded(SH2_struct * sh)
 {

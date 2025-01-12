@@ -45,10 +45,8 @@ Vdp2 * Vdp2Regs;
 Vdp2Internal_struct Vdp2Internal;
 Vdp2External_struct Vdp2External;
 
-int addrToUpdate[0x1000];
-int nbAddrToUpdate = 0;
+static int nbAddrToUpdate = 0;
 
-static u8 AC_VRAM[4][8] = {0}; //4 banks, 8 timings
 
 extern void waitVdp2DrawScreensEnd(int sync);
 
@@ -67,6 +65,8 @@ int g_frame_count = 0;
 
 //#define LOG yprintf
 
+static void updateCyclePattern();
+
 //////////////////////////////////////////////////////////////////////////////
 
 u8 Vdp2RamIsUpdated(void)
@@ -74,21 +74,104 @@ u8 Vdp2RamIsUpdated(void)
   return Vdp2Ram_Updated;
 }
 
-static void vdp2RamAccessCheck(SH2_struct *context, u32 addr){
-  int BlockedAccess = 1;
-
-  if (context == NULL) return;
-
-  int bank = Vdp2GetBank(Vdp2Regs, addr);
-
-  for (int i = 0; i<8; i++) {
-    if(Vdp2External.AC_VRAM[bank][i] == 0xE) BlockedAccess = 0;
+static int updateBlockedBank(int bank){
+  int hasWaitState = 0;
+  int hasAccessState = 0;
+  int usedTimings = 8;
+  int partitioned =
+    ((bank == VDP2_VRAM_A0) || (bank == VDP2_VRAM_A1))?
+      (Vdp2Regs->RAMCTL>>8)&0x1:
+      (Vdp2Regs->RAMCTL>>9)&0x1;
+  if ((Vdp2Regs->TVMD & 0x6)==0x2) usedTimings>>=1;
+  for (int i = 0; i<usedTimings; i++) {
+    switch (Vdp2External.AC_VRAM[bank][i]) {
+      case 0x0:
+      // NBG0 Pattern Name Data Read
+      case 0x4:
+      // NBG0 Character Pattern Data Read
+      case 0xC:
+      // NBG0 Vertical Cell Scroll Table Data Read
+        // CPU can access if NBG0 is disabled
+        hasAccessState = ((Vdp2Regs->BGON&0x1)==0);
+        if (!hasAccessState) hasWaitState = 0;
+      break;
+      case 0x1:
+      // NBG1 Pattern Name Data Read
+      case 0x5:
+      // NBG1 Character Pattern Data Read
+      case 0xD:
+      // NBG1 Vertical Cell Scroll Table Data Read
+        // CPU can access if NBG1 is disabled
+        hasAccessState = ((Vdp2Regs->BGON&0x2)==0);
+        if (!hasAccessState) hasWaitState = 0;
+      break;
+      case 0x2:
+      // NBG2 Pattern Name Data Read
+      case 0x6:
+      // NBG2 Character Pattern Data Read
+        // CPU can access if NBG2 is disabled
+        hasAccessState = ((Vdp2Regs->BGON&0x4)==0);
+        if (!hasAccessState) hasWaitState = 0;
+      break;
+      case 0x3:
+      // NBG3 Pattern Name Data Read
+      break;
+      case 0x7:
+      // NBG3 Character Pattern Data Read
+        // CPU can access if NBG3 is disabled
+        hasAccessState = ((Vdp2Regs->BGON&0x8)==0);
+        if (!hasAccessState) hasWaitState = 0;
+      break;
+      case 0xE:
+      // CPU Read/Write
+        hasAccessState = 1;
+      break;
+      case 0xF:
+      // No
+        if (hasWaitState || (!partitioned)) hasAccessState = 1;
+        else
+        hasWaitState = 1;
+      break;
+      case 0x8:
+      // Setting not allowed
+      case 0x9:
+      // Setting not allowed
+      case 0xA:
+      // Setting not allowed
+      case 0xB:
+      // Setting not allowed
+      default:
+        hasWaitState = 0;
+        hasAccessState = 0;
+      break;
+    }
+    if (hasAccessState && !partitioned) return 0;
+    if (hasAccessState && hasWaitState && partitioned) return 0;
   }
+  return 1;
+}
 
-  if ((context != NULL) && (yabsys.LineCount < yabsys.VBlankLineCount) && ((Vdp2Regs->TVSTAT & 0x0004) == 0)) {
-    // Visible area, cpu shall have a valid time slot, otherwise it is blocked
-    if (BlockedAccess) {
-      SH2SetCPUConcurrency(context, VDP2_RAM_A0_LOCK << bank);
+static void vdp2RamAccessCPUCheck(int bank){
+
+  int wasBlocked = Vdp2External.vdp2_blocked[bank];
+  if ((yabsys.LineCount < yabsys.VBlankLineCount) && (Vdp2Regs->TVSTAT & 0x0004) == 0) {
+    Vdp2External.vdp2_blocked[bank] = updateBlockedBank(bank);
+    if (wasBlocked != Vdp2External.vdp2_blocked[bank]) {
+      if ( Vdp2External.vdp2_blocked[bank] != 0)
+      {
+        // Visible area, cpu shall have a valid time slot, otherwise it is blocked
+        SH2SetCPUConcurrency(MSH2, VDP2_RAM_A0_LOCK << bank);
+        SH2SetCPUConcurrency(SSH2, VDP2_RAM_A0_LOCK << bank);
+      } else {
+        SH2ClearCPUConcurrency(MSH2, VDP2_RAM_A0_LOCK << bank);
+        SH2ClearCPUConcurrency(SSH2, VDP2_RAM_A0_LOCK << bank);
+      }
+    }
+  } else {
+    Vdp2External.vdp2_blocked[bank] = 0;
+    if (wasBlocked != Vdp2External.vdp2_blocked[bank]) {
+      SH2ClearCPUConcurrency(MSH2, VDP2_RAM_A0_LOCK << bank);
+      SH2ClearCPUConcurrency(SSH2, VDP2_RAM_A0_LOCK << bank);
     }
   }
 }
@@ -99,9 +182,14 @@ u8 FASTCALL Vdp2RamReadByte(SH2_struct *context, u8* mem, u32 addr) {
   else
     addr &= 0x7FFFF;
 
-   vdp2RamAccessCheck(context, addr);
+  if (context) {
+    int bank = Vdp2GetBank(Vdp2Regs, addr);
+    if (Vdp2External.vdp2_blocked[bank]) {
+      SH2SetVRamAccess(context, VDP2_RAM_A0_LOCK << bank);
+    }
+  }
 
-   return T1ReadByte(mem, addr);
+  return T1ReadByte(mem, addr);
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -112,7 +200,12 @@ u16 FASTCALL Vdp2RamReadWord(SH2_struct *context, u8* mem, u32 addr) {
   else
     addr &= 0x7FFFF;
 
-    vdp2RamAccessCheck(context, addr);
+  if (context) {
+    int bank = Vdp2GetBank(Vdp2Regs, addr);
+    if (Vdp2External.vdp2_blocked[bank]) {
+      SH2SetVRamAccess(context, VDP2_RAM_A0_LOCK << bank);
+    }
+  }
 
    return T1ReadWord(mem, addr);
 }
@@ -125,7 +218,12 @@ u32 FASTCALL Vdp2RamReadLong(SH2_struct *context, u8* mem, u32 addr) {
   else
     addr &= 0x7FFFF;
 
-   vdp2RamAccessCheck(context, addr);
+  if (context) {
+    int bank = Vdp2GetBank(Vdp2Regs, addr);
+    if (Vdp2External.vdp2_blocked[bank]) {
+      SH2SetVRamAccess(context, VDP2_RAM_A0_LOCK << bank);
+    }
+  }
 
    return T1ReadLong(mem, addr);
 }
@@ -138,26 +236,32 @@ void FASTCALL Vdp2RamWriteByte(SH2_struct *context, u8* mem, u32 addr, u8 val) {
   else
     addr &= 0x7FFFF;
 
-    vdp2RamAccessCheck(context, addr);
-   Vdp2Ram_Updated = 1;
-   T1WriteByte(mem, addr, val);
+  if (context) {
+    int bank = Vdp2GetBank(Vdp2Regs, addr);
+    if (Vdp2External.vdp2_blocked[bank]) {
+      SH2SetVRamAccess(context, VDP2_RAM_A0_LOCK << bank);
+    }
+  }
+  Vdp2Ram_Updated = 1;
+  T1WriteByte(mem, addr, val);
 }
 
 //////////////////////////////////////////////////////////////////////////////
 
 void FASTCALL Vdp2RamWriteWord(SH2_struct *context, u8* mem, u32 addr, u16 val) {
-  int BlockedAccess = 0;
-  int A1BlockedAccess = 0;
-  int B0BlockedAccess = 0;
-  int B1BlockedAccess = 0;
   if (Vdp2Regs->VRSIZE & 0x8000)
     addr &= 0xEFFFF;
   else
     addr &= 0x7FFFF;
 
-   vdp2RamAccessCheck(context, addr);
-   Vdp2Ram_Updated = 1;
-   T1WriteWord(mem, addr, val);
+  if (context) {
+    int bank = Vdp2GetBank(Vdp2Regs, addr);
+    if (Vdp2External.vdp2_blocked[bank]) {
+      SH2SetVRamAccess(context, VDP2_RAM_A0_LOCK << bank);
+    }
+  }
+  Vdp2Ram_Updated = 1;
+  T1WriteWord(mem, addr, val);
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -168,9 +272,14 @@ void FASTCALL Vdp2RamWriteLong(SH2_struct *context, u8* mem, u32 addr, u32 val) 
   else
     addr &= 0x7FFFF;
 
-    vdp2RamAccessCheck(context, addr);
-    Vdp2Ram_Updated = 1;
-   T1WriteLong(mem, addr, val);
+  if (context) {
+    int bank = Vdp2GetBank(Vdp2Regs, addr);
+    if (Vdp2External.vdp2_blocked[bank]) {
+      SH2SetVRamAccess(context, VDP2_RAM_A0_LOCK << bank);
+    }
+  }
+  Vdp2Ram_Updated = 1;
+  T1WriteLong(mem, addr, val);
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -198,14 +307,10 @@ u32 FASTCALL Vdp2ColorRamReadLong(SH2_struct *context, u8* mem, u32 addr) {
 
 void FASTCALL Vdp2ColorRamWriteByte(SH2_struct *context, u8* mem, u32 addr, u8 val) {
    addr &= 0xFFF;
-   // printf("[VDP2] Update Coloram Byte %08X:%02X", addr, val);
+   // printf("[VDP2] Update Coloram Byte %08X:%08X\n", addr, val);
    if (val != T2ReadByte(mem, addr)) {
      T2WriteByte(mem, addr, val);
-     //A EXTRAIRE
-#if defined(HAVE_LIBGL) || defined(__ANDROID__) || defined(IOS)
-     addrToUpdate[addr] = 1;
      nbAddrToUpdate = 1;
-#endif
    }
 }
 
@@ -213,15 +318,10 @@ void FASTCALL Vdp2ColorRamWriteByte(SH2_struct *context, u8* mem, u32 addr, u8 v
 
 void FASTCALL Vdp2ColorRamWriteWord(SH2_struct *context, u8* mem, u32 addr, u16 val) {
    addr &= 0xFFF;
-   // printf("[VDP2] Update Coloram [mode %d] Word %08X:%04X\n", Vdp2Internal.ColorMode, addr, val);
+   // printf("[VDP2] Update Coloram Word %08X:%08X\n", addr, val);
    if (val != T2ReadWord(mem, addr)) {
      T2WriteWord(mem, addr, val);
-
-#if defined(HAVE_LIBGL) || defined(__ANDROID__) || defined(IOS)
-    addrToUpdate[addr] = 1;
-    addrToUpdate[addr+1] = 1;
-    nbAddrToUpdate = 1;
-#endif
+     nbAddrToUpdate = 1;
    }
 }
 
@@ -231,20 +331,12 @@ void FASTCALL Vdp2ColorRamWriteLong(SH2_struct *context, u8* mem, u32 addr, u32 
    addr &= 0xFFF;
    // printf("[VDP2] Update Coloram Long %08X:%08X\n", addr, val);
    T2WriteLong(mem, addr, val);
-#if defined(HAVE_LIBGL) || defined(__ANDROID__) || defined(IOS)
    if (Vdp2Internal.ColorMode == 2) {
-     addrToUpdate[addr] = 1;
-     addrToUpdate[addr+1] = 1;
      nbAddrToUpdate = 1;
    }
    else {
-     addrToUpdate[addr] = 1;
-     addrToUpdate[addr+1] = 1;
-     addrToUpdate[addr+2] = 1;
-     addrToUpdate[addr+3] = 1;
      nbAddrToUpdate = 1;
    }
-#endif
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -262,11 +354,8 @@ int Vdp2Init(void) {
    Vdp2Reset();
 
    memset(Vdp2ColorRam, 0xFF, 0x1000);
-#if defined(HAVE_LIBGL) || defined(__ANDROID__) || defined(IOS)
-   for (int i = 0; i < 0x1000; i ++) {
-     YglOnUpdateColorRamWord(i);
-   }
-#endif
+   nbAddrToUpdate = 1;
+   syncVDP2ColorLine(0);
 
    return 0;
 }
@@ -285,8 +374,6 @@ void Vdp2DeInit(void) {
    if (Vdp2ColorRam)
       T2MemoryDeInit(Vdp2ColorRam);
    Vdp2ColorRam = NULL;
-
-
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -377,7 +464,7 @@ void Vdp2Reset(void) {
    Vdp2External.disptoggle = 0xFF;
 
    nextFrameTime = 0;
-
+   updateCyclePattern();
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -394,9 +481,8 @@ static int checkFrameSkip(void) {
   return !(yabsys.frame_count % (yabsys.skipframe+1) == 0);
 }
 
-void VDP2genVRamCyclePattern() {
+static void updateCyclePattern() {
   int i = 0;
-
   Vdp2External.AC_VRAM[0][0] = (Vdp2Regs->CYCA0L >> 12) & 0x0F;
   Vdp2External.AC_VRAM[0][1] = (Vdp2Regs->CYCA0L >> 8) & 0x0F;
   Vdp2External.AC_VRAM[0][2] = (Vdp2Regs->CYCA0L >> 4) & 0x0F;
@@ -459,34 +545,11 @@ void VDP2genVRamCyclePattern() {
     Vdp2External.AC_VRAM[3][6] = Vdp2External.AC_VRAM[2][6];
     Vdp2External.AC_VRAM[3][7] = Vdp2External.AC_VRAM[2][7];
   }
-  //unblock A0
-  for (int i = 0; i<8; i++) {
-    if(Vdp2External.AC_VRAM[0][i] == 0xE) {
-      SH2ClearCPUConcurrency(MSH2, VDP2_RAM_A0_LOCK);
-      SH2ClearCPUConcurrency(SSH2, VDP2_RAM_A0_LOCK);;
-    }
-  }
-  //unblock A1
-  for (int i = 0; i<8; i++) {
-    if(Vdp2External.AC_VRAM[1][i] == 0xE) {
-      SH2ClearCPUConcurrency(MSH2, VDP2_RAM_A1_LOCK);
-      SH2ClearCPUConcurrency(SSH2, VDP2_RAM_A1_LOCK);;
-    }
-  }
-  //unblock B0
-  for (int i = 0; i<8; i++) {
-    if(Vdp2External.AC_VRAM[2][i] == 0xE) {
-      SH2ClearCPUConcurrency(MSH2, VDP2_RAM_B0_LOCK);
-      SH2ClearCPUConcurrency(SSH2, VDP2_RAM_B0_LOCK);;
-    }
-  }
-  //unblock B1
-  for (int i = 0; i<8; i++) {
-    if(Vdp2External.AC_VRAM[3][i] == 0xE) {
-      SH2ClearCPUConcurrency(MSH2, VDP2_RAM_B1_LOCK);
-      SH2ClearCPUConcurrency(SSH2, VDP2_RAM_B1_LOCK);;
-    }
-  }
+  //unblock Bank
+  vdp2RamAccessCPUCheck(VDP2_VRAM_A0);
+  vdp2RamAccessCPUCheck(VDP2_VRAM_A1);
+  vdp2RamAccessCPUCheck(VDP2_VRAM_B0);
+  vdp2RamAccessCPUCheck(VDP2_VRAM_B1);
 }
 
 void resetFrameSkip(void) {
@@ -546,8 +609,8 @@ void Vdp2HBlankIN_It(void) {
     Vdp2Regs->TVSTAT |= 0x0004;
     ScuSendHBlankIN();
   }
-  MSH2->isAccessingCPUBUS = 0;
-  SSH2->isAccessingCPUBUS = 0;
+  SH2UpdateABusAccess(MSH2, 0);
+  SH2UpdateABusAccess(SSH2, 0);
   SH2ClearCPUConcurrency(MSH2, VDP2_RAM_LOCK);
   SH2ClearCPUConcurrency(SSH2, VDP2_RAM_LOCK);
 }
@@ -571,27 +634,35 @@ void Vdp2HBlankIN(void) {
 extern int vdp1_clock;
 void Vdp2StartVisibleLine(void) {
   #if defined(HAVE_LIBGL) || defined(__ANDROID__) || defined(IOS)
-  if (nbAddrToUpdate != 0){
-    for (int i=0; i<0x1000; i++) {
-      if (addrToUpdate[i] != 0) {
-        YglOnUpdateColorRamWord(i);
-        addrToUpdate[i] = 0;
-      }
+  if(yabsys.LineCount == 0) {
+    //Mettre a jour la texture des index.
+    //Copier la ligne 0 avec la derniere ligne
+    if ((_Ygl->colorRamIndex!= 0)||(nbAddrToUpdate != 0)) {
+      syncVDP2ColorLine(0);
+      memset(_Ygl->colorRamIndexFull,0,512);
+      nbAddrToUpdate = 0;
     }
-    nbAddrToUpdate = 0;
-  }
-  if(yabsys.LineCount == yabsys.MaxLineCount - 1) {
-    YglUpdateColorRam();
+  } else {
+    _Ygl->colorRamIndexFull[yabsys.LineCount] = _Ygl->colorRamIndex;
+    if (nbAddrToUpdate != 0){
+      syncVDP2ColorLine(++_Ygl->colorRamIndex);
+      nbAddrToUpdate = 0;
+    }
   }
   #endif
 
-  updateVdp2ColorRam(yabsys.LineCount);
   if (yabsys.LineCount < yabsys.VBlankLineCount)
   {
     Vdp2Regs->TVSTAT &= ~0x0004;
   }
   if (yabsys.LineCount == 1) {
-    VDP2genVRamCyclePattern();
+    updateCyclePattern();
+  }
+  if (yabsys.LineCount == yabsys.VBlankLineCount) {
+    SH2SetVRamAccess(MSH2, VDP2_RAM_LOCK);
+    SH2SetVRamAccess(SSH2, VDP2_RAM_LOCK);
+    for (int bank = 0; bank < 4; bank++)
+      vdp2RamAccessCPUCheck(bank);
   }
 }
 
@@ -614,7 +685,7 @@ void Vdp2VBlankOUT(void) {
 
   FRAMELOG("***** VOUT %d *****", g_frame_count);
 
-   if (((Vdp2Regs->TVMD >> 6) & 0x3) == 0){
+   if (_Ygl->interlace == NORMAL_INTERLACE){
      vdp2_is_odd_frame = 1;
    }else{ // p02_50.htm#TVSTAT_
      if (vdp2_is_odd_frame)
@@ -712,60 +783,6 @@ void FASTCALL Vdp2WriteByte(SH2_struct *context, u8* mem, u32 addr, UNUSED u8 va
    addr &= 0x1FF;
 }
 
-#define SHOW_PATTERN_CYCLE
-void updateCyclePattern() {
-  u8 *ac;
-  SHOW_PATTERN_CYCLE("************************** LINE %d\n", yabsys.LineCount);
-  AC_VRAM[0][0] = (Vdp2Regs->CYCA0L >> 12) & 0x0F;
-  AC_VRAM[0][1] = (Vdp2Regs->CYCA0L >> 8) & 0x0F;
-  AC_VRAM[0][2] = (Vdp2Regs->CYCA0L >> 4) & 0x0F;
-  AC_VRAM[0][3] = (Vdp2Regs->CYCA0L >> 0) & 0x0F;
-  AC_VRAM[0][4] = (Vdp2Regs->CYCA0U >> 12) & 0x0F;
-  AC_VRAM[0][5] = (Vdp2Regs->CYCA0U >> 8) & 0x0F;
-  AC_VRAM[0][6] = (Vdp2Regs->CYCA0U >> 4) & 0x0F;
-  AC_VRAM[0][7] = (Vdp2Regs->CYCA0U >> 0) & 0x0F;
-
-  ac = AC_VRAM[0];
-  SHOW_PATTERN_CYCLE("%x %x %x %x %x %x %x %x\n",ac[0],ac[1],ac[2],ac[3],ac[4],ac[5],ac[6],ac[7]);
-
-  AC_VRAM[1][0] = (Vdp2Regs->CYCA1L >> 12) & 0x0F;
-  AC_VRAM[1][1] = (Vdp2Regs->CYCA1L >> 8) & 0x0F;
-  AC_VRAM[1][2] = (Vdp2Regs->CYCA1L >> 4) & 0x0F;
-  AC_VRAM[1][3] = (Vdp2Regs->CYCA1L >> 0) & 0x0F;
-  AC_VRAM[1][4] = (Vdp2Regs->CYCA1U >> 12) & 0x0F;
-  AC_VRAM[1][5] = (Vdp2Regs->CYCA1U >> 8) & 0x0F;
-  AC_VRAM[1][6] = (Vdp2Regs->CYCA1U >> 4) & 0x0F;
-  AC_VRAM[1][7] = (Vdp2Regs->CYCA1U >> 0) & 0x0F;
-
-  ac = AC_VRAM[1];
-  SHOW_PATTERN_CYCLE("%x %x %x %x %x %x %x %x\n",ac[0],ac[1],ac[2],ac[3],ac[4],ac[5],ac[6],ac[7]);
-
-  AC_VRAM[2][0] = (Vdp2Regs->CYCB0L >> 12) & 0x0F;
-  AC_VRAM[2][1] = (Vdp2Regs->CYCB0L >> 8) & 0x0F;
-  AC_VRAM[2][2] = (Vdp2Regs->CYCB0L >> 4) & 0x0F;
-  AC_VRAM[2][3] = (Vdp2Regs->CYCB0L >> 0) & 0x0F;
-  AC_VRAM[2][4] = (Vdp2Regs->CYCB0U >> 12) & 0x0F;
-  AC_VRAM[2][5] = (Vdp2Regs->CYCB0U >> 8) & 0x0F;
-  AC_VRAM[2][6] = (Vdp2Regs->CYCB0U >> 4) & 0x0F;
-  AC_VRAM[2][7] = (Vdp2Regs->CYCB0U >> 0) & 0x0F;
-
-  ac = AC_VRAM[2];
-  SHOW_PATTERN_CYCLE("%x %x %x %x %x %x %x %x\n",ac[0],ac[1],ac[2],ac[3],ac[4],ac[5],ac[6],ac[7]);
-
-  AC_VRAM[3][0] = (Vdp2Regs->CYCB1L >> 12) & 0x0F;
-  AC_VRAM[3][1] = (Vdp2Regs->CYCB1L >> 8) & 0x0F;
-  AC_VRAM[3][2] = (Vdp2Regs->CYCB1L >> 4) & 0x0F;
-  AC_VRAM[3][3] = (Vdp2Regs->CYCB1L >> 0) & 0x0F;
-  AC_VRAM[3][4] = (Vdp2Regs->CYCB1U >> 12) & 0x0F;
-  AC_VRAM[3][5] = (Vdp2Regs->CYCB1U >> 8) & 0x0F;
-  AC_VRAM[3][6] = (Vdp2Regs->CYCB1U >> 4) & 0x0F;
-  AC_VRAM[3][7] = (Vdp2Regs->CYCB1U >> 0) & 0x0F;
-
-  ac = AC_VRAM[3];
-  SHOW_PATTERN_CYCLE("%x %x %x %x %x %x %x %x\n",ac[0],ac[1],ac[2],ac[3],ac[4],ac[5],ac[6],ac[7]);
-  SHOW_PATTERN_CYCLE("========================================\n");
-}
-
 void FASTCALL Vdp2WriteWord(SH2_struct *context, u8* mem, u32 addr, u16 val) {
    addr &= 0x1FF;
    switch (addr)
@@ -778,6 +795,7 @@ void FASTCALL Vdp2WriteWord(SH2_struct *context, u8* mem, u32 addr, u16 val) {
            if (yabsys.VBlankLineCount > 256) yabsys.VBlankLineCount = 256;
          }
          Vdp1SetRaster(Vdp2Regs->TVMD & 0x1);
+         updateCyclePattern();
          return;
       case 0x002:
          Vdp2Regs->EXTEN = val;
@@ -802,13 +820,9 @@ void FASTCALL Vdp2WriteWord(SH2_struct *context, u8* mem, u32 addr, u16 val) {
          if (Vdp2Internal.ColorMode != ((val >> 12) & 0x3) ) {
            Vdp2Internal.ColorMode = (val >> 12) & 0x3;
            //A EXTRAIRE
-#if defined(HAVE_LIBGL) || defined(__ANDROID__) || defined(IOS)
-           for (int i = 0; i < 0x1000; i ++) {
-             addrToUpdate[i] = 1;
-           }
            nbAddrToUpdate = 1;
-#endif
          }
+         updateCyclePattern();
          return;
       case 0x010:
          Vdp2Regs->CYCA0L = val;
@@ -844,6 +858,7 @@ void FASTCALL Vdp2WriteWord(SH2_struct *context, u8* mem, u32 addr, u16 val) {
          return;
       case 0x020:
          Vdp2Regs->BGON = val;
+         updateCyclePattern();
          return;
       case 0x022:
          Vdp2Regs->MZCTL = val;
@@ -1286,9 +1301,7 @@ int Vdp2LoadState(const void * stream, UNUSED int version, int size)
 
    if(VIDCore) VIDCore->Resize(0,0,0,0,0);
 
-#if defined(HAVE_LIBGL) || defined(__ANDROID__) || defined(IOS)
-   YglDirtyColorRamWord();
-#endif
+   nbAddrToUpdate = 1;
 
    return size;
 }

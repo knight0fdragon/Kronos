@@ -35,10 +35,13 @@
 
 #include "cs2.h"
 
+#include <yui.h>
+
 #define LOCK(A)
 #define UNLOCK(A)
 
 extern void SH2undecoded(SH2_struct * sh);
+extern void SH2InfiniteLoop(SH2_struct * sh);
 
 static void SH2KronosNotifyInterrupt(SH2_struct *context);
 static void insertInterruptReturnHandling(SH2_struct *context);
@@ -55,6 +58,9 @@ extern void BiosBUPDirectory(SH2_struct * context);
 extern void BiosBUPVerify(SH2_struct * context);
 extern void BiosBUPGetDate(SH2_struct * context);
 extern void BiosBUPSetDate(SH2_struct * context);
+
+//SH2 hardware manual says that interrupt takes 13 cycles at least before execution due to decoding process
+#define INTERRUPT_HANDLING_DELAY 13
 
 void decode(SH2_struct *context);
 
@@ -147,7 +153,7 @@ static u16 FASTCALL FetchVram(SH2_struct *context, u32 addr)
   return SH2MappedMemoryReadWord(context, addr);
 }
 
-static const int const cacheMask[9] = {
+static const int cacheMask[9] = {
   0x3FFFF, //Bios
   0x7FFFF, //LowWram
   0x1FFFFF, //CS0
@@ -159,7 +165,7 @@ static const int const cacheMask[9] = {
   0x7FFFF //Undecoded
 };
 
-static const int const cacheSize[9] = {
+static const int cacheSize[9] = {
   0x40000, //Bios
   0x80000, //LowWram
   0x200000, //CS0
@@ -324,7 +330,8 @@ static void executeLastPC(SH2_struct *context) {
 
 static void decodeInt(SH2_struct *context) {
   executeLastPC(context);
-  SH2HandleInterrupts(context);
+  if (context->itTriggerCycles >= context->cycles) SH2KronosNotifyInterrupt(context);
+  else SH2HandleInterrupts(context);
 }
 
 static void outOfInt(SH2_struct *context) {
@@ -336,6 +343,11 @@ int SH2KronosInterpreterInit(void)
 {
 
    int i,j;
+   SH2SetExecSet(0);
+   if (SH2Core->id == SH2CORE_KRONOS_INTERPRETER) {
+     //Optimize while(1) loop
+     opcodeTable[0xAFFE] = SH2InfiniteLoop;
+  }
 
    for (i = 0; i < 8; i++) {
        for (j = 0; j < cacheSize[i]; j++) {
@@ -423,10 +435,17 @@ int SH2KronosInterpreterInit(void)
    SSH2->backtraceEnabled = 0;
    MSH2->stepOverOut.enabled = 0;
    SSH2->stepOverOut.enabled = 0;
+   MSH2->isDelayed = SSH2->isDelayed = 0;
 
    return 0;
 }
 
+int SH2KronosInterpreterDebugInit(void)
+{
+  int ret = SH2KronosInterpreterInit();
+  SH2SetExecSet(1);
+  return ret;
+}
 //////////////////////////////////////////////////////////////////////////////
 
 void SH2KronosInterpreterDeInit(void)
@@ -437,7 +456,6 @@ void SH2KronosInterpreterDeInit(void)
 
 void SH2KronosInterpreterReset(UNUSED SH2_struct *context)
 {
-  SH2KronosInterpreterInit();
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -484,8 +502,8 @@ FASTCALL void SH2KronosInterpreterExecSave(SH2_struct *context, u32 cycles, sh2r
     int id = (context->regs.PC >> 20) & 0xFFF;
     // if (context == SSH2) YuiMsg("%x\n", context->regs.PC);
     u16 opcode = krfetchlist[id](context, context->regs.PC);
-    if(context->isAccessingCPUBUS == 0) opcodeTable[opcode](context);
-    if(context->isAccessingCPUBUS != 0) {
+    if(context->isBlocked == 0) opcodeTable[opcode](context);
+    if(context->isBlocked != 0) {
       context->cycles = context->target_cycles;
       memcpy(&context->regs, oldRegs, sizeof(sh2regs_struct));
       context->target_cycles = 0;
@@ -493,7 +511,6 @@ FASTCALL void SH2KronosInterpreterExecSave(SH2_struct *context, u32 cycles, sh2r
     }
   }
   context->target_cycles = 0;
-  if (context == MSH2) printf("done cycle %d\n", context->target_cycles);
 }
 
 static int enableTrace = 0;
@@ -512,7 +529,9 @@ FASTCALL void SH2KronosDebugInterpreterExecSave(SH2_struct *context, u32 cycles,
       int ubcinterrupt=0, ubcflag=0;
 #endif
 
-      SH2HandleBreakpoints(context);
+      if (SH2HandleBreakpoints(context)) {
+        return;
+      }
 
 #ifdef SH2_UBC
       if (context->onchip.BBRA & (BBR_CPA_CPU | BBR_IDA_INST | BBR_RWA_READ)) // Break on cpu, instruction, read cycles
@@ -589,19 +608,21 @@ FASTCALL void SH2KronosDebugInterpreterExecSave(SH2_struct *context, u32 cycles,
       if (shallExecute != 0) {
         context->instruction = krfetchlist[id](context, context->regs.PC);
         cacheCode[context->isslave][cacheId[id]][(context->regs.PC >> 1) & cacheMask[cacheId[id]]] = opcodeTable[context->instruction];
-        if(context->isAccessingCPUBUS == 0) {
+        if(context->isBlocked == 0) {
           SH2HandleBackTrace(context);
           SH2HandleStepOverOut(context);
           SH2HandleTrackInfLoop(context);
           opcodeTable[context->instruction](context);
         }
       }
-      if(context->isAccessingCPUBUS != 0) {
+      if(context->isBlocked != 0) {
         context->cycles = context->target_cycles;
         memcpy(&context->regs, oldRegs, sizeof(sh2regs_struct));
         return;
       }
-
+      if (context->bp.inbreakpoint) {
+        return;
+      }
 #ifdef SH2_UBC
     if (ubcinterrupt)
        SH2UBCInterrupt(context, ubcflag);
@@ -619,7 +640,9 @@ FASTCALL void SH2KronosDebugInterpreterExec(SH2_struct *context, u32 cycles)
 
    {
      context->doNotInterrupt = 0;
-     SH2HandleBreakpoints(context);
+     if (SH2HandleBreakpoints(context)) {
+       return;
+     }
 #ifdef SH2_UBC
       int ubcinterrupt=0, ubcflag=0;
 #endif
@@ -702,6 +725,9 @@ FASTCALL void SH2KronosDebugInterpreterExec(SH2_struct *context, u32 cycles)
         SH2HandleTrackInfLoop(context);
         cacheCode[context->isslave][cacheId[id]][(context->regs.PC >> 1) & cacheMask[cacheId[id]]] = opcodeTable[context->instruction];
         opcodeTable[context->instruction](context);
+        if (context->bp.inbreakpoint) {
+          return;
+        }
       }
 
 #ifdef SH2_UBC
@@ -888,6 +914,7 @@ static void SH2KronosNotifyInterrupt(SH2_struct *context) {
       addr = context->regs.PC>>1;
 
     int id = (addr >> 19) & 0xFFF;
+  context->itTriggerCycles = context->cycles + INTERRUPT_HANDLING_DELAY;
     cacheCode[context->isslave][cacheId[id]][addr & cacheMask[cacheId[id]]] = decodeInt;
   }
 }
@@ -982,7 +1009,7 @@ SH2Interface_struct SH2KronosDebugInterpreter = {
    SH2CORE_KRONOS_DEBUG_INTERPRETER,
    "SH2 Debug",
 
-   SH2KronosInterpreterInit,
+   SH2KronosInterpreterDebugInit,
    SH2KronosInterpreterDeInit,
    SH2KronosInterpreterReset,
    SH2KronosDebugInterpreterExec,

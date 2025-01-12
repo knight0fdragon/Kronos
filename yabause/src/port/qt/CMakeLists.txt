@@ -17,31 +17,13 @@ if(YAB_USE_QT5)
   endif()
 
   find_package(Qt5 COMPONENTS Widgets QUIET)
-  find_package(Qt5 COMPONENTS Multimedia REQUIRED QUIET)
   find_package(Qt5 COMPONENTS OpenGL REQUIRED QUIET)
-  if (WIN32)
-    find_package(Qt5Core)
-  endif()
-  if( YAB_WANT_OPENGL )
-    find_package(Qt5OpenGL)
-  endif()
-  include_directories(${Qt5Widgets_INCLUDE_DIRS})
-  add_definitions(${Qt5Widgets_DEFINITIONS})
-  SET(CMAKE_PREFIX_PATH ${OLD_CMAKE_PREFIX_PATH})
+  find_package(Qt5 COMPONENTS Multimedia REQUIRED QUIET)
+  add_definitions(-DHAVE_QT_MULTIMEDIA=1)
 endif()
 
 if(Qt5_FOUND)
     message(STATUS "Qt5 Found")
-
-    add_definitions(-DHAVE_QT_MULTIMEDIA=1)
-
-    # Since Qt5's cmake script doesn't set it, we will have to
-    SET(QT_BINARY_DIR "${_qt5Core_install_prefix}/bin")
-    if (MSYS2_BUILD)
-        SET(QT_PLUGINS_DIR "${_qt5Core_install_prefix}/share/qt5/plugins")
-    else()
-        SET(QT_PLUGINS_DIR "${_qt5Core_install_prefix}/plugins")
-    endif()
 
 else()
 	message(STATUS "NO Qt5_FOUND")
@@ -213,6 +195,9 @@ add_executable( kronos-qt WIN32
 	${kronos_qt_MOC_SOURCES} )
 
 if (Qt5_FOUND)
+target_link_libraries(kronos-qt Qt5::OpenGL)
+target_link_libraries(kronos-qt Qt5::Widgets)
+target_link_libraries(kronos-qt Qt5::Multimedia)
 include_directories(
 	.
 	${CMAKE_CURRENT_BINARY_DIR}
@@ -245,7 +230,7 @@ yab_port_success(kronos-qt)
 configure_file(kronos.desktop.in ${YAB_PORT_NAME}.desktop)
 
 if (WIN32)
-
+	set(QT_BINARY_DIR "${Qt5_Dir}/bin")
 	install(TARGETS kronos-qt DESTINATION ".")
 	if (SDL_FOUND)
 		get_filename_component(SDL_BINARY_DIR ${SDL_LIBRARY} PATH)
@@ -310,24 +295,39 @@ if (WIN32)
 		endif()
 	endif()
 
+    execute_process(
+        COMMAND "${_qt5_qmake_location}" -query QT_INSTALL_PREFIX
+        RESULT_VARIABLE return_code
+        OUTPUT_VARIABLE qt5_install_prefix
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
 #	install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/../../AUTHORS    DESTINATION "." RENAME AUTHORS.txt)
+    set(imported_location "${qt5_install_prefix}/bin/windeployqt.exe")
 #	install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/../../ChangeLog  DESTINATION "." RENAME ChangeLog.txt)
+    if(EXISTS ${imported_location})
+        add_executable(Qt5::windeployqt IMPORTED)
 #	install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/../../COPYING    DESTINATION "." RENAME COPYING.txt)
+        set_target_properties(Qt5::windeployqt PROPERTIES
+            IMPORTED_LOCATION ${imported_location}
+        )
+    endif()
+	endif()
 #	install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/../../README     DESTINATION "." RENAME README.txt)
+  if(TARGET Qt5::windeployqt)
 #	install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/../../README.WIN DESTINATION "." RENAME README.WIN.txt)
+    add_custom_command(TARGET kronos-qt
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_CURRENT_BINARY_DIR}/windeployqt"
+        COMMAND set PATH=%PATH%$<SEMICOLON>${qt5_install_prefix}/bin
+        COMMAND Qt5::windeployqt --dir "${CMAKE_CURRENT_BINARY_DIR}/windeployqt" "$<TARGET_FILE_DIR:kronos-qt>/$<TARGET_FILE_NAME:kronos-qt>"
+    )
 
-	if (MINGW)
-		get_filename_component( Mingw_Path ${CMAKE_CXX_COMPILER} PATH )
-		if("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "x86_64" OR "${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "AMD64")
-			install(DIRECTORY ${Mingw_Path}/
+    install(
+        DIRECTORY
+        "${CMAKE_CURRENT_BINARY_DIR}/windeployqt/"
 				DESTINATION "."
-				FILES_MATCHING PATTERN "libgcc_s_*.dll" PATTERN "libstdc++-*.dll" PATTERN "libwinpthread-*.dll")
-		else()
-			install(DIRECTORY ${Mingw_Path}/
-				DESTINATION "."
-				FILES_MATCHING PATTERN "libgcc_s_*.dll" PATTERN "mingwm10.dll")
+    )
 		endif()
-	endif ()
 
   if (MSVC)
     set (CMAKE_EXE_LINKER_FLAGS /SAFESEH:NO )

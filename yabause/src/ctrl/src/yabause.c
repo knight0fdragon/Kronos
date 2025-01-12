@@ -112,20 +112,20 @@ ScspDsp scsp_dsp = { 0 };
 
 #ifndef NO_CLI
 void print_usage(const char *program_name) {
-   printf("Yabause v" VERSION "\n");
-   printf("\n"
+   YuiMsg("Yabause v" VERSION "\n");
+   YuiMsg("\n"
           "Purpose:\n"
           "  This program is intended to be a Sega Saturn emulator\n"
           "\n"
           "Usage: %s [OPTIONS]...\n", program_name);
-   printf("   -h         --help                 Print help and exit\n");
-   printf("   -b STRING  --bios=STRING          bios file\n");
-   printf("   -l STRING  --language=STRING      english, deutsch, french, spanish,\n                                     italian, japanese\n");
-   printf("   -i STRING  --iso=STRING           iso/cue file\n");
-   printf("   -c STRING  --cdrom=STRING         cdrom path\n");
-   printf("   -ns        --nosound              turn sound off\n");
-   printf("   -a         --autostart            autostart emulation\n");
-   printf("   -f         --fullscreen           start in fullscreen mode\n");
+   YuiMsg("   -h         --help                 Print help and exit\n");
+   YuiMsg("   -b STRING  --bios=STRING          bios file\n");
+   YuiMsg("   -l STRING  --language=STRING      english, deutsch, french, spanish,\n                                     italian, japanese\n");
+   YuiMsg("   -i STRING  --iso=STRING           iso/cue file\n");
+   YuiMsg("   -c STRING  --cdrom=STRING         cdrom path\n");
+   YuiMsg("   -ns        --nosound              turn sound off\n");
+   YuiMsg("   -a         --autostart            autostart emulation\n");
+   YuiMsg("   -f         --fullscreen           start in fullscreen mode\n");
 }
 #endif
 
@@ -197,7 +197,7 @@ void resetSyncVideo(void) {
 #define VBLANKOUT_IT_STEP (15)
 #define VBLANKOUT_STEP    (16)
 
-static const u32 const cycles[DECILINE_STEP][2][2] = {
+static const u32 cycles[DECILINE_STEP][2][2] = {
   {{12,12},{1,1}}, //HBlankout //Start of displayed line
   {{128,128},{4,5}},
   {{128,128},{5,4}},
@@ -342,9 +342,8 @@ void StopTracing(std::unique_ptr<perfetto::TracingSession> tracing_session) {
 }
 #endif
 
-int YabauseInit(yabauseinit_struct *init)
+static int YabauseFullInit(yabauseinit_struct *init)
 {
-
 #ifdef _USE_PERFETTO_TRACE_
   InitializePerfetto();
   myTracingSession = StartTracing();
@@ -430,7 +429,6 @@ TRACE_EMULATOR("YabauseInit");
    // Settings
    VideoSetSetting(VDP_SETTING_FILTERMODE,init->video_filter_type);
    VideoSetSetting(VDP_SETTING_UPSCALMODE,init->video_upscale_type);
-   VideoSetSetting(VDP_SETTING_POLYGON_MODE, init->polygon_generation_mode);
    VideoSetSetting(VDP_SETTING_RESOLUTION_MODE, init->resolution_mode);
    VideoSetSetting(VDP_SETTING_ASPECT_RATIO, init->stretch);
    VideoSetSetting(VDP_SETTING_WIREFRAME, init->wireframe_mode);
@@ -546,6 +544,91 @@ TRACE_EMULATOR("YabauseInit");
 
    fpsticks = YabauseGetTicks();
    return 0;
+}
+
+static int YabauseRefreshInit(yabauseinit_struct *init) {
+  Cs2DeInit();
+  if (Cs2Init(init->cdcoretype, init->cdpath, init->mpegpath) != 0)
+  {
+     YabSetError(YAB_ERR_CANNOTINIT, _("CS2"));
+     return -1;
+  }
+
+  if (init->auto_cart != 0)
+     DBLookup(&init->carttype, &init->cartpath, init->supportdir);
+
+  if (CartInit(init->cartpath, init->carttype) != 0)
+  {
+     YabSetError(YAB_ERR_CANNOTINIT, _("Cartridge"));
+     return -1;
+  }
+
+  if (STVSingleInit(init->stvgamepath, init->stvbiospath, init->eepromdir, init->stv_favorite_region) != 0) {
+    if (STVInit(init->stvgame, init->cartpath, init->eepromdir, init->stv_favorite_region) != 0)
+    {
+      YabSetError(YAB_ERR_CANNOTINIT, _("STV emulation"));
+      return -1;
+    }
+  }
+
+  MappedMemoryInit();
+
+  if (yabsys.isSTV == 0) {
+    if (init->biospath != NULL && strlen(init->biospath))
+    {
+      if (LoadBios(init->biospath) != 0)
+      {
+        YabSetError(YAB_ERR_FILENOTFOUND, (void *)init->biospath);
+        return -2;
+      }
+      yabsys.emulatebios = 0;
+    }
+    else {
+      yabsys.emulatebios = 1;
+      T2WriteLong(BiosRom, 0x04, 0x06002000); // set base stack pointer
+    }
+  }
+  else {
+    yabsys.emulatebios = 0;
+  }
+
+  yabsys.usequickload = 0;
+
+  YabauseResetNoLoad();
+
+  if (init->skip_load)
+  {
+    return 0;
+  }
+
+  if (yabsys.usequickload || yabsys.emulatebios)
+  {
+     if (YabauseQuickLoadGame() != 0)
+     {
+        if (yabsys.emulatebios)
+        {
+           YabSetError(YAB_ERR_CANNOTINIT, _("Game"));
+           return -2;
+        }
+        else
+           YabauseResetNoLoad();
+     }
+  }
+
+  if (Cs2GetRegionID() >= 0xA) YabauseSetVideoFormat(VIDEOFORMATTYPE_PAL);
+  else YabauseSetVideoFormat(VIDEOFORMATTYPE_NTSC);
+
+  YabSemTryWait(g_cpu_ready);
+  YabSemPost(g_cpu_ready);
+  YabSemTryWait(g_scsp_ready);
+  YabSemPost(g_scsp_ready);
+  return 0;
+}
+
+int YabauseInit(yabauseinit_struct *init)
+{
+  if (BiosRom == NULL) return YabauseFullInit(init);
+  else return YabauseRefreshInit(init);
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -674,7 +757,7 @@ int YabauseExec(void) {
 		YabauseEmulate();
 	}
 #else
-  ScspUnMuteAudio(SCSP_MUTE_SYSTEM);
+  // ScspUnMuteAudio(SCSP_MUTE_SYSTEM);
   YabauseEmulate();
 #endif
 	return 0;
@@ -750,10 +833,12 @@ int YabauseEmulate(void) {
    DoMovie();
 
    MSH2->cycles = 0;
+   MSH2->divcycles = 0;
    MSH2->frtcycles = 0;
    // MSH2->depth = 0;
    // SSH2->depth = 0;
    SSH2->cycles = 0;
+   SSH2->divcycles = 0;
    SSH2->frtcycles = 0;
 //   SH2OnFrame(MSH2);
 //   SH2OnFrame(SSH2);

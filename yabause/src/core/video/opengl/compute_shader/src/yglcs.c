@@ -35,8 +35,6 @@
 extern int GlHeight;
 extern int GlWidth;
 
-extern void vdp1_wait_regenerate(void);
-
 extern int DrawVDP2Screen(Vdp2 *varVdp2Regs, int id);
 
 extern void YglUpdateVdp2Reg();
@@ -45,6 +43,7 @@ extern int setupColorMode(Vdp2 *varVdp2Regs, int layer);
 extern int setupShadow(Vdp2 *varVdp2Regs, int layer);
 extern int setupBlur(Vdp2 *varVdp2Regs, int layer);
 extern int YglDrawBackScreen();
+extern int YglFillWithBackScreen();
 
 //////////////////////////////////////////////////////////////////////////////
 int VIDCSEraseWriteVdp1(int id) {
@@ -99,7 +98,6 @@ int VIDCSEraseWriteVdp1(int id) {
 }
 
 void VIDCSFinsihDraw(void) {
-  vdp1_wait_regenerate();
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -107,7 +105,7 @@ void VIDCSFinsihDraw(void) {
 void VIDCSRenderVDP1(void) {
   TRACE_RENDER("VIDCSRenderVDP1");
   FRAMELOG("VIDCSRenderVDP1: drawframe =%d %d\n", _Ygl->drawframe, yabsys.LineCount);
-  vdp1_compute();
+  // vdp1_compute();
 }
 
 void VIDCSFrameChangeVdp1(){
@@ -156,6 +154,8 @@ void finishCSRender() {
   OSDDisplayMessages(NULL,0,0);
 
   _Ygl->sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE,0);
+
+  if (VIDCore->startVdp1Render) VIDCore->startVdp1Render();
 }
 
 void VIDCSRender(Vdp2 *varVdp2Regs) {
@@ -185,29 +185,56 @@ void VIDCSRender(Vdp2 *varVdp2Regs) {
    int drawScreen[enBGMAX];
    SpriteMode mode;
    GLenum DrawBuffers[8]= {GL_COLOR_ATTACHMENT0,GL_COLOR_ATTACHMENT1,GL_COLOR_ATTACHMENT2,GL_COLOR_ATTACHMENT3,GL_COLOR_ATTACHMENT4,GL_COLOR_ATTACHMENT5,GL_COLOR_ATTACHMENT6,GL_COLOR_ATTACHMENT7};
+   RATIOMODE modeScreen = _Ygl->stretch;
+
+   int width = (_Ygl->width*2.0)/(_Ygl->vdp2wdensity);
+   int height = _Ygl->height;
+
    double dar = (double)GlWidth/(double)GlHeight;
    double par = 4.0/3.0;
-   int Intw = (int)(floor((float)GlWidth/(float)_Ygl->width));
-   int Inth = (int)(floor((float)GlHeight/(float)_Ygl->height));
-   int Int  = 1;
-   int modeScreen = _Ygl->stretch;
-   #ifndef __LIBRETRO__
-   if (yabsys.isRotated) par = 1.0/par;
-   #endif
-   if (Intw == 0) {
+
+   float Intw = (float)GlWidth/(float)width;
+   float Inth = (float)GlHeight/(float)height;
+
+    if (_Ygl->interlace != DOUBLE_INTERLACE) {
+      height = height*2.0;
+      Inth /= 2.0;
+    }
+    float Int  = 1.0;
+
+   if (modeScreen == ORIGINAL_RATIO) {
+     if (yabsys.CurSH2FreqType == CLKTYPE_26MHZ) {
+       if (yabsys.IsPal)
+        //4:3 corresponds to 720*576
+        par = (((float)width/720.0) * 4.0) / (((float)height/576.0) * 3.0) ;
+       else
+        //4:3 corresponds to 720*480
+        par = (((float)width/720.0) * 4.0) / (((float)height/480.0) * 3.0) ;
+     } else {
+       if (yabsys.IsPal)
+        //4:3 corresponds to 768*576
+        par = (((float)width/768.0) * 4.0) / (((float)height/576.0) * 3.0) ;
+       else
+        //4:3 corresponds to 768*480
+        par = (((float)width/768.0) * 4.0) / (((float)height/480.0) * 3.0) ;
+     }
+   }
+
+   if ((floor(Intw) == 0)&&((modeScreen == INTEGER_RATIO)||(modeScreen == INTEGER_RATIO_FULL))) {
      if (warning == 0) YuiMsg("Window width is too small - Do not use integer scaling or reduce scaling\n");
      warning = 1;
-     modeScreen = 0;
-     Intw = 1;
+     modeScreen = ORIGINAL_RATIO;
+     Intw = 1.0;
+     width = _Ygl->width*2.0/_Ygl->vdp2wdensity;
    }
-   if (Inth == 0) {
+   if ((floor(Inth) == 0)&&((modeScreen == INTEGER_RATIO)||(modeScreen == INTEGER_RATIO_FULL))) {
      if (warning == 0) YuiMsg("Window height is too small - Do not use integer scaling or reduce scaling\n");
      warning = 1;
-     modeScreen = 0;
-     Inth = 1;
+     modeScreen = ORIGINAL_RATIO;
+     Inth = 1.0;
+     width = _Ygl->width*2.0/_Ygl->vdp2wdensity;
    }
-   Int = (Inth<Intw)?Inth:Intw;
-
+   if (modeScreen != INTEGER_RATIO)  Int = (Inth<Intw)?Inth:Intw;
    glDepthMask(GL_FALSE);
    glDisable(GL_DEPTH_TEST);
    glDisable(GL_BLEND);
@@ -215,21 +242,23 @@ void VIDCSRender(Vdp2 *varVdp2Regs) {
    glBindVertexArray(_Ygl->vao);
 #ifndef __LIBRETRO__
    switch(modeScreen) {
-     case 0:
-       w = (dar>par)?(double)GlHeight*par:GlWidth;
-       h = (dar>par)?(double)GlHeight:(double)GlWidth/par;
-       x = (GlWidth-w)/2;
-       y = (GlHeight-h)/2;
-       break;
-     case 1:
+     case STRETCH_RATIO:
        w = GlWidth;
        h = GlHeight;
        x = 0;
        y = 0;
        break;
-     case 2:
-       w = Int * _Ygl->width;
-       h = Int * _Ygl->height;
+    case ORIGINAL_RATIO:
+       w = (dar>par)?(double)GlHeight*par:GlWidth;
+       h = (dar>par)?(double)GlHeight:(double)GlWidth/par;
+       x = (GlWidth-w)/2;
+       y = (GlHeight-h)/2;
+       break;
+     case INTEGER_RATIO:
+     case INTEGER_RATIO_FULL:
+      Int = floor(Int);
+       w = Int * width;
+       h = Int * height;
        x = (GlWidth-w)/2;
        y = (GlHeight-h)/2;
        break;
@@ -239,14 +268,11 @@ void VIDCSRender(Vdp2 *varVdp2Regs) {
     scale = MAX(w/_Ygl->rwidth, h/_Ygl->rheight);
 #else
   //Libretro is taking care to the resize
-  w = _Ygl->width;
-  h = _Ygl->height;
+  w = width;
+  h = height;
   x = y = 0;
 #endif
    glViewport(0, 0, GlWidth, GlHeight);
-
-   glBindFramebuffer(GL_FRAMEBUFFER, _Ygl->default_fbo);
-   glClearBufferfv(GL_COLOR, 0, col);
 
    VIDCore->setupFrame();
 
@@ -283,6 +309,18 @@ void VIDCSRender(Vdp2 *varVdp2Regs) {
    }
    cprg = -1;
 
+   if (_Ygl->ColorRamNeedSync != 0) {
+     //Need to update the colorRamLine mapping
+     glBindTexture(GL_TEXTURE_2D, _Ygl->cram_map_tex);
+     glTexImage2D(GL_TEXTURE_2D,
+          0,
+          GL_RGBA,
+          512, 1,
+          0,
+          GL_RGBA, GL_UNSIGNED_BYTE,
+          &_Ygl->colorRamIndexFull[0]);
+    _Ygl->ColorRamNeedSync = 0;
+   }
    glActiveTexture(GL_TEXTURE0);
    glBindTexture(GL_TEXTURE_2D, YglTM_vdp2->textureID);
 
@@ -292,6 +330,7 @@ void VIDCSRender(Vdp2 *varVdp2Regs) {
   int nbPrio = 0;
   int minPrio = -1;
   int allPrio = 0;
+
 
   for (int i = 0; i < SPRITE; i++) {
     if ((i == RBG0) || (i == RBG1)) {
@@ -388,15 +427,10 @@ void VIDCSRender(Vdp2 *varVdp2Regs) {
   glBindFramebuffer(GL_FRAMEBUFFER, _Ygl->back_fbo);
   glDrawBuffers(1, &DrawBuffers[0]);
   //glClearBufferfv(GL_COLOR, 0, col);
-  if ((Vdp2Regs->TVMD & 0x8100) == 0) {
-    float black[4] = {0.0};
-    glClearBufferfv(GL_COLOR, 0, black);
-  } else {
-    if ((varVdp2Regs->BKTAU & 0x8000) != 0) {
-      YglDrawBackScreen();
-    }else{
-      glClearBufferfv(GL_COLOR, 0, _Ygl->clear);
-    }
+  if ((varVdp2Regs->BKTAU & 0x8000) != 0) {
+    YglDrawBackScreen();
+  }else{
+    glClearBufferfv(GL_COLOR, 0, _Ygl->last_back_color);
   }
 
   glBindFramebuffer(GL_FRAMEBUFFER, _Ygl->original_fbo);
@@ -408,9 +442,27 @@ void VIDCSRender(Vdp2 *varVdp2Regs) {
   srcTexture = _Ygl->original_fbotex[0];
 
    int scali = (int)(scale);
+   glBindFramebuffer(GL_FRAMEBUFFER, _Ygl->default_fbo);
+#ifndef __LIBRETRO__
+  if ((Vdp2Regs->TVMD & 0x100) != 0) {
+    //Use last border color to clear the screen
+    glViewport(0, 0, GlWidth, GlHeight);
+    glScissor(0, 0, GlWidth, GlHeight);
+    glClearBufferfv(GL_COLOR, 0, _Ygl->last_back_color);
+    //draw back screen where other pixels are not drawn
+    glViewport(0, y, GlWidth, h);
+    glScissor(0, y, GlWidth, h-scali);
+    //Take care of border
+    YglFillWithBackScreen();
+  } else {
+    glViewport(0, 0, GlWidth, GlHeight);
+    glScissor(0, 0, GlWidth, GlHeight);
+    float black[4] = {0.0};
+    glClearBufferfv(GL_COLOR, 0, black);
+  }
    glViewport(x, y, w, h);
    glScissor(x, y, w-scali, h-scali);
-   glBindFramebuffer(GL_FRAMEBUFFER, _Ygl->default_fbo);
+#endif
    YglBlitFramebuffer(srcTexture, _Ygl->width, _Ygl->height, w, h);
 
   finishCSRender();

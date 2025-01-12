@@ -62,20 +62,11 @@ static int addon_cart_type = CART_NONE;
 static int mesh_mode = ORIGINAL_MESH;
 static int banding_mode = ORIGINAL_BANDING;
 
-typedef enum
-{
-    N_RES_NO = 0,
-    N_RES_4k = 1,
-    N_RES_8k = 2,
-} NATIVE_RESOLUTION_MODE;
-
 static int g_skipframe = 0;
 static int g_videoformattype = -1;
 static int g_usecache = 0;
 static int resolution_mode = RES_ORIGINAL;
-static int native_resolution_mode = N_RES_NO;
 static int initial_resolution_mode = 0;
-static int initial_native_resolution_mode = N_RES_NO;
 static int force_downsampling = 0;
 static int numthreads = 4;
 static int use_beetle_saves = 0;
@@ -539,6 +530,7 @@ PerInterface_struct PERLIBRETROJoy = {
 // SNDLIBRETRO
 #define SNDCORE_LIBRETRO   11
 #define SAMPLERATE         44100
+#define NUMSOUNDBLOCKS  4
 
 static u32 audio_size;
 static u32 soundlen;
@@ -547,11 +539,12 @@ static s16 *sound_buf;
 
 static int SNDLIBRETROInit(void) {
     int vertfreq = (retro_get_region() == RETRO_REGION_PAL ? 50 : 60);
-    soundlen = (SAMPLERATE * 100 + (vertfreq >> 1)) / vertfreq;
-    soundbufsize = (soundlen<<2 * sizeof(s16));
+    soundlen = (SAMPLERATE / vertfreq) * sizeof(s16) * 2;
+    soundbufsize = soundlen * NUMSOUNDBLOCKS;
     if ((sound_buf = (s16 *)malloc(soundbufsize)) == NULL)
         return -1;
     memset(sound_buf, 0, soundbufsize);
+    audio_size = soundbufsize;
     return 0;
 }
 
@@ -564,13 +557,14 @@ static int SNDLIBRETROReset(void) { return 0; }
 
 static int SNDLIBRETROChangeVideoFormat(int vertfreq)
 {
-    soundlen = (SAMPLERATE * 100 + (vertfreq >> 1)) / vertfreq;
-    soundbufsize = (soundlen<<2 * sizeof(s16));
+  soundlen = (SAMPLERATE / vertfreq) * sizeof(s16) * 2;
+  soundbufsize = soundlen * NUMSOUNDBLOCKS;
     if (sound_buf)
         free(sound_buf);
     if ((sound_buf = (s16 *)malloc(soundbufsize)) == NULL)
         return -1;
     memset(sound_buf, 0, soundbufsize);
+    audio_size = soundbufsize;
     return 0;
 }
 
@@ -607,7 +601,7 @@ static void SNDLIBRETROUpdateAudio(u32 *leftchanbuffer, u32 *rightchanbuffer, u3
    sdlConvert32uto16s((int32_t*)leftchanbuffer, (int32_t*)rightchanbuffer, sound_buf, num_samples);
    audio_batch_cb(sound_buf, num_samples);
 
-   audio_size -= num_samples;
+   audio_size += num_samples * sizeof(s16) * 2;
 }
 
 static u32 SNDLIBRETROGetAudioSpace(void) { return audio_size; }
@@ -735,7 +729,6 @@ void YuiSwapBuffers(void)
    if (resolution_need_update || (prev_game_width != game_width) || (prev_game_height != game_height)) {
      retro_reinit_av_info();
    }
-   audio_size = soundlen;
    frame_expected--;
    video_cb(RETRO_HW_FRAME_BUFFER_VALID, game_width, game_height, 0);
 }
@@ -977,22 +970,12 @@ void check_variables(void)
    {
       if (strcmp(var.value, "original") == 0)
          resolution_mode = RES_ORIGINAL;
-      else if (strcmp(var.value, "480p") == 0)
-         resolution_mode = RES_480p;
-      else if (strcmp(var.value, "720p") == 0)
-         resolution_mode = RES_720p;
-      else if (strcmp(var.value, "1080p") == 0)
-         resolution_mode = RES_1080p;
-      else if (strcmp(var.value, "4k") == 0)
-      {
+      else if (strcmp(var.value, "2X") == 0)
+         resolution_mode = RES_2X;
+      else if (strcmp(var.value, "4X") == 0)
+         resolution_mode = RES_4X;
+      else if (strcmp(var.value, "8X") == 0)
          resolution_mode = RES_NATIVE;
-         native_resolution_mode = N_RES_4k;
-      }
-      else if (strcmp(var.value, "8k") == 0)
-      {
-         resolution_mode = RES_NATIVE;
-         native_resolution_mode = N_RES_8k;
-      }
    }
 
    var.key = "kronos_force_downsampling";
@@ -1134,34 +1117,25 @@ void retro_get_system_av_info(struct retro_system_av_info *info)
       // Get the initial resolution mode at start
       // It will be the resolution_mode limit until the core is restarted
       initial_resolution_mode = resolution_mode;
-      initial_native_resolution_mode = native_resolution_mode;
       switch(resolution_mode)
       {
          case RES_ORIGINAL:
-         case RES_480p:
-            window_width = 704;
-            window_height = 512;
-            break;
-         case RES_720p:
+         case RES_SD:
+         case RES_1X:
             window_width = 1280;
             window_height = 720;
             break;
-         case RES_1080p:
+         case RES_2X:
             window_width = 1920;
             window_height = 1080;
             break;
+         case RES_4X:
+            window_width = 3840;
+            window_height = 2160;
+            break;
          case RES_NATIVE:
-            switch (native_resolution_mode)
-            {
-               case N_RES_4k:
-                  window_width = 3840;
-                  window_height = 2160;
-                  break;
-               case N_RES_8k:
-                  window_width = 7680;
-                  window_height = 4320;
-                  break;
-            }
+            window_width = 7680;
+            window_height = 4320;
             break;
       }
    }
@@ -1659,11 +1633,11 @@ bool retro_load_game(const struct retro_game_info *info)
 
    // Check if the path lead to a ST-V game
    // Store the game "id", if no game id found then this is most likely not a ST-V game
-   int stvgame = -1;
+   char *stvgame;
    if (strcmp(path_get_extension(info->path), "zip") == 0)
       STVGetSingle(info->path, stv_bios_path, &stvgame);
 
-   if (stvgame != -1)
+   if (stvgame != NULL)
       stv_mode = true;
 
    if (strcmp(path_get_extension(info->path), "m3u") == 0)
@@ -1804,36 +1778,36 @@ void retro_run(void)
       int prev_force_downsampling = force_downsampling;
       int prev_multitap[2] = {multitap[0],multitap[1]};
       bool prev_service_enabled = service_enabled;
-      check_variables();
-      // If resolution_mode > initial_resolution_mode, we'll need a restart to reallocate the max size for buffer
-      if (resolution_mode > initial_resolution_mode)
-      {
-         log_cb(RETRO_LOG_INFO, "Restart the core for the new resolution\n");
-         resolution_mode = initial_resolution_mode;
+      bool var_updated = false;
+      if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &var_updated) && var_updated) {
+        check_variables();
+        // If resolution_mode > initial_resolution_mode, we'll need a restart to reallocate the max size for buffer
+        if (resolution_mode > initial_resolution_mode)
+        {
+          log_cb(RETRO_LOG_INFO, "Restart the core for the new resolution\n");
+          resolution_mode = initial_resolution_mode;
+        }
+        resolution_need_update = (prev_resolution_mode != resolution_mode || prev_force_downsampling != force_downsampling);
+        if (prev_resolution_mode != resolution_mode && VIDCore)
+        VIDCore->SetSettingValue(VDP_SETTING_RESOLUTION_MODE, resolution_mode);
+        if(PERCore && (prev_multitap[0] != multitap[0] || prev_multitap[1] != multitap[1] || prev_service_enabled != service_enabled))
+        PERCore->Init();
+        if (VIDCore) VIDCore->SetSettingValue(VDP_SETTING_MESH_MODE, (force_downsampling ? IMPROVED_MESH : mesh_mode)); // we want improved mesh with downsampling, otherwise it'll cause gfx glitches
+        if (VIDCore) VIDCore->SetSettingValue(VDP_SETTING_BANDING_MODE, banding_mode);
+        if (VIDCore) VIDCore->SetSettingValue(VDP_SETTING_WIREFRAME, wireframe_mode);
+        // changing video format on the fly is causing issues
+        //if (g_videoformattype != -1)
+        //   YabauseSetVideoFormat(g_videoformattype);
+        YabauseSetSkipframe(g_skipframe);
       }
-      if (native_resolution_mode > initial_native_resolution_mode)
-      {
-         log_cb(RETRO_LOG_INFO, "Restart the core for the new resolution\n");
-         native_resolution_mode = initial_native_resolution_mode;
-      }
-      resolution_need_update = (prev_resolution_mode != resolution_mode || prev_force_downsampling != force_downsampling);
-      if (prev_resolution_mode != resolution_mode && VIDCore)
-         VIDCore->SetSettingValue(VDP_SETTING_RESOLUTION_MODE, resolution_mode);
-      if(PERCore && (prev_multitap[0] != multitap[0] || prev_multitap[1] != multitap[1] || prev_service_enabled != service_enabled))
-         PERCore->Init();
-      if (VIDCore) VIDCore->SetSettingValue(VDP_SETTING_MESH_MODE, (force_downsampling ? IMPROVED_MESH : mesh_mode)); // we want improved mesh with downsampling, otherwise it'll cause gfx glitches
-      if (VIDCore) VIDCore->SetSettingValue(VDP_SETTING_BANDING_MODE, banding_mode);
-      if (VIDCore) VIDCore->SetSettingValue(VDP_SETTING_WIREFRAME, wireframe_mode);
-      // changing video format on the fly is causing issues
-      //if (g_videoformattype != -1)
-      //   YabauseSetVideoFormat(g_videoformattype);
-      YabauseSetSkipframe(g_skipframe);
    }
    // It appears polling can happen outside of HandleEvents
    update_inputs();
    frame_expected++;
-   if (rendering_started)
-      YabauseExec();
+   if (rendering_started) {
+     audio_size -= soundlen;
+     YabauseExec();
+   }
 }
 
 #ifdef ANDROID

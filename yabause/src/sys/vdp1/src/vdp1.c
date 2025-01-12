@@ -49,7 +49,6 @@ int VDP1_MASK = 0xFFFF;
 extern u32* getVDP1WriteFramebuffer(int frame);
 extern u32* getVDP1ReadFramebuffer();
 extern void updateVdp1DrawingFBMem(int frame);
-extern void clearVDP1Framebuffer();
 extern void YglGenerate();
 extern void syncVdp1FBBuffer(u32 addr);
 
@@ -61,13 +60,10 @@ extern VideoInterface_struct *VIDCoreList[];
 Vdp1 * Vdp1Regs;
 Vdp1External_struct Vdp1External;
 
-vdp1cmdctrl_struct cmdBufferBeingProcessed[CMD_QUEUE_SIZE];
-
 int vdp1_clock = 0;
 
 static int nbCmdToProcess = 0;
 static int CmdListInLoop = 0;
-static int CmdListLimit = 0x80000;
 
 static int needVdp1draw = 0;
 static int oldNeedVdp1draw = 0;
@@ -108,6 +104,13 @@ static void RequestVdp1ToDraw() {
 }
 
 
+void Vdp1SetDMAConcurrency() {
+  Vdp1External.blocked = 1;
+}
+void Vdp1ClearDMAConcurrency() {
+  Vdp1External.blocked = 0;
+}
+
 static void abortVdp1() {
   if ((Vdp1External.status&VDP1_STATUS_MASK) == VDP1_STATUS_RUNNING) {
     FRAMELOG("Aborting VDP1 %d\n", yabsys.LineCount);
@@ -115,6 +118,7 @@ static void abortVdp1() {
     // Abort the current command list
     Vdp1External.status &= ~VDP1_STATUS_MASK;
     Vdp1External.status |= VDP1_STATUS_IDLE;
+    if (VIDCore->endVdp1Render) VIDCore->endVdp1Render();
     CmdListInLoop = 0;
     vdp1_clock = 0;
     nbCmdToProcess = 0;
@@ -122,9 +126,15 @@ static void abortVdp1() {
   }
 }
 //////////////////////////////////////////////////////////////////////////////
+static u32 lastVRamBankCol = 0;
 
 u8 FASTCALL Vdp1RamReadByte(SH2_struct *context, u8* mem, u32 addr) {
    addr &= 0x7FFFF;
+   int rowBank = ((addr>>9)&0x3FF);
+   if (rowBank != lastVRamBankCol) {
+    lastVRamBankCol = rowBank;
+    if ((context) && (!context->cacheOn)) context->cycles += 2;
+   }
    return T1ReadByte(mem, addr);
 }
 
@@ -132,6 +142,11 @@ u8 FASTCALL Vdp1RamReadByte(SH2_struct *context, u8* mem, u32 addr) {
 
 u16 FASTCALL Vdp1RamReadWord(SH2_struct *context, u8* mem, u32 addr) {
     addr &= 0x07FFFF;
+    int rowBank = ((addr>>9)&0x3FF);
+    if (rowBank != lastVRamBankCol) {
+     lastVRamBankCol = rowBank;
+     if ((context) && (!context->cacheOn)) context->cycles += 2;
+    }
     return T1ReadWord(mem, addr);
 }
 
@@ -139,15 +154,26 @@ u16 FASTCALL Vdp1RamReadWord(SH2_struct *context, u8* mem, u32 addr) {
 
 u32 FASTCALL Vdp1RamReadLong(SH2_struct *context, u8* mem, u32 addr) {
    addr &= 0x7FFFF;
+   int rowBank = ((addr>>9)&0x3FF);
+   if (rowBank != lastVRamBankCol) {
+    lastVRamBankCol = rowBank;
+    if ((context) && (!context->cacheOn)) context->cycles += 2;
+   }
    return T1ReadLong(mem, addr);
 }
 
 //////////////////////////////////////////////////////////////////////////////
 
 static int Vdp1LoopAddr = -1;
-
 void FASTCALL Vdp1RamWriteByte(SH2_struct *context, u8* mem, u32 addr, u8 val) {
    addr &= 0x7FFFF;
+   int rowBank = ((addr>>9)&0x3FF);
+   if (rowBank != lastVRamBankCol) {
+    lastVRamBankCol = rowBank;
+    if (context) context->cycles += 2;
+   }
+   if (context)context->cycles += 1;
+
    // printf("Write 0x%x @ 0x%x (%d %d)\n", val, addr, yabsys.LineCount, yabsys.DecilineCount);
    Vdp1External.updateVdp1Ram = 1;
    if( (Vdp1External.status&VDP1_STATUS_MASK) == VDP1_STATUS_RUNNING) vdp1_clock -= 1;
@@ -160,6 +186,12 @@ void FASTCALL Vdp1RamWriteByte(SH2_struct *context, u8* mem, u32 addr, u8 val) {
 
 void FASTCALL Vdp1RamWriteWord(SH2_struct *context, u8* mem, u32 addr, u16 val) {
    addr &= 0x7FFFF;
+   int rowBank = ((addr>>9)&0x3FF);
+   if (rowBank != lastVRamBankCol) {
+    lastVRamBankCol = rowBank;
+    if (context) context->cycles += 2;
+   }
+   if (context)context->cycles += 1;
    // printf("Write 0x%x @ 0x%x (%d %d)\n", val, addr, yabsys.LineCount, yabsys.DecilineCount);
    Vdp1External.updateVdp1Ram = 1;
    if( (Vdp1External.status&VDP1_STATUS_MASK) == VDP1_STATUS_RUNNING) vdp1_clock -= 2;
@@ -172,6 +204,12 @@ void FASTCALL Vdp1RamWriteWord(SH2_struct *context, u8* mem, u32 addr, u16 val) 
 
 void FASTCALL Vdp1RamWriteLong(SH2_struct *context, u8* mem, u32 addr, u32 val) {
    addr &= 0x7FFFF;
+   int rowBank = ((addr>>9)&0x3FF);
+   if (rowBank != lastVRamBankCol) {
+    lastVRamBankCol = rowBank;
+    if (context) context->cycles += 2;
+   }
+   if (context)context->cycles += 3;
    // printf("Write 0x%x @ 0x%x (%d %d)\n", val, addr, yabsys.LineCount, yabsys.DecilineCount);
    Vdp1External.updateVdp1Ram = 1;
    if( (Vdp1External.status&VDP1_STATUS_MASK) == VDP1_STATUS_RUNNING) vdp1_clock -= 4;
@@ -182,45 +220,62 @@ void FASTCALL Vdp1RamWriteLong(SH2_struct *context, u8* mem, u32 addr, u32 val) 
 
 //////////////////////////////////////////////////////////////////////////////
 
-u8 FASTCALL Vdp1FrameBufferReadByte(SH2_struct *context, u8* mem, u32 addr) {
+u8 FASTCALL Vdp1FrameBuffer16bReadByte(SH2_struct *context, u8* mem, u32 addr) {
    addr &= 0x3FFFF;
+   //Bad limitation, FB shall be different size depending mode
+   u32 pixIdx = addr>>1;
+   if (pixIdx/512 >= 256) return 0;
    u32* buf = getVDP1ReadFramebuffer();
    vdp1_clock -= 2;
    if (context != NULL) context->cycles += 2;
-   PRINT_FB("R B 0x%x@0x%x\n", buf[addr*2]&0xFF,addr);
-   return T1ReadLong((u8*)buf, addr*2) & 0xFF;
+   PRINT_FB("R B 0x%x@0x%x\n", buf[pixIdx]&0xFF,addr);
+   //take care of half pixel.
+   return T1ReadLong((u8*)buf, pixIdx*4) & 0xFF;
 }
 
 //////////////////////////////////////////////////////////////////////////////
 
-u16 FASTCALL Vdp1FrameBufferReadWord(SH2_struct *context, u8* mem, u32 addr) {
+u16 FASTCALL Vdp1FrameBuffer16bReadWord(SH2_struct *context, u8* mem, u32 addr) {
    addr &= 0x3FFFF;
+   //Bad limitation, FB shall be different size depending mode
+   u32 pixIdx = addr>>1;
+   if (pixIdx/512 >= 256) return 0;
    u32* buf = getVDP1ReadFramebuffer();
    vdp1_clock -= 2;
    if (context != NULL) context->cycles += 2;
-   PRINT_FB("R W 0x%x@0x%x (%d, %d)\n", T1ReadLong((u8*)buf, addr*2) & 0xFFFF, addr, yabsys.LineCount, yabsys.DecilineCount);
-   return T1ReadLong((u8*)buf, addr*2) & 0xFFFF;
+   PRINT_FB("R W 0x%x@0x%x (%d, %d)\n", T1ReadLong((u8*)buf, pixIdx*4) & 0xFFFF, addr, yabsys.LineCount, yabsys.DecilineCount);
+   return T1ReadLong((u8*)buf, pixIdx*4) & 0xFFFF;
 }
 
 //////////////////////////////////////////////////////////////////////////////
 
-u32 FASTCALL Vdp1FrameBufferReadLong(SH2_struct *context, u8* mem, u32 addr) {
+u32 FASTCALL Vdp1FrameBuffer16bReadLong(SH2_struct *context, u8* mem, u32 addr) {
+   PRINT_FB("FB R L 16b @%x\n", addr);
    addr &= 0x3FFFF;
+   //Bad limitation, FB shall be different size depending mode
+   u32 pixIdx = addr>>1;
+   if (pixIdx/512 >= 256) {
+     return 0;
+   }
    u32* buf = getVDP1ReadFramebuffer();
    vdp1_clock -= 4;
    if (context != NULL) context->cycles += 4;
-   PRINT_FB("R L 0x%x@0x%x\n", ((T1ReadLong((u8*)buf, addr*2)&0xFFFF)<<16)|((T1ReadLong((u8*)buf, addr*2+4)&0xFFFF)),addr);
-   return ((T1ReadLong((u8*)buf, addr*2)&0xFFFF)<<16)|((T1ReadLong((u8*)buf, addr*2+4)&0xFFFF));
+   u16 val1 = T1ReadLong((u8*)buf, pixIdx*4) & 0xFFFF;
+   u16 val2 = T1ReadLong((u8*)buf, (pixIdx+1)*4) & 0xFFFF;
+   return (val1<<16) | val2;
 }
 
 //////////////////////////////////////////////////////////////////////////////
 
-void FASTCALL Vdp1FrameBufferWriteByte(SH2_struct *context, u8* mem, u32 addr, u8 val) {
+void FASTCALL Vdp1FrameBuffer16bWriteByte(SH2_struct *context, u8* mem, u32 addr, u8 val) {
    addr &= 0x3FFFF;
+   //Bad limitation, FB shall be different size depending mode
+   u32 pixIdx = addr>>1;
+   if (pixIdx/512 >= 256) return;
    u32* buf = getVDP1WriteFramebuffer(_Ygl->drawframe);
-   PRINT_FB("W B 0x%x@0x%x line %d(%d) frame %d\n", val, addr, yabsys.LineCount, yabsys.DecilineCount, _Ygl->drawframe);
-   buf[addr>>1] = (val&0xFF)|0xFF000000;
-   syncVdp1FBBuffer(addr>>1);
+   PRINT_FB("W B 0x%x@0x%x line %d(%d) frame %d\n", val, pixIdx, yabsys.LineCount, yabsys.DecilineCount, _Ygl->drawframe);
+   buf[pixIdx] = (val&0xFF)|0xFF000000;
+   syncVdp1FBBuffer(pixIdx);
    vdp1_clock -= 2;
    if (context != NULL) context->cycles += 2;
    _Ygl->FBDirty[_Ygl->drawframe] = 1;
@@ -229,12 +284,15 @@ void FASTCALL Vdp1FrameBufferWriteByte(SH2_struct *context, u8* mem, u32 addr, u
 
 //////////////////////////////////////////////////////////////////////////////
 
-void FASTCALL Vdp1FrameBufferWriteWord(SH2_struct *context, u8* mem, u32 addr, u16 val) {
+void FASTCALL Vdp1FrameBuffer16bWriteWord(SH2_struct *context, u8* mem, u32 addr, u16 val) {
   addr &= 0x3FFFF;
+  //Bad limitation, FB shall be different size depending mode
+  u32 pixIdx = addr>>1;
+  if (pixIdx/512 >= 256) return;
   u32* buf = getVDP1WriteFramebuffer(_Ygl->drawframe);
-  PRINT_FB("W W 0x%x@0x%x line %d(%d) frame %d\n", val, addr, yabsys.LineCount, yabsys.DecilineCount, _Ygl->drawframe);
-  buf[addr>>1] = (val&0xFFFF)|0xFF000000;
-  syncVdp1FBBuffer(addr>>1);
+  PRINT_FB("W W 0x%x@0x%x line %d(%d) frame %d\n", val, pixIdx, yabsys.LineCount, yabsys.DecilineCount, _Ygl->drawframe);
+  buf[pixIdx] = (val&0xFFFF)|0xFF000000;
+  syncVdp1FBBuffer(pixIdx);
   vdp1_clock -= 2;
   if (context != NULL) context->cycles += 2;
   _Ygl->FBDirty[_Ygl->drawframe] = 1;
@@ -243,20 +301,130 @@ void FASTCALL Vdp1FrameBufferWriteWord(SH2_struct *context, u8* mem, u32 addr, u
 
 //////////////////////////////////////////////////////////////////////////////
 
-void FASTCALL Vdp1FrameBufferWriteLong(SH2_struct *context, u8* mem, u32 addr, u32 val) {
+void FASTCALL Vdp1FrameBuffer16bWriteLong(SH2_struct *context, u8* mem, u32 addr, u32 val) {
   addr &= 0x3FFFF;
+  //Bad limitation, FB shall be different size depending mode
+  u32 pixIdx = addr>>1;
+  if (pixIdx/512 >= 256) return;
   u32* buf = getVDP1WriteFramebuffer(_Ygl->drawframe);
   PRINT_FB("W L 0x%x@0x%x line %d(%d) frame %d %s\n", val, addr, yabsys.LineCount, yabsys.DecilineCount, _Ygl->drawframe, (context==NULL)?"DMA":"CPU");
-  buf[(addr>>1)] = ((val>>16)&0xFFFF)|0xFF000000;
-  buf[(addr>>1)+1] = (val&0xFFFF)|0xFF000000;
-  syncVdp1FBBuffer(addr>>1);
-  syncVdp1FBBuffer((addr>>1)+1);
+  buf[pixIdx] = ((val>>16)&0xFFFF)|0xFF000000;
+  syncVdp1FBBuffer(pixIdx);
+  buf[pixIdx+1] = ((val)&0xFFFF)|0xFF000000;
+  syncVdp1FBBuffer(pixIdx+1);
   vdp1_clock -= 4;
   if (context != NULL) context->cycles += 4;
   _Ygl->FBDirty[_Ygl->drawframe] = 1;
   _Ygl->vdp1IsNotEmpty[_Ygl->drawframe] = yabsys.LineCount;
 }
 
+//////////////////////////////////////////////////////////////////////////////
+
+u8 FASTCALL Vdp1FrameBuffer8bReadByte(SH2_struct *context, u8* mem, u32 addr) {
+   addr &= 0x3FFFF;
+   //Bad limitation, FB shall be different size depending mode
+   u32 pixIdx = addr;
+   if (pixIdx/512 >= 256) return 0;
+   u32* buf = getVDP1ReadFramebuffer();
+   vdp1_clock -= 2;
+   if (context != NULL) context->cycles += 2;
+   PRINT_FB("R B 0x%x@0x%x\n", buf[pixIdx]&0xFF,addr);
+   return T1ReadLong((u8*)buf, pixIdx*4) & 0xFF;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+u16 FASTCALL Vdp1FrameBuffer8bReadWord(SH2_struct *context, u8* mem, u32 addr) {
+   addr &= 0x3FFFF;
+   //Bad limitation, FB shall be different size depending mode
+   u32 pixIdx = addr;
+   if (pixIdx/512 >= 256) return 0;
+   u32* buf = getVDP1ReadFramebuffer();
+   vdp1_clock -= 2;
+   if (context != NULL) context->cycles += 2;
+   PRINT_FB("R W 0x%x@0x%x (%d, %d)\n", T1ReadLong((u8*)buf, pixIdx*4) & 0xFFFF, addr, yabsys.LineCount, yabsys.DecilineCount);
+   u8 val1 = T1ReadLong((u8*)buf, pixIdx*4) & 0xFF;
+   u8 val2 = T1ReadLong((u8*)buf, (pixIdx+1)*4) & 0xFF;
+   return (val1<<8) | val2;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+u32 FASTCALL Vdp1FrameBuffer8bReadLong(SH2_struct *context, u8* mem, u32 addr) {
+   PRINT_FB("FB R L 8b @%x\n", addr);
+   addr &= 0x3FFFF;
+   //Bad limitation, FB shall be different size depending mode
+   u32 pixIdx = addr;
+   if (pixIdx/512 >= 256) return 0;
+   u32* buf = getVDP1ReadFramebuffer();
+   vdp1_clock -= 4;
+   if (context != NULL) context->cycles += 4;
+   u8 val1 = T1ReadLong((u8*)buf, pixIdx*4) & 0xFF;
+   u8 val2 = T1ReadLong((u8*)buf, (pixIdx+1)*4) & 0xFF;
+   u8 val3 = T1ReadLong((u8*)buf, (pixIdx+2)*4) & 0xFF;
+   u8 val4 = T1ReadLong((u8*)buf, (pixIdx+3)*4) & 0xFF;
+   PRINT_FB("R L 0x%x@0x%x\n", (val1<<24) | (val2<<16) | (val3<<8) | (val4),addr);
+   return (val1<<24) | (val2<<16) | (val3<<8) | (val4) ;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+void FASTCALL Vdp1FrameBuffer8bWriteByte(SH2_struct *context, u8* mem, u32 addr, u8 val) {
+   addr &= 0x3FFFF;
+   //Bad limitation, FB shall be different size depending mode
+   u32 pixIdx = addr;
+   if (pixIdx/512 >= 256) return;
+   u32* buf = getVDP1WriteFramebuffer(_Ygl->drawframe);
+   PRINT_FB("W B 0x%x@0x%x line %d(%d) frame %d\n", val, pixIdx, yabsys.LineCount, yabsys.DecilineCount, _Ygl->drawframe);
+   buf[pixIdx] = (val&0xFF)|0xFF000000;
+   syncVdp1FBBuffer(pixIdx);
+   vdp1_clock -= 2;
+   if (context != NULL) context->cycles += 2;
+   _Ygl->FBDirty[_Ygl->drawframe] = 1;
+   _Ygl->vdp1IsNotEmpty[_Ygl->drawframe] = yabsys.LineCount;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+void FASTCALL Vdp1FrameBuffer8bWriteWord(SH2_struct *context, u8* mem, u32 addr, u16 val) {
+  addr &= 0x3FFFF;
+  //Bad limitation, FB shall be different size depending mode
+  u32 pixIdx = addr;
+  if (pixIdx/512 >= 256) return;
+  u32* buf = getVDP1WriteFramebuffer(_Ygl->drawframe);
+  PRINT_FB("W W 0x%x@0x%x line %d(%d) frame %d\n", val, pixIdx, yabsys.LineCount, yabsys.DecilineCount, _Ygl->drawframe);
+  buf[pixIdx] = ((val>>8)&0xFF)|0xFF000000;
+  syncVdp1FBBuffer(pixIdx);
+  buf[pixIdx+1] = (val&0xFF)|0xFF000000;
+  syncVdp1FBBuffer(pixIdx+1);
+  vdp1_clock -= 2;
+  if (context != NULL) context->cycles += 2;
+  _Ygl->FBDirty[_Ygl->drawframe] = 1;
+  _Ygl->vdp1IsNotEmpty[_Ygl->drawframe] = yabsys.LineCount;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+void FASTCALL Vdp1FrameBuffer8bWriteLong(SH2_struct *context, u8* mem, u32 addr, u32 val) {
+  addr &= 0x3FFFF;
+  //Bad limitation, FB shall be different size depending mode
+  u32 pixIdx = addr;
+  if (pixIdx/512 >= 256) return;
+  u32* buf = getVDP1WriteFramebuffer(_Ygl->drawframe);
+  PRINT_FB("W L 0x%x@0x%x line %d(%d) frame %d %s\n", val, pixIdx, yabsys.LineCount, yabsys.DecilineCount, _Ygl->drawframe, (context==NULL)?"DMA":"CPU");
+  buf[pixIdx] = ((val>>24)&0xFF)|0xFF000000;
+  syncVdp1FBBuffer(pixIdx);
+  buf[pixIdx+1] = ((val>>16)&0xFF)|0xFF000000;
+  syncVdp1FBBuffer(pixIdx+1);
+  buf[pixIdx+2] = ((val>>8)&0xFF)|0xFF000000;
+  syncVdp1FBBuffer(pixIdx+2);
+  buf[pixIdx+3] = (val&0xFF)|0xFF000000;
+  syncVdp1FBBuffer(pixIdx+3);
+  vdp1_clock -= 4;
+  if (context != NULL) context->cycles += 4;
+  _Ygl->FBDirty[_Ygl->drawframe] = 1;
+  _Ygl->vdp1IsNotEmpty[_Ygl->drawframe] = yabsys.LineCount;
+}
 //////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////
@@ -269,6 +437,7 @@ int Vdp1Init(void) {
       return -1;
 
    Vdp1External.disptoggle = 1;
+   Vdp1External.blocked = 0;
 
    Vdp1Regs->TVMR = 0;
    Vdp1Regs->FBCR = 0;
@@ -366,6 +535,7 @@ void Vdp1Reset(void) {
    Vdp1Regs->PTMR = 0;
    Vdp1Regs->MODR = 0x1000; // VDP1 Version 1
    Vdp1Regs->TVMR = 0;
+   switchFB16bit();
    Vdp1Regs->ENDR = 0;
    VDP1_MASK = 0xFFFF;
    VIDCore->Vdp1Reset();
@@ -466,7 +636,8 @@ static void updateFBCRErase() {
     // Only at frame change the order is executed.
     //This allows to have both a manual clear and a manual change at the same frame without continuously clearing the VDP1
     //The mechanism is used by the official bios animation
-    Vdp1External.onecycleerase = ((Vdp1Regs->FBCR & 3) == 0) || ((Vdp1Regs->FBCR & 3) == 1);
+    Vdp1External.onecycleerase = ((Vdp1Regs->FBCR & 3) == 0) || ((Vdp1Regs->FBCR & 3) == 1) || Vdp1External.onelasterase;
+    Vdp1External.onelasterase = 0;
     Vdp1External.manualerase = ((Vdp1Regs->FBCR & 3) == 2);
   }
   FBCREraseUpdated = 0;
@@ -494,7 +665,7 @@ static void Vdp1TryDraw(void) {
     FRAMELOG("Will drawn on frame %d\n",_Ygl->drawframe);
   }
   oldNeedVdp1draw = needVdp1draw;
-  if ((needVdp1draw == 1)) {
+  if (needVdp1draw == 1) {
     CmdListInLoop = 0;
     needVdp1draw = Vdp1Draw();
   }
@@ -526,10 +697,20 @@ void FASTCALL Vdp1WriteWord(SH2_struct *context, u8* mem, u32 addr, u16 val) {
   switch(addr) {
     case 0x0:
       if ((Vdp1Regs->FBCR & 3) != 3) val = (val & (~0x4));
+      if ((val & 0x1)!=(Vdp1Regs->TVMR & 0x1)) {
+        if (val & 0x1) switchFB8bit();
+        else switchFB16bit();
+        if (VIDCore->startVdp1Render) VIDCore->startVdp1Render();
+      }
       Vdp1Regs->TVMR = val;
       FRAMELOG("TVMR => Write VBE=%d FCM=%d FCT=%d line = %d (%d)\n", (Vdp1Regs->TVMR >> 3) & 0x01, (Vdp1Regs->FBCR & 0x02) >> 1, (Vdp1Regs->FBCR & 0x01),  yabsys.LineCount, yabsys.DecilineCount);
     break;
     case 0x2:
+      if (((Vdp1Regs->FBCR & 0x2)==0) && ((val & 0x2)!=0) && (((Vdp1Regs->TVMR >> 3) & 0x01) != 1))
+      {
+        //Need a last erase
+        Vdp1External.onelasterase = 1;
+      }
       Vdp1Regs->FBCR = val;
       FRAMELOG("FBCR => Write %x VBE=%d FCM=%d FCT=%d line = %d (%d) (VBlank %d, max %d)\n", val, (Vdp1Regs->TVMR >> 3) & 0x01, (Vdp1Regs->FBCR & 0x02) >> 1, (Vdp1Regs->FBCR & 0x01),  yabsys.LineCount, yabsys.DecilineCount, yabsys.VBlankLineCount, yabsys.MaxLineCount);
       FBCREraseUpdated = 1;
@@ -617,30 +798,6 @@ static int emptyCmd(vdp1cmd_struct *cmd) {
 }
 
 //////////////////////////////////////////////////////////////////////////////
-
-static void checkClipCmd(vdp1cmd_struct **sysClipCmd, vdp1cmd_struct **usrClipCmd, vdp1cmd_struct **localCoordCmd, u8 * ram, Vdp1 * regs) {
-  if (sysClipCmd != NULL) {
-    if (*sysClipCmd != NULL) {
-      VIDCore->Vdp1SystemClipping(*sysClipCmd, ram, regs);
-      free(*sysClipCmd);
-      *sysClipCmd = NULL;
-    }
-  }
-  if (usrClipCmd != NULL) {
-    if (*usrClipCmd != NULL) {
-      VIDCore->Vdp1UserClipping(*usrClipCmd, ram, regs);
-      free(*usrClipCmd);
-      *usrClipCmd = NULL;
-    }
-  }
-  if (localCoordCmd != NULL) {
-    if (*localCoordCmd != NULL) {
-      VIDCore->Vdp1LocalCoordinate(*localCoordCmd, ram, regs);
-      free(*localCoordCmd);
-      *localCoordCmd = NULL;
-    }
-  }
-}
 
 static int getNormalCycles(vdp1cmd_struct *cmd) {
   int rw = MAX(cmd->w, 1);
@@ -762,7 +919,7 @@ static int getPolygonCycles(vdp1cmd_struct *cmd) {
   return (int)((float)MAX(rw, 1) * (float)MAX(rh, 1));
 }
 
-static int Vdp1NormalSpriteDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs, u8* back_framebuffer){
+static int Vdp1NormalSpriteDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs){
   Vdp2 *varVdp2Regs = &Vdp2Lines[0];
   int ret = 1;
   if (emptyCmd(cmd)) {
@@ -788,7 +945,6 @@ static int Vdp1NormalSpriteDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs, u8* 
   }
 
   cmd->flip = (cmd->CMDCTRL & 0x30) >> 4;
-  cmd->priority = 0;
 
   if ( CONVERTCMD(&cmd->CMDXA) ||
        CONVERTCMD(&cmd->CMDYA)) {
@@ -800,31 +956,31 @@ static int Vdp1NormalSpriteDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs, u8* 
   cmd->CMDXA += regs->localX;
   cmd->CMDYA += regs->localY;
 
-  cmd->CMDXB = cmd->CMDXA + MAX(1,cmd->w);
+  cmd->CMDXB = cmd->CMDXA + MAX(1,cmd->w)-1;
   cmd->CMDYB = cmd->CMDYA;
-  cmd->CMDXC = cmd->CMDXA + MAX(1,cmd->w);
-  cmd->CMDYC = cmd->CMDYA + MAX(1,cmd->h);
+  cmd->CMDXC = cmd->CMDXA + MAX(1,cmd->w)-1;
+  cmd->CMDYC = cmd->CMDYA + MAX(1,cmd->h)-1;
   cmd->CMDXD = cmd->CMDXA;
-  cmd->CMDYD = cmd->CMDYA + MAX(1,cmd->h);
+  cmd->CMDYD = cmd->CMDYA + MAX(1,cmd->h)-1;
 
   yabsys.vdp1cycles+= getNormalCycles(cmd);
 
-  memset(cmd->G, 0, sizeof(float)*16);
+  memset(cmd->G, 0, sizeof(float)*12);
   if ((cmd->CMDPMOD & 4))
   {
     for (int i = 0; i < 4; i++){
       u16 color2 = Vdp1RamReadWord(NULL, ram, (Vdp1RamReadWord(NULL, ram, regs->addr + 0x1C) << 3) + (i << 1));
-      cmd->G[(i << 2) + 0] = (float)((color2 & 0x001F)) / (float)(0x1F) - 0.5f;
-      cmd->G[(i << 2) + 1] = (float)((color2 & 0x03E0) >> 5) / (float)(0x1F) - 0.5f;
-      cmd->G[(i << 2) + 2] = (float)((color2 & 0x7C00) >> 10) / (float)(0x1F) - 0.5f;
+      cmd->G[(i * 3) + 0] = (float)((color2 & 0x001F)) / (float)(0x1F) - 0.5f;
+      cmd->G[(i * 3) + 1] = (float)((color2 & 0x03E0) >> 5) / (float)(0x1F) - 0.5f;
+      cmd->G[(i * 3) + 2] = (float)((color2 & 0x7C00) >> 10) / (float)(0x1F) - 0.5f;
     }
   }
 
-  VIDCore->Vdp1NormalSpriteDraw(cmd, ram, regs, back_framebuffer);
+  VIDCore->Vdp1NormalSpriteDraw(cmd, ram, regs);
   return ret;
 }
 
-static int Vdp1ScaledSpriteDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs, u8* back_framebuffer) {
+static int Vdp1ScaledSpriteDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs) {
   Vdp2 *varVdp2Regs = &Vdp2Lines[0];
   s16 rw = 0, rh = 0;
   s16 x, y;
@@ -844,7 +1000,6 @@ static int Vdp1ScaledSpriteDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs, u8* 
   }
 
   cmd->flip = (cmd->CMDCTRL & 0x30) >> 4;
-  cmd->priority = 0;
 
   switch ((cmd->CMDCTRL & 0xF00) >> 8)
   {
@@ -874,137 +1029,101 @@ static int Vdp1ScaledSpriteDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs, u8* 
   x = cmd->CMDXA;
   y = cmd->CMDYA;
   // Setup Zoom Point
-  switch ((cmd->CMDCTRL & 0xF00) >> 8)
-  {
-  case 0x0: // Only two coordinates
-    rw = cmd->CMDXC - cmd->CMDXA;
-    rh = cmd->CMDYC - cmd->CMDYA;
+  switch ((cmd->CMDCTRL & 0x300) >> 8) {
+    //left/right/center/none => Compute X
+    case 0: //none
+        cmd->CMDXB = cmd->CMDXC;
+        cmd->CMDXD = cmd->CMDXA;
     break;
-  case 0x5: // Upper-left
+    case 1: //Left
     rw = cmd->CMDXB;
-    rh = cmd->CMDYB;
-    if ((rw < 0)||(rh <0)) {
-      return 0;
+        if (rw < 0) return 0;
+        cmd->CMDXB = cmd->CMDXA + rw;
+        cmd->CMDXC = cmd->CMDXA + rw;
+        cmd->CMDXD = cmd->CMDXA;
+    break;
+    case 2: //center
+    rw = cmd->CMDXB;
+        if (rw < 0) return 0;
+        cmd->CMDXA = x - rw/2;
+        cmd->CMDXB = x + (rw+1)/2;
+        cmd->CMDXD = x - rw/2;
+        cmd->CMDXC = x + (rw+1)/2;
+    break;
+    case 3: //right
+    rw = cmd->CMDXB;
+        if (rw < 0) return 0;
+        cmd->CMDXA = x - rw;
+        cmd->CMDXB = x;
+        cmd->CMDXC = x;
+        cmd->CMDXD = x - rw;
+    break;
+    default:
+        break;
     }
+  switch ((cmd->CMDCTRL & 0xC00) >> 10) {
+    //left/right/center/none => Compute X
+    case 0: //none
+        cmd->CMDYB = cmd->CMDYA;
+        cmd->CMDYD = cmd->CMDYC;
     break;
-  case 0x6: // Upper-Center
-    rw = cmd->CMDXB;
+    case 1: //Top
     rh = cmd->CMDYB;
-    x = x - rw / 2;
-    if ((rw < 0)||(rh <0)) {
-      return 0;
-    }
+        if (rh < 0) return 0;
+        cmd->CMDYB = cmd->CMDYA;
+        cmd->CMDYC = cmd->CMDYA + rh;
+        cmd->CMDYD = cmd->CMDYA + rh;
     break;
-  case 0x7: // Upper-Right
-    rw = cmd->CMDXB;
+    case 2: //center
     rh = cmd->CMDYB;
-    x = x - rw;
-    if ((rw < 0)||(rh <0)) {
-      return 0;
-    }
+        if (rh < 0) return 0;
+        cmd->CMDYA = y - rh/2;
+        cmd->CMDYB = y - rh/2;
+        cmd->CMDYC = y + (rh+1)/2;
+        cmd->CMDYD = y + (rh+1)/2;
     break;
-  case 0x9: // Center-left
-    rw = cmd->CMDXB;
+    case 3: //bottom
     rh = cmd->CMDYB;
-    y = y - rh / 2;
-    if ((rw < 0)||(rh <0)) {
-      return 0;
-    }
+        if (rh < 0) return 0;
+        cmd->CMDYA = y - rh;
+        cmd->CMDYB = y - rh;
+        cmd->CMDYC = y;
+        cmd->CMDYD = y;
     break;
-  case 0xA: // Center-center
-    rw = cmd->CMDXB;
-    rh = cmd->CMDYB;
-    x = x - rw / 2;
-    y = y - rh / 2;
+    default:
     break;
-  case 0xB: // Center-right
-    rw = cmd->CMDXB;
-    rh = cmd->CMDYB;
-    x = x - rw;
-    y = y - rh / 2;
-    if ((rw < 0)||(rh <0)) {
-      return 0;
-    }
-    break;
-  case 0xD: // Lower-left
-    rw = cmd->CMDXB;
-    rh = cmd->CMDYB;
-    y = y - rh;
-    if ((rw < 0)||(rh <0)) {
-      return 0;
-    }
-    break;
-  case 0xE: // Lower-center
-    rw = cmd->CMDXB;
-    rh = cmd->CMDYB;
-    x = x - rw / 2;
-    y = y - rh;
-    break;
-  case 0xF: // Lower-right
-    rw = cmd->CMDXB;
-    rh = cmd->CMDYB;
-    x = x - rw;
-    y = y - rh;
-    if ((rw < 0)||(rh <0)) {
-      return 0;
-    }
-    break;
-  default: break;
   }
 
-  cmd->CMDXA = x + regs->localX;
-  cmd->CMDYA = y + regs->localY;
-  cmd->CMDXB = x + rw  + regs->localX;
-  cmd->CMDYB = y + regs->localY;
-  cmd->CMDXC = x + rw  + regs->localX;
-  cmd->CMDYC = y + rh + regs->localY;
-  cmd->CMDXD = x + regs->localX;
-  cmd->CMDYD = y + rh + regs->localY;
+  cmd->CMDXA += regs->localX;
+  cmd->CMDYA += regs->localY;
+  cmd->CMDXB += regs->localX;
+  cmd->CMDYB += regs->localY;
+  cmd->CMDXC += regs->localX;
+  cmd->CMDYC += regs->localY;
+  cmd->CMDXD += regs->localX;
+  cmd->CMDYD += regs->localY;
 
-  // Setup Zoom Point
-  switch ((cmd->CMDCTRL & 0xF00) >> 8)
-  {
-  case 0x0: // Only two coordinates
-    if ((s16)cmd->CMDXC > (s16)cmd->CMDXA){ cmd->CMDXB += 1; cmd->CMDXC += 1;} else { cmd->CMDXA += 1; cmd->CMDXB +=1; cmd->CMDXC += 1; cmd->CMDXD += 1;}
-    if ((s16)cmd->CMDYC > (s16)cmd->CMDYA){ cmd->CMDYC += 1; cmd->CMDYD += 1;} else { cmd->CMDYA += 1; cmd->CMDYB += 1; cmd->CMDYC += 1; cmd->CMDYD += 1;}
-    break;
-  case 0x5: // Upper-left
-  case 0x6: // Upper-Center
-  case 0x7: // Upper-Right
-  case 0x9: // Center-left
-  case 0xA: // Center-center
-  case 0xB: // Center-right
-  case 0xD: // Lower-left
-  case 0xE: // Lower-center
-  case 0xF: // Lower-right
-    cmd->CMDXB += 1;
-    cmd->CMDXC += 1;
-    cmd->CMDYC += 1;
-    cmd->CMDYD += 1;
-    break;
-  default: break;
-  }
 
   //mission 1 of burning rangers is loading a lot the vdp1.
   yabsys.vdp1cycles+= getScaledCycles(cmd);
 
   //gouraud
-  memset(cmd->G, 0, sizeof(float)*16);
+  memset(cmd->G, 0, sizeof(float)*12);
   if ((cmd->CMDPMOD & 4))
   {
     for (int i = 0; i < 4; i++){
       u16 color2 = Vdp1RamReadWord(NULL, Vdp1Ram, (Vdp1RamReadWord(NULL, Vdp1Ram, regs->addr + 0x1C) << 3) + (i << 1));
-      cmd->G[(i << 2) + 0] = (float)((color2 & 0x001F)) / (float)(0x1F) - 0.5f;
-      cmd->G[(i << 2) + 1] = (float)((color2 & 0x03E0) >> 5) / (float)(0x1F) - 0.5f;
-      cmd->G[(i << 2) + 2] = (float)((color2 & 0x7C00) >> 10) / (float)(0x1F) - 0.5f;
+      cmd->G[(i * 3) + 0] = (float)((color2 & 0x001F)) / (float)(0x1F) - 0.5f;
+      cmd->G[(i * 3) + 1] = (float)((color2 & 0x03E0) >> 5) / (float)(0x1F) - 0.5f;
+      cmd->G[(i * 3) + 2] = (float)((color2 & 0x7C00) >> 10) / (float)(0x1F) - 0.5f;
     }
   }
 
-  VIDCore->Vdp1ScaledSpriteDraw(cmd, ram, regs, back_framebuffer);
+  VIDCore->Vdp1ScaledSpriteDraw(cmd, ram, regs);
   return ret;
 }
 
-static int Vdp1DistortedSpriteDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs, u8* back_framebuffer) {
+static int Vdp1DistortedSpriteDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs) {
   Vdp2 *varVdp2Regs = &Vdp2Lines[0];
   int ret = 1;
 
@@ -1022,7 +1141,6 @@ static int Vdp1DistortedSpriteDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs, u
   }
 
   cmd->flip = (cmd->CMDCTRL & 0x30) >> 4;
-  cmd->priority = 0;
 
   if ( CONVERTCMD(&cmd->CMDXA) ||
        CONVERTCMD(&cmd->CMDYA) ||
@@ -1049,22 +1167,22 @@ static int Vdp1DistortedSpriteDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs, u
   //mission 1 of burning rangers is loading a lot the vdp1.
   yabsys.vdp1cycles+= getDistortedCycles(cmd);
 
-  memset(cmd->G, 0, sizeof(float)*16);
+  memset(cmd->G, 0, sizeof(float)*12);
   if ((cmd->CMDPMOD & 4))
   {
     for (int i = 0; i < 4; i++){
       u16 color2 = Vdp1RamReadWord(NULL, Vdp1Ram, (Vdp1RamReadWord(NULL, Vdp1Ram, regs->addr + 0x1C) << 3) + (i << 1));
-      cmd->G[(i << 2) + 0] = (float)((color2 & 0x001F)) / (float)(0x1F) - 0.5f;
-      cmd->G[(i << 2) + 1] = (float)((color2 & 0x03E0) >> 5) / (float)(0x1F) - 0.5f;
-      cmd->G[(i << 2) + 2] = (float)((color2 & 0x7C00) >> 10) / (float)(0x1F) - 0.5f;
+      cmd->G[(i * 3) + 0] = (float)((color2 & 0x001F)) / (float)(0x1F) - 0.5f;
+      cmd->G[(i * 3) + 1] = (float)((color2 & 0x03E0) >> 5) / (float)(0x1F) - 0.5f;
+      cmd->G[(i * 3) + 2] = (float)((color2 & 0x7C00) >> 10) / (float)(0x1F) - 0.5f;
     }
   }
 
-  VIDCore->Vdp1DistortedSpriteDraw(cmd, ram, regs, back_framebuffer);
+  VIDCore->Vdp1DistortedSpriteDraw(cmd, ram, regs);
   return ret;
 }
 
-static int Vdp1PolygonDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs, u8* back_framebuffer) {
+static int Vdp1PolygonDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs) {
   Vdp2 *varVdp2Regs = &Vdp2Lines[0];
 
   if ( CONVERTCMD(&cmd->CMDXA) ||
@@ -1091,30 +1209,28 @@ static int Vdp1PolygonDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs, u8* back_
 
   yabsys.vdp1cycles += getPolygonCycles(cmd);
   //gouraud
-  memset(cmd->G, 0, sizeof(float)*16);
+  memset(cmd->G, 0, sizeof(float)*12);
   if ((cmd->CMDPMOD & 4))
   {
     for (int i = 0; i < 4; i++){
       u16 color2 = Vdp1RamReadWord(NULL, Vdp1Ram, (Vdp1RamReadWord(NULL, Vdp1Ram, regs->addr + 0x1C) << 3) + (i << 1));
-      cmd->G[(i << 2) + 0] = (float)((color2 & 0x001F)) / (float)(0x1F) - 0.5f;
-      cmd->G[(i << 2) + 1] = (float)((color2 & 0x03E0) >> 5) / (float)(0x1F) - 0.5f;
-      cmd->G[(i << 2) + 2] = (float)((color2 & 0x7C00) >> 10) / (float)(0x1F) - 0.5f;
+      cmd->G[(i * 3) + 0] = (float)((color2 & 0x001F)) / (float)(0x1F) - 0.5f;
+      cmd->G[(i * 3) + 1] = (float)((color2 & 0x03E0) >> 5) / (float)(0x1F) - 0.5f;
+      cmd->G[(i * 3) + 2] = (float)((color2 & 0x7C00) >> 10) / (float)(0x1F) - 0.5f;
     }
   }
-  cmd->priority = 0;
   cmd->w = 1;
   cmd->h = 1;
   cmd->flip = 0;
 
-  VIDCore->Vdp1PolygonDraw(cmd, ram, regs, back_framebuffer);
+  VIDCore->Vdp1PolygonDraw(cmd, ram, regs);
   return 1;
 }
 
-static int Vdp1PolylineDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs, u8* back_framebuffer) {
+static int Vdp1PolylineDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs) {
 
   Vdp2 *varVdp2Regs = &Vdp2Lines[0];
 
-  cmd->priority = 0;
   cmd->w = 1;
   cmd->h = 1;
   cmd->flip = 0;
@@ -1143,22 +1259,22 @@ static int Vdp1PolylineDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs, u8* back
   cmd->CMDYD += regs->localY;
 
   //gouraud
-  memset(cmd->G, 0, sizeof(float)*16);
+  memset(cmd->G, 0, sizeof(float)*12);
   if ((cmd->CMDPMOD & 4))
   {
     for (int i = 0; i < 4; i++){
       u16 color2 = Vdp1RamReadWord(NULL, Vdp1Ram, (Vdp1RamReadWord(NULL, Vdp1Ram, regs->addr + 0x1C) << 3) + (i << 1));
-      cmd->G[(i << 2) + 0] = (float)((color2 & 0x001F)) / (float)(0x1F) - 0.5f;
-      cmd->G[(i << 2) + 1] = (float)((color2 & 0x03E0) >> 5) / (float)(0x1F) - 0.5f;
-      cmd->G[(i << 2) + 2] = (float)((color2 & 0x7C00) >> 10) / (float)(0x1F) - 0.5f;
+      cmd->G[(i * 3) + 0] = (float)((color2 & 0x001F)) / (float)(0x1F) - 0.5f;
+      cmd->G[(i * 3) + 1] = (float)((color2 & 0x03E0) >> 5) / (float)(0x1F) - 0.5f;
+      cmd->G[(i * 3) + 2] = (float)((color2 & 0x7C00) >> 10) / (float)(0x1F) - 0.5f;
     }
   }
-  VIDCore->Vdp1PolylineDraw(cmd, ram, regs, back_framebuffer);
+  VIDCore->Vdp1PolylineDraw(cmd, ram, regs);
 
   return 1;
 }
 
-static int Vdp1LineDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs, u8* back_framebuffer) {
+static int Vdp1LineDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs) {
   Vdp2 *varVdp2Regs = &Vdp2Lines[0];
 
 
@@ -1182,83 +1298,23 @@ static int Vdp1LineDraw(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs, u8* back_fra
   cmd->CMDYD = cmd->CMDYA;
 
   //gouraud
-  memset(cmd->G, 0, sizeof(float)*16);
+  memset(cmd->G, 0, sizeof(float)*12);
   if ((cmd->CMDPMOD & 4))
   {
   for (int i = 0; i < 4; i++){
     u16 color2 = Vdp1RamReadWord(NULL, Vdp1Ram, (Vdp1RamReadWord(NULL, Vdp1Ram, regs->addr + 0x1C) << 3) + (i << 1));
-    cmd->G[(i << 2) + 0] = (float)((color2 & 0x001F)) / (float)(0x1F) - 0.5f;
-    cmd->G[(i << 2) + 1] = (float)((color2 & 0x03E0) >> 5) / (float)(0x1F) - 0.5f;
-    cmd->G[(i << 2) + 2] = (float)((color2 & 0x7C00) >> 10) / (float)(0x1F) - 0.5f;
+    cmd->G[(i * 3) + 0] = (float)((color2 & 0x001F)) / (float)(0x1F) - 0.5f;
+    cmd->G[(i * 3) + 1] = (float)((color2 & 0x03E0) >> 5) / (float)(0x1F) - 0.5f;
+    cmd->G[(i * 3) + 2] = (float)((color2 & 0x7C00) >> 10) / (float)(0x1F) - 0.5f;
   }
   }
-  cmd->priority = 0;
   cmd->w = 1;
   cmd->h = 1;
   cmd->flip = 0;
 
-  VIDCore->Vdp1LineDraw(cmd, ram, regs, back_framebuffer);
+  VIDCore->Vdp1LineDraw(cmd, ram, regs);
 
   return 1;
-}
-
-static void setupSpriteLimit(vdp1cmdctrl_struct *ctrl){
-  vdp1cmd_struct *cmd = &ctrl->cmd;
-  u32 dot;
-  switch ((cmd->CMDPMOD >> 3) & 0x7)
-  {
-  case 0:
-  {
-    // 4 bpp Bank mode
-    ctrl->start_addr = cmd->CMDSRCA * 8;
-    ctrl->end_addr = ctrl->start_addr + MAX(1,cmd->h)*MAX(1,cmd->w)/2;
-    break;
-  }
-  case 1:
-  {
-    // 4 bpp LUT mode
-    u32 colorLut = cmd->CMDCOLR * 8;
-    u32 charAddr = cmd->CMDSRCA * 8;
-    ctrl->start_addr = cmd->CMDSRCA * 8;
-    ctrl->end_addr = ctrl->start_addr + MAX(1,cmd->h)*MAX(1,cmd->w)/2;
-
-    for (int i = 0; i < MAX(1,cmd->h); i++)
-    {
-      u16 j;
-      j = 0;
-      while (j < MAX(1,cmd->w)/2)
-      {
-        dot = Vdp1RamReadByte(NULL, Vdp1Ram, charAddr);
-        int lutaddr = (dot >> 4) * 2 + colorLut;
-        ctrl->start_addr = (ctrl->start_addr > lutaddr)?lutaddr:ctrl->start_addr;
-        ctrl->end_addr = (ctrl->end_addr < lutaddr)?lutaddr:ctrl->end_addr;
-        charAddr += 1;
-        j+=1;
-      }
-    }
-    break;
-  }
-  case 2:
-  case 3:
-  case 4:
-  {
-    // 8 bpp(64 color) Bank mode
-    ctrl->start_addr = cmd->CMDSRCA * 8;
-    ctrl->end_addr = ctrl->start_addr + MAX(1,cmd->h)*MAX(1,cmd->w);
-    break;
-  }
-  case 5:
-  {
-    // 16 bpp Bank mode
-    // 8 bpp(64 color) Bank mode
-    ctrl->start_addr = cmd->CMDSRCA * 8;
-    ctrl->end_addr = ctrl->start_addr + MAX(1,cmd->h)*MAX(1,cmd->w)*2;
-    break;
-  }
-  default:
-    VDP1LOG("Unimplemented sprite color mode: %X\n", (cmd->CMDPMOD >> 3) & 0x7);
-    break;
-   }
 }
 
 static int rasterValue = 1708;
@@ -1272,13 +1328,10 @@ void Vdp1SetRaster(int is352) {
 
 static int getVdp1CyclesPerLine(void)
 {
-  return rasterValue;
+  return (Vdp1External.blocked!=0)?0:rasterValue;
 }
 
 static u32 returnAddr = 0xffffffff;
-static vdp1cmd_struct * usrClipCmd = NULL;
-static vdp1cmd_struct * sysClipCmd = NULL;
-static vdp1cmd_struct * localCoordCmd = NULL;
 
 #ifdef DEBUG_CMD_LIST
 void debugCmdList() {
@@ -1367,10 +1420,10 @@ static int sameCmd(vdp1cmd_struct* a, vdp1cmd_struct* b) {
 }
 
 static int lastHash = -1;
-void Vdp1DrawCommands(u8 * ram, Vdp1 * regs, u8* back_framebuffer)
+void Vdp1DrawCommands(u8 * ram, Vdp1 * regs)
 {
   int cylesPerLine  = getVdp1CyclesPerLine();
- vdp1cmdctrl_struct *ctrl = NULL;
+
   if ((Vdp1External.status&VDP1_STATUS_MASK) == VDP1_STATUS_IDLE) {
     FRAMELOG("Start vdp1 Draw %d(%d)\n", yabsys.LineCount, yabsys.DecilineCount);
     #if 0
@@ -1390,12 +1443,6 @@ void Vdp1DrawCommands(u8 * ram, Vdp1 * regs, u8* back_framebuffer)
     #endif
 
     returnAddr = 0xffffffff;
-    if (usrClipCmd != NULL) free(usrClipCmd);
-    if (sysClipCmd != NULL) free(sysClipCmd);
-    if (localCoordCmd != NULL) free(localCoordCmd);
-    usrClipCmd = NULL;
-    sysClipCmd = NULL;
-    localCoordCmd = NULL;
     nbCmdToProcess = 0;
 
      // Vdp1Regs->EDSR >>= 1;
@@ -1404,8 +1451,8 @@ void Vdp1DrawCommands(u8 * ram, Vdp1 * regs, u8* back_framebuffer)
      // CEF <- 0
      Vdp1Regs->COPR = 0;
      Vdp1Regs->lCOPR = 0;
+     if (VIDCore->startVdp1Render) VIDCore->startVdp1Render();
   }
-  CmdListLimit = 0;
 
    Vdp1External.status &= ~VDP1_STATUS_MASK;
    Vdp1External.status |= VDP1_STATUS_RUNNING;
@@ -1413,6 +1460,7 @@ void Vdp1DrawCommands(u8 * ram, Vdp1 * regs, u8* back_framebuffer)
      FRAMELOG("Address Error\n");
       Vdp1External.status &= ~VDP1_STATUS_MASK;
       Vdp1External.status |= VDP1_STATUS_IDLE;
+      if (VIDCore->endVdp1Render) VIDCore->endVdp1Render();
       return; // address error
     }
 
@@ -1421,151 +1469,104 @@ void Vdp1DrawCommands(u8 * ram, Vdp1 * regs, u8* back_framebuffer)
 
    FRAMELOG_CMD("Command is 0x%x @ 0x%x available cycles %d %d(%d)\n", command, regs->addr, vdp1_clock, yabsys.LineCount, yabsys.DecilineCount);
 
-   Vdp1External.updateVdp1Ram = 0;
-   vdp1Ram_update_start = 0x80000;
-   vdp1Ram_update_end = 0x0;
    Vdp1External.checkEDSR = 0;
 
-   vdp1cmd_struct oldCmd;
+   vdp1cmd_struct oldCmd = {0};
 
    yabsys.vdp1cycles = 0;
    //Shall continue is used for prohibited usage of ENd bit. In case a command is valid (like polygon drawing) but with a end bit set, the command is executed then stopped.
    //Not sure it is really stopped in that case, maybe end bit is ignored for other code than 0x8000
    while (!(command & 0x8000) && (nbCmdToProcess < CMD_QUEUE_SIZE) && (CmdListInLoop == 0)) {
      int ret;
+     vdp1cmd_struct cmd = {0};
       regs->COPR = (regs->addr & 0x7FFFF) >> 3;
       // First, process the command
       if (!(command & 0x4000)) { // if (!skip)
-         ctrl = NULL;
          int ret;
          if (vdp1_clock <= 0) {
            //No more clock cycle, wait next line
            return;
          }
+         oldCmd = cmd;
+         Vdp1ReadCommand(&cmd, regs->addr, ram);
          switch (command & 0x000F) {
            case 0: // normal sprite draw
-           ctrl = &cmdBufferBeingProcessed[nbCmdToProcess];
-           ctrl->dirty = 0;
-           Vdp1ReadCommand(&ctrl->cmd, regs->addr, ram);
-           if (!sameCmd(&ctrl->cmd, &oldCmd)) {
-             oldCmd = ctrl->cmd;
-             checkClipCmd(&sysClipCmd, &usrClipCmd, &localCoordCmd, ram, regs);
-             ctrl->ignitionLine = MIN(yabsys.LineCount + yabsys.vdp1cycles/cylesPerLine,yabsys.MaxLineCount-2);
-             ret = Vdp1NormalSpriteDraw(&ctrl->cmd, ram, regs, back_framebuffer);
+           if (!sameCmd(&cmd, &oldCmd)) {
+             ret = Vdp1NormalSpriteDraw(&cmd, ram, regs);
              if (ret == 1) nbCmdToProcess++;
              else {
                FRAMELOG_CMD("Reset vdp1_clock %d %d\n", yabsys.LineCount, __LINE__);
                vdp1_clock = 0; //Incorrect command, wait next line to continue
              }
-             setupSpriteLimit(ctrl);
            }
            break;
            case 1: // scaled sprite draw
-           ctrl = &cmdBufferBeingProcessed[nbCmdToProcess];
-           ctrl->dirty = 0;
-           Vdp1ReadCommand(&ctrl->cmd, regs->addr, ram);
-           if (!sameCmd(&ctrl->cmd, &oldCmd)) {
-             oldCmd = ctrl->cmd;
-             ctrl->ignitionLine = MIN(yabsys.LineCount + yabsys.vdp1cycles/cylesPerLine,yabsys.MaxLineCount-2);
-             checkClipCmd(&sysClipCmd, &usrClipCmd, &localCoordCmd, ram, regs);
-             ret = Vdp1ScaledSpriteDraw(&ctrl->cmd, ram, regs, back_framebuffer);
+           if (!sameCmd(&cmd, &oldCmd)) {
+             ret = Vdp1ScaledSpriteDraw(&cmd, ram, regs);
              if (ret == 1) nbCmdToProcess++;
              else {
                FRAMELOG_CMD("Reset vdp1_clock %d %d\n", yabsys.LineCount, __LINE__);
                vdp1_clock = 0; //Incorrect command, wait next line to continue
              }
-             setupSpriteLimit(ctrl);
            }
            break;
            case 2: // distorted sprite draw
            case 3: /* this one should be invalid, but some games
            (Hardcore 4x4 for instance) use it instead of 2 */
-           ctrl = &cmdBufferBeingProcessed[nbCmdToProcess];
-           ctrl->dirty = 0;
-           Vdp1ReadCommand(&ctrl->cmd, regs->addr, ram);
-           if (!sameCmd(&ctrl->cmd, &oldCmd)) {
-             oldCmd = ctrl->cmd;
-             ctrl->ignitionLine = MIN(yabsys.LineCount + yabsys.vdp1cycles/cylesPerLine,yabsys.MaxLineCount-2);
-             checkClipCmd(&sysClipCmd, &usrClipCmd, &localCoordCmd, ram, regs);
-             ret = Vdp1DistortedSpriteDraw(&ctrl->cmd, ram, regs, back_framebuffer);
+           if (!sameCmd(&cmd, &oldCmd)) {
+             ret = Vdp1DistortedSpriteDraw(&cmd, ram, regs);
              if (ret == 1) nbCmdToProcess++;
              else {
                FRAMELOG_CMD("Reset vdp1_clock %d %d\n", yabsys.LineCount, __LINE__);
                vdp1_clock = 0; //Incorrect command, wait next line to continue
              }
-             setupSpriteLimit(ctrl);
            }
            break;
            case 4: // polygon draw
-           ctrl = &cmdBufferBeingProcessed[nbCmdToProcess];
-           ctrl->dirty = 0;
-           Vdp1ReadCommand(&ctrl->cmd, regs->addr, ram);
-           // if (!sameCmd(&ctrl->cmd, &oldCmd)) {
-             oldCmd = ctrl->cmd;
-             ctrl->ignitionLine = MIN(yabsys.LineCount + yabsys.vdp1cycles/cylesPerLine,yabsys.MaxLineCount-2);
-             checkClipCmd(&sysClipCmd, &usrClipCmd, &localCoordCmd, ram, regs);
-             nbCmdToProcess += Vdp1PolygonDraw(&ctrl->cmd, ram, regs, back_framebuffer);
-             setupSpriteLimit(ctrl);
+           // if (!sameCmd(&cmd, &oldCmd)) {
+             nbCmdToProcess += Vdp1PolygonDraw(&cmd, ram, regs);
              // }
              break;
              case 5: // polyline draw
              case 7: // undocumented mirror
-             ctrl = &cmdBufferBeingProcessed[nbCmdToProcess];
-             ctrl->dirty = 0;
-             Vdp1ReadCommand(&ctrl->cmd, regs->addr, ram);
-             if (!sameCmd(&ctrl->cmd, &oldCmd)) {
-               oldCmd = ctrl->cmd;
-               ctrl->ignitionLine = MIN(yabsys.LineCount + yabsys.vdp1cycles/cylesPerLine,yabsys.MaxLineCount-2);
-               checkClipCmd(&sysClipCmd, &usrClipCmd, &localCoordCmd, ram, regs);
-               nbCmdToProcess += Vdp1PolylineDraw(&ctrl->cmd, ram, regs, back_framebuffer);
-               setupSpriteLimit(ctrl);
+             if (!sameCmd(&cmd, &oldCmd)) {
+               nbCmdToProcess += Vdp1PolylineDraw(&cmd, ram, regs);
              }
              break;
              case 6: // line draw
-             ctrl = &cmdBufferBeingProcessed[nbCmdToProcess];
-             ctrl->dirty = 0;
-             Vdp1ReadCommand(&ctrl->cmd, regs->addr, ram);
-             if (!sameCmd(&ctrl->cmd, &oldCmd)) {
-               oldCmd = ctrl->cmd;
-               ctrl->ignitionLine = MIN(yabsys.LineCount + yabsys.vdp1cycles/cylesPerLine,yabsys.MaxLineCount-2);
-               checkClipCmd(&sysClipCmd, &usrClipCmd, &localCoordCmd, ram, regs);
-               nbCmdToProcess += Vdp1LineDraw(&ctrl->cmd, ram, regs, back_framebuffer);
-               setupSpriteLimit(ctrl);
+             if (!sameCmd(&cmd, &oldCmd)) {
+               nbCmdToProcess += Vdp1LineDraw(&cmd, ram, regs);
              }
              break;
              case 8: // user clipping coordinates
-             checkClipCmd(&sysClipCmd, NULL, &localCoordCmd, ram, regs);
              yabsys.vdp1cycles += 16;
-             usrClipCmd = (vdp1cmd_struct *)malloc(sizeof(vdp1cmd_struct));
-             Vdp1ReadCommand(usrClipCmd, regs->addr, ram);
-             oldCmd = *usrClipCmd;
+             if (!sameCmd(&cmd, &oldCmd)) {
+               VIDCore->Vdp1UserClipping(&cmd, ram, regs);
+             }
              break;
              case 11: // undocumented command
               //Do nothing as we are skipping it.
              break;
              case 9: // system clipping coordinates
-             checkClipCmd(NULL, &usrClipCmd, &localCoordCmd, ram, regs);
              yabsys.vdp1cycles += 16;
-             sysClipCmd = (vdp1cmd_struct *)malloc(sizeof(vdp1cmd_struct));
-             Vdp1ReadCommand(sysClipCmd, regs->addr, ram);
-             oldCmd = *sysClipCmd;
+             if (!sameCmd(&cmd, &oldCmd)) {
+               VIDCore->Vdp1SystemClipping(&cmd, ram, regs);
+             }
              break;
              case 10: // local coordinate
-             checkClipCmd(&sysClipCmd, &usrClipCmd, NULL, ram, regs);
              yabsys.vdp1cycles += 16;
-             localCoordCmd = (vdp1cmd_struct *)malloc(sizeof(vdp1cmd_struct));
-             Vdp1ReadCommand(localCoordCmd, regs->addr, ram);
-             oldCmd = *localCoordCmd;
+             if (!sameCmd(&cmd, &oldCmd)) {
+               VIDCore->Vdp1LocalCoordinate(&cmd, ram, regs);
+             }
              break;
              default: // Abort
              FRAMELOG("vdp1\t: Bad command: %x\n", command);
-             checkClipCmd(&sysClipCmd, &usrClipCmd, &localCoordCmd, ram, regs);
              Vdp1External.status &= ~VDP1_STATUS_MASK;
              Vdp1External.status |= VDP1_STATUS_IDLE;
+             if (VIDCore->endVdp1Render) VIDCore->endVdp1Render();
              regs->COPR = (regs->addr & 0x7FFFF) >> 3;
              FRAMELOG("Clear EDSR\n");
              regs->EDSR = 0;
-             CmdListLimit = MAX((regs->addr & 0x7FFFF), regs->addr);
              return;
            }
       } else {
@@ -1592,8 +1593,6 @@ void Vdp1DrawCommands(u8 * ram, Vdp1 * regs, u8* back_framebuffer)
             FRAMELOG_CMD("Reset vdp1_clock addr = %x %d %d\n", regs->addr, yabsys.LineCount, __LINE__);
             vdp1_clock = 0;
             CmdListInLoop = 1;
-            CmdListLimit = MAX((regs->addr & 0x7FFFF), regs->addr);
-            checkClipCmd(&sysClipCmd, &usrClipCmd, &localCoordCmd, ram, regs);
             return;
           }
         }
@@ -1616,7 +1615,6 @@ void Vdp1DrawCommands(u8 * ram, Vdp1 * regs, u8* back_framebuffer)
 
       command = Vdp1RamReadWord(NULL,ram, regs->addr);
       FRAMELOG_CMD("Command is 0x%x @ 0x%x\n", command, regs->addr);
-      CmdListLimit = MAX((regs->addr & 0x7FFFF), regs->addr);
       //If we change directly CPR to last value, scorcher will not boot.
       //If we do not change it, Noon will not start
       //So store the value and update COPR with last value at VBlank In
@@ -1627,6 +1625,7 @@ void Vdp1DrawCommands(u8 * ram, Vdp1 * regs, u8* back_framebuffer)
        FRAMELOG("VDP1: Command Finished! count = %d @ %08X\n", nbCmdToProcess, regs->addr);
        Vdp1External.status &= ~VDP1_STATUS_MASK;
        Vdp1External.status |= VDP1_STATUS_IDLE;
+       if (VIDCore->endVdp1Render) VIDCore->endVdp1Render();
        regs->COPR = (regs->addr & 0x7FFFF) >> 3;
        regs->lCOPR = (regs->addr & 0x7FFFF) >> 3;
        FRAMELOG("Set EDSR\n");
@@ -1636,8 +1635,6 @@ void Vdp1DrawCommands(u8 * ram, Vdp1 * regs, u8* back_framebuffer)
        FRAMELOG("Wait a bit before the stop. Enough for the command to end\n");
      }
    }
-   CmdListLimit = MAX((regs->addr & 0x7FFFF), regs->addr);
-   checkClipCmd(&sysClipCmd, &usrClipCmd, &localCoordCmd, ram, regs);
 }
 
 //ensure that registers are set correctly
@@ -1734,6 +1731,7 @@ static void Vdp1NoDraw(void) {
    Vdp1Regs->lCOPR = 0;
    Vdp1External.status &= ~VDP1_STATUS_MASK;
    Vdp1External.status |= VDP1_STATUS_IDLE;
+   if (VIDCore->endVdp1Render) VIDCore->endVdp1Render();
    Vdp1FakeDrawCommands(Vdp1Ram, Vdp1Regs);
 }
 
@@ -1777,7 +1775,7 @@ int Vdp1SaveState(void ** stream)
 
 #ifdef IMPROVED_SAVESTATES
    for (i = 0; i < 0x40000; i++)
-      back_framebuffer[i] = Vdp1FrameBufferReadByte(NULL, NULL, i);
+      back_framebuffer[i] = Vdp1FrameBuffer16bReadByte(NULL, NULL, i);
 
    MemStateWrite((void *)back_framebuffer, 0x40000, 1, stream);
 #endif
@@ -1803,15 +1801,15 @@ int Vdp1LoadState(const void * stream, UNUSED int version, int size)
 
    // Read VDP1 ram
    MemStateRead((void *)Vdp1Ram, 0x80000, 1, stream);
-   vdp1Ram_update_start = 0x80000;
-   vdp1Ram_update_end = 0x0;
+   vdp1Ram_update_start = 0x0;
+   vdp1Ram_update_end = 0x80000;
 #ifdef IMPROVED_SAVESTATES
    MemStateRead((void *)back_framebuffer, 0x40000, 1, stream);
 
    YglGenerate();
 
    for (i = 0; i < 0x40000; i++)
-      Vdp1FrameBufferWriteByte(NULL, NULL, i, back_framebuffer[i]);
+      Vdp1FrameBuffer16bWriteByte(NULL, NULL, i, back_framebuffer[i]);
 #endif
    if (version > 1) {
      int size = 0;
@@ -1827,7 +1825,8 @@ int Vdp1LoadState(const void * stream, UNUSED int version, int size)
      memset((void *)(&Vdp1External), 0, sizeof(Vdp1External_struct));
    }
    Vdp1External.updateVdp1Ram = 1;
-
+   if (Vdp1Regs->TVMR & 0x1) switchFB8bit();
+   else switchFB16bit();
    return size;
 }
 
@@ -1905,37 +1904,38 @@ u32 Vdp1DebugGetCommandAddr(u32 number) {
 char *Vdp1DebugGetCommandRaw(u32 addr)
 {
    u16 command;
-   if (addr != 0xFFFFFFFF)
-   {
-      char *out = (char*)malloc(128*sizeof(char));
-      command = T1ReadWord(Vdp1Ram, addr);
+   char *out;
 
-      if (command & 0x8000) {
-        snprintf(out, 128, "END");
-        return out;
-      }
-
-       // Next, determine where to go next
-       switch ((command & 0x3000) >> 12) {
-       case 0: // NEXT, jump to following table
-          snprintf(out, 128, "NEXT 0x%x", addr+0x20);
-          return out;
-       case 1: // ASSIGN, jump to CMDLINK
-          snprintf(out, 128, "ASSIGN 0x%x", T1ReadWord(Vdp1Ram, addr + 2) * 8);
-          return out;
-          break;
-       case 2: // CALL, call a subroutine
-          snprintf(out, 128, "CALL 0x%x", T1ReadWord(Vdp1Ram, addr + 2) * 8);
-          return out;
-          break;
-       case 3: // RETURN, return from subroutine
-          snprintf(out, 128, "RETURN");
-          return out;
-          break;
-       }
-   }
-   else
+   if (addr == 0xFFFFFFFF)
       return NULL;
+
+   out = (char*)malloc(128*sizeof(char));
+   command = T1ReadWord(Vdp1Ram, addr);
+
+   if (command & 0x8000) {
+     snprintf(out, 128, "END");
+     return out;
+   }
+
+   // Next, determine where to go next
+   switch ((command & 0x3000) >> 12) {
+   case 0: // NEXT, jump to following table
+      snprintf(out, 128, "NEXT 0x%x", addr+0x20);
+      break;
+   case 1: // ASSIGN, jump to CMDLINK
+      snprintf(out, 128, "ASSIGN 0x%x", T1ReadWord(Vdp1Ram, addr + 2) * 8);
+      break;
+   case 2: // CALL, call a subroutine
+      snprintf(out, 128, "CALL 0x%x", T1ReadWord(Vdp1Ram, addr + 2) * 8);
+      break;
+   case 3: // RETURN, return from subroutine
+      snprintf(out, 128, "RETURN");
+      break;
+   default:
+      free(out);
+      out = NULL;
+   }
+   return out;
 }
 
 char *Vdp1DebugGetCommandNumberName(u32 addr)
@@ -2105,7 +2105,7 @@ void Vdp1DebugCommand(u32 number, char *outstring)
              rw = cmd.CMDXB;
              rh = cmd.CMDYB;
              if ((rw < 0)||(rh <0)) {
-               return 0;
+               return;
              }
              break;
            case 0x6: // Upper-Center
@@ -2113,7 +2113,7 @@ void Vdp1DebugCommand(u32 number, char *outstring)
              rh = cmd.CMDYB;
              x = x - rw / 2;
              if ((rw < 0)||(rh <0)) {
-               return 0;
+               return;
              }
              break;
            case 0x7: // Upper-Right
@@ -2121,7 +2121,7 @@ void Vdp1DebugCommand(u32 number, char *outstring)
              rh = cmd.CMDYB;
              x = x - rw;
              if ((rw < 0)||(rh <0)) {
-               return 0;
+               return;
              }
              break;
            case 0x9: // Center-left
@@ -2129,7 +2129,7 @@ void Vdp1DebugCommand(u32 number, char *outstring)
              rh = cmd.CMDYB;
              y = y - rh / 2;
              if ((rw < 0)||(rh <0)) {
-               return 0;
+               return;
              }
              break;
            case 0xA: // Center-center
@@ -2144,7 +2144,7 @@ void Vdp1DebugCommand(u32 number, char *outstring)
              x = x - rw;
              y = y - rh / 2;
              if ((rw < 0)||(rh <0)) {
-               return 0;
+               return;
              }
              break;
            case 0xD: // Lower-left
@@ -2152,7 +2152,7 @@ void Vdp1DebugCommand(u32 number, char *outstring)
              rh = cmd.CMDYB;
              y = y - rh;
              if ((rw < 0)||(rh <0)) {
-               return 0;
+               return;
              }
              break;
            case 0xE: // Lower-center
@@ -2167,7 +2167,7 @@ void Vdp1DebugCommand(u32 number, char *outstring)
              x = x - rw;
              y = y - rh;
              if ((rw < 0)||(rh <0)) {
-               return 0;
+               return;
              }
              break;
            default: break;
@@ -2923,7 +2923,7 @@ static int getVdp1ErasePixelLine() {
   }
 }
 
-static int Vdp1EraseWrite(int id){
+static void Vdp1EraseWrite(int id){
   lastHash = -1;
   _Ygl->shallVdp1Erase[id] = 1;
 }
@@ -2977,33 +2977,6 @@ void Vdp1HBlankIN(void)
     Vdp1External.manualerase = 0;
   }
   int needToCompose = 0;
-
-  if (nbCmdToProcess > 0) {
-    for (int i = 0; i<nbCmdToProcess; i++) {
-      if (cmdBufferBeingProcessed[i].ignitionLine == (yabsys.LineCount+1)) {
-        if (!((cmdBufferBeingProcessed[i].start_addr >= vdp1Ram_update_end) ||
-            (cmdBufferBeingProcessed[i].end_addr <= vdp1Ram_update_start))) {
-              needToCompose = 1;
-          if (Vdp1External.checkEDSR == 0) {
-            if (VIDCore->Vdp1RegenerateCmd != NULL) {
-              VIDCore->Vdp1RegenerateCmd(&cmdBufferBeingProcessed[i].cmd);
-            }
-          }
-        }
-        cmdBufferBeingProcessed[i].ignitionLine = -1;
-      }
-    }
-    nbCmdToProcess = 0;
-    if (needToCompose == 1) {
-      //We need to evaluate end line and not ignition line? It is improving doom if we better take care of the concurrency betwwen vdp1 update and command list"
-      vdp1Ram_update_start = 0x80000;
-      vdp1Ram_update_end = 0x0;
-      if (VIDCore != NULL) {
-        if (VIDCore->composeVDP1 != NULL) VIDCore->composeVDP1();
-      }
-      Vdp1Regs->COPR = Vdp1Regs->lCOPR;
-    }
-  }
 
   int cyclesPerLine  = getVdp1CyclesPerLine();
   if (vdp1_clock > 0) vdp1_clock = 0;

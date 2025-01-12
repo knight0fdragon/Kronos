@@ -73,12 +73,14 @@ typedef struct {
    int manualerase;
    int manualchange;
    int onecycleerase;
+   int onelasterase;
    int onecyclechange;
    int useVBlankErase;
    int current_frame;
    int updateVdp1Ram;
    int checkEDSR;
    int status;
+   int blocked;
 } Vdp1External_struct;
 
 extern Vdp1External_struct Vdp1External;
@@ -119,30 +121,17 @@ typedef struct
   s32 CMDXD;
   s32 CMDYD;
   u32 CMDGRDA;
-  u32 COLOR[4];
-  float G[16];
-  u32 priority;
   u32 w;
   u32 h;
   u32 flip;
   u32 type;
-  u32 SPCTL;
-  s32 B[4];
   u32 nbStep;
   float uAstepx;
   float uAstepy;
   float uBstepx;
   float uBstepy;
-  u32 pad[2];
+  float G[12];
 } vdp1cmd_struct;
-
-typedef struct{
-  vdp1cmd_struct cmd;
-  int ignitionLine;
-  int start_addr;
-  int end_addr;
-  int dirty;
-} vdp1cmdctrl_struct;
 
 typedef struct
 {
@@ -156,12 +145,12 @@ typedef struct
    // VDP1 specific
    int (*Vdp1Reset)(void);
    void (*Vdp1Draw)();
-   void(*Vdp1NormalSpriteDraw)(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs, u8* back_framebuffer);
-   void(*Vdp1ScaledSpriteDraw)(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs, u8 * back_framebuffer);
-   void(*Vdp1DistortedSpriteDraw)(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs, u8 * back_framebuffer);
-   void(*Vdp1PolygonDraw)(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs, u8 * back_framebuffer);
-   void(*Vdp1PolylineDraw)(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs, u8 * back_framebuffer);
-   void(*Vdp1LineDraw)(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs, u8 * back_framebuffer);
+   void(*Vdp1NormalSpriteDraw)(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs);
+   void(*Vdp1ScaledSpriteDraw)(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs);
+   void(*Vdp1DistortedSpriteDraw)(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs);
+   void(*Vdp1PolygonDraw)(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs);
+   void(*Vdp1PolylineDraw)(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs);
+   void(*Vdp1LineDraw)(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs);
    void(*Vdp1UserClipping)(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs);
    void(*Vdp1SystemClipping)(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs);
    void(*Vdp1LocalCoordinate)(vdp1cmd_struct *cmd, u8 * ram, Vdp1 * regs);
@@ -174,7 +163,6 @@ typedef struct
    void (*GetGlSize)(int *width, int *height);
    void (*SetSettingValue)(int type, int value);
    void(*Sync)();
-   void (*GetNativeResolution)(int *width, int *height, int * interlace);
    void(*Vdp2DispOff)(void);
    void (*composeFB)(Vdp2 *regs);
    void (*composeVDP1)(void);
@@ -182,11 +170,12 @@ typedef struct
    void (*FinsihDraw)(void);
    void (*Vdp1FBDraw)(void);
    pixel_t* (*getVdp2ScreenExtract)(u32 screen, int * w, int * h);
+   void (*SetupVdp1Scale)(int scale);
+   void (*startVdp1Render)(void);
+   void (*endVdp1Render)(void);
 } VideoInterface_struct;
 
 extern VideoInterface_struct *VIDCore;
-
-extern vdp1cmdctrl_struct cmdBufferBeingProcessed[CMD_QUEUE_SIZE];
 
 extern u8 * Vdp1Ram;
 extern int vdp1Ram_update_start;
@@ -198,16 +187,22 @@ u32 FASTCALL	Vdp1RamReadLong(SH2_struct *context, u8*, u32);
 void FASTCALL	Vdp1RamWriteByte(SH2_struct *context, u8*, u32, u8);
 void FASTCALL	Vdp1RamWriteWord(SH2_struct *context, u8*, u32, u16);
 void FASTCALL	Vdp1RamWriteLong(SH2_struct *context, u8*, u32, u32);
-u8 FASTCALL Vdp1FrameBufferReadByte(SH2_struct *context, u8*, u32);
-u16 FASTCALL Vdp1FrameBufferReadWord(SH2_struct *context, u8*, u32);
-u32 FASTCALL Vdp1FrameBufferReadLong(SH2_struct *context, u8*, u32);
-void FASTCALL Vdp1FrameBufferWriteByte(SH2_struct *context, u8*, u32, u8);
-void FASTCALL Vdp1FrameBufferWriteWord(SH2_struct *context, u8*, u32, u16);
-void FASTCALL Vdp1FrameBufferWriteLong(SH2_struct *context, u8*, u32, u32);
+u8 FASTCALL Vdp1FrameBuffer16bReadByte(SH2_struct *context, u8*, u32);
+u16 FASTCALL Vdp1FrameBuffer16bReadWord(SH2_struct *context, u8*, u32);
+u32 FASTCALL Vdp1FrameBuffer16bReadLong(SH2_struct *context, u8*, u32);
+void FASTCALL Vdp1FrameBuffer16bWriteByte(SH2_struct *context, u8*, u32, u8);
+void FASTCALL Vdp1FrameBuffer16bWriteWord(SH2_struct *context, u8*, u32, u16);
+void FASTCALL Vdp1FrameBuffer16bWriteLong(SH2_struct *context, u8*, u32, u32);
+u8 FASTCALL Vdp1FrameBuffer8bReadByte(SH2_struct *context, u8*, u32);
+u16 FASTCALL Vdp1FrameBuffer8bReadWord(SH2_struct *context, u8*, u32);
+u32 FASTCALL Vdp1FrameBuffer8bReadLong(SH2_struct *context, u8*, u32);
+void FASTCALL Vdp1FrameBuffer8bWriteByte(SH2_struct *context, u8*, u32, u8);
+void FASTCALL Vdp1FrameBuffer8bWriteWord(SH2_struct *context, u8*, u32, u16);
+void FASTCALL Vdp1FrameBuffer8bWriteLong(SH2_struct *context, u8*, u32, u32);
 
 extern void Vdp1SetRaster(int is352);
 
-void Vdp1DrawCommands(u8 * ram, Vdp1 * regs, u8* back_framebuffer);
+void Vdp1DrawCommands(u8 * ram, Vdp1 * regs);
 void Vdp1FakeDrawCommands(u8 * ram, Vdp1 * regs);
 
 extern Vdp1 * Vdp1Regs;
@@ -227,6 +222,8 @@ int VideoChangeCore(int coreid);
 void VideoDeInit(void);
 void Vdp1Reset(void);
 int VideoSetSetting(int type, int value);
+void Vdp1SetDMAConcurrency();
+void Vdp1ClearDMAConcurrency();
 
 u8 FASTCALL	Vdp1ReadByte(SH2_struct *context, u8*, u32);
 u16 FASTCALL	Vdp1ReadWord(SH2_struct *context, u8*, u32);

@@ -37,9 +37,9 @@ typedef struct
    int m68kcoretype;
    int cdcoretype;
    int carttype;
-   int stvgame;
    u8 regionid;
    u8 languageid;
+   const char* stvgame;
    const char *biospath;
    const char *cdpath;
    const char *buppath;
@@ -121,6 +121,7 @@ typedef struct
    int IsPal;
    int isRotated;
    u8 isSTV;
+   u8 isReloadingImage;
    u8 IsSSH2Running;
    u64 OneFrameTime;
    u64 tickfreq;

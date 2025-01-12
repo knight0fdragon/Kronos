@@ -12,7 +12,7 @@
 &Cheats List...|Liste de &Cheats...
 &Clear|&Vider
 &Close|&Fermer
-&Debug|&Débug
+&Debug|&Debug
 &Delete|&Effacer
 &Emulation|&Emulation
 &File|&Fichier
@@ -147,22 +147,21 @@ CPU Tesselation|Tesselation CPU
 Data Size|Taille Donnée
 Data Size :|Taille des Données :
 Data Type|Type Donnée
-Debug|Débug
-Debug CPU|Débug CPU
-Debug M68K|Débug M68K
-Debug Master SH2|Débug Master SH2
-Debug SCSP|Débug SCSP
-Debug SCU DSP|Débug SCU DSP
-Debug Slave SH2|Débug SH2 Esclave
-Debug VDP1|Débug VDP1
-Debug VDP2Viewer|Débug VDP2Viewer
+Debug|Debug
+Debug CPU|Debug CPU
+Debug M68K|Debug M68K
+Debug Master SH2|Debug Master SH2
+Debug SCSP|Debug SCSP
+Debug SCU DSP|Debug SCU DSP
+Debug Slave SH2|Debug SH2 Esclave
+Debug VDP1|Debug VDP1
+Debug VDP2Viewer|Debug VDP2Viewer
 Default Dial IP|Composer l'Ip par Défaut
 Default System Language|Langage Système par Défaut :
+Deinterlacing Adaptative|Désentrelacement Adaptatif
+Deinterlacing Debug Adaptative|Désentrelacement Debug Adaptatif
 Deinterlacing Bob|Désentrelacement Bob
-Deinterlacing Debug Bob|Désentrelacement Débug Bob
-Deinterlacing OSSC Bob|Désentrelacement OSSC Bob
-Deinterlacing OSSC Debug Bob|Désentrelacement Débug OSSC Bob
-Deinterlacing Scanline|Désentrelacement du Scanline
+Deinterlacing Debug Bob|Désentrelacement Debug Bob
 Del|Effacer
 Delete|Effacer
 Description|Description
@@ -227,7 +226,8 @@ Improved|Amélioré
 Information...|Information...
 Inline Assembly|Assembleur En Ligne
 Input|Contrôleur
-Integer scaling|Résolution adaptative par entier
+Pixel Perfect|Pixel Perfect
+Pixel Perfect - Full screen|Pixel Perfect - Plein ecran
 Internal Backup RAM|Copie de Sauvegarde Interne
 Invalid Address|Adresse Invalide
 Invalid Start/End Address Combination|Adresse de début/fin invalide
@@ -379,7 +379,7 @@ Select a file to load your state|Choisissez un Fichier pour Charger l'Etat
 Select your iso/cue/bin/zip/chd file|Choisissez votre fichier ISO/CUE/BIN/ZIP/CHD
 Set PC to Start Address|Sélection PC vers l'Adresse de Démarrage
 Settings|Paramètres
-SH2 Debug|Débugueur SH2
+SH2 Debug|Débogueur SH2
 SH2 Performance|Perfomance SH2
 SH2 Registers|Registres SH2 :
 Shortcuts|Raccourcis

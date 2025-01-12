@@ -809,12 +809,13 @@ void Cs2ForceOpenTray(){
 };
 
 int Cs2ForceCloseTray( int coreid, const char * cdpath ){
-
   int ret = 0;
-   if (Cs2Area == NULL) return -1;
-   if ((ret = Cs2ChangeCDCore(coreid, cdpath)) != 0)
-      return ret;
-
+   if (Cs2Area == NULL) {
+     return -1;
+   }
+   if ((ret = Cs2ChangeCDCore(coreid, cdpath)) != 0) {
+     return ret;
+   }
   Cs2Reset();
 
   if (yabsys.emulatebios)
@@ -825,6 +826,7 @@ int Cs2ForceCloseTray( int coreid, const char * cdpath ){
 		  return -2;
 	  }
   }
+  Cs2Area->cdi->SetStatus(CDCORE_NORMAL);
   Cs2Area->cdi->ReadTOC(Cs2Area->TOC);
   return 0;
 };
@@ -1391,7 +1393,8 @@ void Cs2GetHardwareInfo(void) {
 
   Cs2Area->reg.CR1 = Cs2Area->status << 8;
   // hardware flags/CD Version
-  Cs2Area->reg.CR2 = 0x0201; // mpeg card exists
+  //Cs2Area->reg.CR2 = 0x0201; // mpeg card exists
+  Cs2Area->reg.CR2 = 0x0001; // No mpeg card exists
   // mpeg version, it actually is required(at least by the bios)
 
   if (Cs2Area->mpgauth)

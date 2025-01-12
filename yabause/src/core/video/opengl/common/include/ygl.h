@@ -394,10 +394,9 @@ typedef enum
   AA_NONE = 0,
   AA_BILINEAR_FILTER,
   AA_BICUBIC_FILTER,
-  AA_BOB_SECURE_FILTER,
-  AA_BOB_SECURE_DEBUG_FILTER,
-  AA_BOB_OSSC_FILTER,
-  AA_BOB_OSSC_DEBUG_FILTER,
+  AA_ADAPTATIVE_FILTER,
+  AA_ADAPTATIVE_DEBUG_FILTER,
+  AA_BOB_FILTER,
   AA_SCANLINE
 } AAMODE;
 
@@ -408,13 +407,6 @@ typedef enum
   UP_4XBRZ,
   UP_6XBRZ,
 } UPMODE;
-
-typedef enum
-{
-    PERSPECTIVE_CORRECTION = 0,
-    CPU_TESSERATION,
-    GPU_TESSERATION
-} POLYGONMODE;
 
 typedef enum
 {
@@ -430,23 +422,25 @@ typedef enum
 
 typedef enum
 {
-    RES_ORIGINAL = 1,
-    RES_480p = 2,
-    RES_720p = 4,
-    RES_1080p = 8,
-    RES_NATIVE = 16,
+    RES_ORIGINAL = 0x1, //For compatibility - Saturn output
+    RES_SD = 0x2, //For compatibility - Saturn output
+    RES_1X = 0x4,
+    RES_2X = 0x8,
+    RES_4X = 0x20,
+    RES_NATIVE = 0x40
 } RESOLUTION_MODE;
 
 typedef enum
 {
 	ORIGINAL_RATIO = 0,
-	STREETCH_RATIO
+	STRETCH_RATIO = 1,
+  INTEGER_RATIO_FULL = 2,
+  INTEGER_RATIO = 3
 } RATIOMODE;
 
 
 typedef enum {
     VDP_SETTING_FILTERMODE = 0,
-    VDP_SETTING_POLYGON_MODE,
     VDP_SETTING_RESOLUTION_MODE,
     VDP_SETTING_UPSCALMODE,
     VDP_SETTING_ASPECT_RATIO,
@@ -504,6 +498,12 @@ typedef enum {
 	DST_ALPHA = 4
 } SpriteMode;
 
+typedef enum {
+	NORMAL_INTERLACE = 0,
+	DOUBLE_INTERLACE = 1,
+	SINGLE_INTERLACE = 2
+} InterlaceMode;
+
 typedef struct {
    //GLuint texture;
    //GLuint pixelBufferID;
@@ -512,8 +512,6 @@ typedef struct {
    int originy;
    unsigned int width;
    unsigned int height;
-
-   float clear[4];
 
    // VDP1 Framebuffer
    int rwidth;
@@ -539,7 +537,7 @@ typedef struct {
    GLuint original_fbotex[NB_RENDER_LAYER];
 
    GLuint back_fbo;
-   GLuint back_fbotex[2];
+   GLuint back_fbotex;
 
    GLuint screen_fbo;
    GLuint screen_fbotex[SPRITE];
@@ -608,7 +606,6 @@ typedef struct {
 
    AAMODE aamode;
    UPMODE upmode;
-   POLYGONMODE polygonmode;
    MESHMODE meshmode;
    BANDINGMODE bandingmode;
    int wireframe_mode;
@@ -627,16 +624,15 @@ typedef struct {
    int needWinUpdate;
 
    GLuint cram_tex;
-   GLuint cram_tex_pbo;
    u32 * cram_tex_buf;
-   u32 colupd_min_addr[512];
-   u32 colupd_max_addr[512];
+   GLuint cram_map_tex;
+   u32 colorRamIndex;
+   int colorRamIndexFull[512];
+   u8 ColorRamNeedSync;
    YabMutex * crammutex;
 
    int msb_shadow_count_[2];
    GLuint vao;
-   GLuint vertices_buf;
-   GLuint texcord_buf;
    GLuint win0v_buf;
    GLuint win1v_buf;
    GLuint vertexPosition_buf;
@@ -653,8 +649,7 @@ typedef struct {
 
    int useLineColorOffset[2];
 
-   float vdp1wratio;
-   float vdp1hratio;
+   float vdp1ratio;
 
    float vdp1wdensity;
    float vdp1hdensity;
@@ -662,6 +657,8 @@ typedef struct {
    float vdp2wdensity;
    float vdp2hdensity;
 
+   InterlaceMode interlace;
+   float last_back_color[4];
 } Ygl;
 
 extern Ygl * _Ygl;
@@ -704,17 +701,12 @@ void YglShowTexture(void);
 void YglChangeResolution(int, int);
 void YglCacheQuadGrowShading(YglSprite * input, float * colors, YglCache * cache, YglTextureManager *tm);
 int YglQuadGrowShading(YglSprite * input, YglTexture * output, float * colors,YglCache * c, YglTextureManager *tm);
-void YglSetClearColor(float r, float g, float b);
+void YglSetBackColor(float r, float g, float b);
 void YglStartWindow( vdp2draw_struct * info, int win0, int logwin0, int win1, int logwin1, int mode );
 void YglEndWindow( vdp2draw_struct * info );
 
 int YglVDP1AllocateTexture(vdp1cmd_struct * input, YglTexture * output, YglTextureManager *tm);
 
-void YglOnUpdateColorRamWord(u32 addr);
-void YglDirtyColorRamWord(void);
-void YglUpdateColorRam();
-void updateVdp2ColorRam(int line);
-void syncColorRam(void);
 int YglInitShader(int id, const GLchar * vertex[], int vcount, const GLchar * frag[], int fcount);
 
 int YglTriangleGrowShading(YglSprite * input, YglTexture * output, float * colors, YglCache * c, YglTextureManager *tm);
@@ -752,6 +744,8 @@ int YglUpscaleFramebuffer(u32 srcTexture, u32 targetFbo, float w, float h, float
 u32 * YglGetLineColorScreenPointer();
 void YglSetLineColorScreen(u32 * pbuf, int size);
 
+void syncVDP2ColorLine(int line);
+
 //To be removed
 void vdp1_write_gl();
 u32* vdp1_read_gl(int);
@@ -763,7 +757,7 @@ u32 * YglGetLineColorOffsetPointer(int id, int start, int size);
 void YglSetLineColorOffset(u32 * pbuf, int start, int size, int id);
 
 u32* YglGetBackColorPointer();
-void YglSetBackColor(int size);
+void YglSetBackTextureColor(int size);
 
 void YglGetWindowPointer(int id);
 void YglSetWindow(int id);

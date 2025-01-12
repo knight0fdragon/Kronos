@@ -215,19 +215,9 @@ if (MSVC)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")
 endif(MSVC)
 
-option(YAB_WANT_VDP1RAM_CS_ASYNC "Enable Threaded update of VDP1 Ram for CS core" ON)
-if (YAB_WANT_VDP1RAM_CS_ASYNC)
-	add_definitions(-DVDP1RAM_CS_ASYNC=1)
-endif()
-
 option(YAB_WANT_ASYNC_CELL "Enable Threaded rendering of nbgx cells" ON)
 if (YAB_WANT_ASYNC_CELL)
 	add_definitions(-DCELL_ASYNC=1)
-endif()
-
-option(YAB_WANT_ASYNC_VDP1_TEXTURE "Enable Threaded rendering of vdp1 texture" ON)
-if (YAB_WANT_ASYNC_VDP1_TEXTURE)
-	add_definitions(-DVDP1_TEXTURE_ASYNC=1)
 endif()
 
 option(YAB_WANT_SOFT_RENDERING "Enable software renderer support" OFF)
@@ -261,11 +251,21 @@ endif()
 include(CheckCSourceCompiles)
 
 # variadic macros
-check_c_source_compiles("#define MACRO(...) puts(__VA_ARGS__)
-	int main(int argc, char ** argv) { MACRO(\"foo\"); }"
-	VARIADIC_MACROS_OK)
+check_c_source_compiles("
+  #include <stdarg.h>
+  #include <stdlib.h>
+  #include <stdio.h>
+  #define MACRO(...) puts(__VA_ARGS__)
+	int main(int argc, char ** argv) {
+   MACRO(\"foo\");
+  }
+" VARIADIC_MACROS_OK)
+
 if (VARIADIC_MACROS_OK)
 	add_definitions(-DHAVE_C99_VARIADIC_MACROS=1)
+else(VARIADIC_MACROS_OK)
+	message(STATUS "Error - NO VARAIADIC Macros supported")
+	return ()
 endif (VARIADIC_MACROS_OK)
 
 # gettimeofday
@@ -430,13 +430,14 @@ endif ()
 # SDL
 option(YAB_WANT_SDL "use SDL cores if available" ON)
 if (YAB_WANT_SDL)
-	include(FindSDL2 OPTIONAL)
+  find_package(SDL2Kronos REQUIRED)
 
 	if (SDL2_FOUND)
 		add_definitions(-DHAVE_LIBSDL2=1)
 		include_directories(${SDL2_INCLUDE_DIR})
 		set(KRONOS_LIBRARIES ${KRONOS_LIBRARIES} ${SDL2_LIBRARY})
 	else()
+                Message("SDL2 is not found. You can set enviroonment variable sdl2lib_DIR to the location of SDL2 sources")
 		include(FindSDL)
 		if (SDL_FOUND)
 			message (WARNING "Deprecated version of SDL found. Support will be removed in the future. ")

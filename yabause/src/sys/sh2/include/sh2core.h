@@ -373,6 +373,13 @@ typedef struct
   writelongfunc oldwritelong;
 } memorybreakpoint_struct;
 
+
+typedef struct
+{
+  u32 PCAddress;
+  u32 BPAddress;
+} breakpoint_userdata;
+
 void SH2SetBreakpointCallBack(SH2_struct *context, void (*func)(void *, u32, void *), void *userdata);
 int SH2AddCodeBreakpoint(SH2_struct *context, u32 addr);
 int SH2DelCodeBreakpoint(SH2_struct *context, u32 addr);
@@ -408,9 +415,8 @@ typedef struct
    memorybreakpoint_struct memorybreakpoint[MAX_BREAKPOINTS];
    int nummemorybreakpoints;
    void (*BreakpointCallBack)(void *, u32, void *);
-   void *BreakpointUserData;
+   breakpoint_userdata BreakpointUserData;
    int inbreakpoint;
-   int breaknow;
 } breakpoint_struct;
 
 typedef struct
@@ -430,6 +436,8 @@ typedef struct SH2_struct_s
    sh2regs_struct regs;
    Onchip_struct onchip;
    u8 isAccessingCPUBUS;
+   u8 isAccessingVram;
+   u8 isBlocked;
 
    struct
    {
@@ -479,6 +487,7 @@ typedef struct SH2_struct_s
    u32 cycleLost;
    int cdiff;
    u32 interruptReturnAddress;
+   u32 itTriggerCycles;
     u32 frtcycles;
     u32 wdtcycles;
 
@@ -509,6 +518,8 @@ typedef struct SH2_struct_s
     u32 BUPTableAddr;
     void (*SH2InterruptibleExec)(struct SH2_struct_s *context, u32 cycles);
     u32 blockingMask;
+    u32 isDelayed;
+    u32 divcycles;
 //ENd debug
 } SH2_struct;
 
@@ -551,24 +562,20 @@ typedef struct
    void(*updateInterruptReturnHandling)(SH2_struct *context);
 } SH2Interface_struct;
 
-static INLINE void SH2HandleBreakpoints(SH2_struct *context)
+static INLINE int SH2HandleBreakpoints(SH2_struct *context)
 {
    int i;
-
-   for (i=0; i < context->bp.numcodebreakpoints; i++) {
-
-      if ((context->regs.PC == context->bp.codebreakpoint[i].addr) && context->bp.inbreakpoint == 0) {
+   if (context->bp.inbreakpoint == 0) {
+     for (i=0; i < context->bp.numcodebreakpoints; i++) {
+       if (context->regs.PC == context->bp.codebreakpoint[i].addr)  {
          context->bp.inbreakpoint = 1;
-         if (context->bp.BreakpointCallBack)
-             context->bp.BreakpointCallBack(context, context->bp.codebreakpoint[i].addr, context->bp.BreakpointUserData);
-         context->bp.inbreakpoint = 0;
-      }
+         context->bp.BreakpointUserData.PCAddress = (context->isDelayed != 0)?context->isDelayed:context->regs.PC;
+         context->bp.BreakpointUserData.BPAddress = (context->isDelayed != 0)?context->isDelayed:context->regs.PC;
+         return 1;
+       }
+     }
    }
-
-   if (context->bp.breaknow) {
-      context->bp.breaknow = 0;
-      context->bp.BreakpointCallBack(context, context->regs.PC, context->bp.BreakpointUserData);
-   }
+   return 0;
 }
 
 extern SH2_struct *MSH2;
@@ -582,6 +589,8 @@ void SH2PowerOn(SH2_struct *context);
 void FASTCALL SH2Exec(SH2_struct *context, u32 cycles);
 void FASTCALL SH2TestExec(SH2_struct *context, u32 cycles);
 void SH2NMI(SH2_struct *context);
+
+void SH2SetExecSet(int debug);
 
 void SH2GetRegisters(SH2_struct *context, sh2regs_struct * r);
 void SH2SetRegisters(SH2_struct *context, sh2regs_struct * r);
@@ -600,8 +609,12 @@ void SH2TrackInfLoopClear(SH2_struct *context);
 void SH2Disasm(u32 v_addr, u16 op, int mode, sh2regs_struct *r, char *string);
 void SH2DumpHistory(SH2_struct *context);
 
-void SH2SetCPUConcurrency(SH2_struct *context, u8 on);
-void SH2ClearCPUConcurrency(SH2_struct *context, u8 on);
+void SH2UpdateBlockedState(SH2_struct *context);
+void SH2UpdateABusAccess(SH2_struct *context, int on);
+void SH2SetVRamAccess(SH2_struct *context, int mask);
+void SH2ClearVRamAccess(SH2_struct *context, int mask);
+void SH2SetCPUConcurrency(SH2_struct *context, u8 mask);
+void SH2ClearCPUConcurrency(SH2_struct *context, u8 mask);
 
 int BackupHandled(SH2_struct * sh, u32 addr);
 int isBackupHandled(u32 addr);

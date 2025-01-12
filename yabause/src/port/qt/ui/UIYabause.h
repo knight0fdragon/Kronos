@@ -30,42 +30,71 @@ class YabauseGL;
 class QTextEdit;
 class QDockWidget;
 
-enum BARDISPLAY
+enum ACTIONS_ENUM
 {
-	BD_NEVERHIDE=0,
-	BD_HIDEFS=1,
-	BD_ALWAYSHIDE=2,
-	BD_SHOWONFSHOVER=3
+	ACTION_NONE = -1,
 };
 
 class YabauseLocker
 {
 public:
-	YabauseLocker( YabauseThread* yt/*, bool fr = false*/ )
+	YabauseLocker( YabauseThread* yt, int action = ACTION_NONE, void *bundle = NULL)
 	{
 		Q_ASSERT( yt );
 		mThread = yt;
 		//mForceRun = fr;
 		mRunning = mThread->emulationRunning();
 		mPaused = mThread->emulationPaused();
-		if ( mRunning && !mPaused )
-			mThread->pauseEmulation( true, false );
+		mAction = action;
+		mBundle = bundle;
+		if (action == ACTION_NONE) {
+			if ( mRunning && !mPaused )
+				mThread->pauseEmulation( true, false );
+			else
+				emit mThread->emulationAlreadyPaused();
+		}
+	}
+	void lock() {
+		if (mAction != ACTION_NONE) {
+			if ( mRunning && !mPaused )
+				mThread->pauseEmulation( true, false );
+			else
+				emit mThread->emulationAlreadyPaused();
+		}
 	}
 	void step(){
 		if ( mThread->emulationPaused() ) {
 			YabauseExec();
 		}
 	}
+
+	bool isPaused() {
+		return mRunning && !mPaused;
+	}
+
+	int popAction() {
+		int ret = mAction;
+		mAction = ACTION_NONE;
+		return ret;
+	}
+	void* popBundle() {
+		void *ret = mBundle;
+		mBundle = NULL;
+		return ret;
+	}
 	~YabauseLocker()
 	{
-		if ( ( mRunning && !mPaused ) /*|| mForceRun*/ )
+		if ( ( mRunning && !mPaused ) /*|| mForceRun*/ ) {
 			mThread->pauseEmulation( false, false );
+		}
 	}
 
 protected:
 	YabauseThread* mThread;
 	bool mRunning;
 	bool mPaused;
+	int mAction;
+	void *mBundle;
 	//bool mForceRun;
 };
 
@@ -80,11 +109,19 @@ public:
 	void swapBuffers();
 	virtual bool eventFilter( QObject* o, QEvent* e );
 
-	int loadGameFromFile(QString const & fullFilePath);
 	YabauseThread* mYabauseThread;
-
+private:
+	void takeScreenshot(void);
+	void saveSlot(int a);
+	void loadSlot(int a);
+	void saveSlotAs();
+	void loadSlotAs();
+	int loadGameFromFile(QString const & fullFilePath);
+	int loadCDRom();
+	void openSettingsOnTabs(int index);
 protected:
 	YabauseGL* mYabauseGL;
+	YabauseLocker *mLocker;
 
 	QDockWidget* mLogDock;
 	QTextEdit* teLog;
@@ -116,7 +153,6 @@ protected:
 	virtual void resizeEvent( QResizeEvent* event );
 	virtual void dragEnterEvent(QDragEnterEvent* e) override;
 	virtual void dropEvent(QDropEvent* e) override;
-	bool mIsCdIn;
 
 public slots:
 	void appendLog( const char* msg );
@@ -126,11 +162,13 @@ public slots:
 	void cursorRestore();
 	void toggleEmulateMouse( bool enable, bool show );
 
-	void breakpointHandlerMSH2(bool displayMessage);
-	void breakpointHandlerSSH2(bool displayMessage);
+	void breakpointHandlerMSH2(breakpoint_userdata *userdata);
+	void breakpointHandlerSSH2(breakpoint_userdata *userdata);
 	void breakpointHandlerM68K();
 	void breakpointHandlerSCUDSP();
 	void breakpointHandlerSCSPDSP();
+	void runActions();
+	void runActionsAlreadyPaused();
 protected slots:
 	void errorReceived( const QString& error, bool internal = true );
 	void sizeRequested( const QSize& size );
@@ -142,6 +180,7 @@ protected slots:
 	void on_aFileSettings_triggered();
 	void on_aFileOpenISO_triggered();
 	void on_aFileOpenCDRom_triggered();
+	void on_aFileOpenSTV_triggered();
 	void on_mFileSaveState_triggered( QAction* );
 	void on_mFileLoadState_triggered( QAction* );
 	void on_aFileSaveStateAs_triggered();
@@ -184,10 +223,13 @@ protected slots:
 	void on_aHelpAbout_triggered();
 	// toolbar
 	void on_aSound_triggered();
-	void on_aVideoDriver_triggered();
 	void on_cbSound_toggled( bool toggled );
 	void on_sVolume_valueChanged( int value );
 	void on_cbVideoDriver_currentIndexChanged( int id );
+	void sendThreadReset();
+	void threadInitialized();
+signals:
+	void requestReset();
 };
 
 #endif // UIYABAUSE_H

@@ -166,7 +166,7 @@ extern "C"
 		  mbstowcs(wtext, str, strlen(str) + 1);//Plus null
 		  LPWSTR ptr = wtext;
 		    ::OutputDebugString(ptr);
-			QtYabause::mainWindow()->appendLog( str );
+			if (mUIYabause) mUIYabause->appendLog( str );
 	      free(str);
 	  }
        }
@@ -179,7 +179,7 @@ extern "C"
 		va_end(argptr);
 		printf("%s", dest);
 		fflush(stdout);
-		QtYabause::mainWindow()->appendLog( dest );
+		if (mUIYabause) mUIYabause->appendLog( dest );
 }
 
 #endif
@@ -233,6 +233,32 @@ UIYabause* QtYabause::mainWindow( bool create )
 	if ( !mUIYabause && create )
 		mUIYabause = new UIYabause;
 	return mUIYabause;
+}
+
+void QtYabause::updateTitle() {
+VolatileSettings* vs = QtYabause::volatileSettings();
+QString name;
+if (vs->value( "Cartridge/Type", 0 ).toInt() == CART_ROMSTV) { //STV ROM
+	name = QString("STV: %1").arg(vs->value("Cartridge/STVGameName").toString());
+} else {
+	QString filename = vs->value("General/CdRomISO").toString();
+	if (filename != NULL) {
+		QString core = QString("CDROM: %1");
+		if (vs->value( "General/CdRom", CDCORE_ISO ).toInt() == CDCORE_ISO) {
+			core = QString("ISO: %1");
+		}
+		QFileInfo fi(filename);
+		if (fi.exists()) {
+			name = core.arg(fi.fileName());
+		}
+	}
+}
+
+	QString title( "Kronos v%1" );
+	title=title.arg( VERSION );
+	title.append(" ").append(name);
+
+	mainWindow()->setWindowTitle(title);
 }
 
 Settings* QtYabause::settings( bool create )

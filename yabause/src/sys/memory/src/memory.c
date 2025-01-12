@@ -323,15 +323,27 @@ static void FASTCALL UnhandledMemoryWriteLong(SH2_struct *context, UNUSED u8* me
 
 //////////////////////////////////////////////////////////////////////////////
 
+static u32 lastHWRamBankCol = 0;
+
 static u8 FASTCALL HighWramMemoryReadByte(SH2_struct *context, u8* mem, u32 addr)
 {
-   return T2ReadByte(mem, addr & 0xFFFFF);
+  int rowBank = ((addr>>10)&0x3FF);
+  if (rowBank != lastHWRamBankCol) {
+   lastHWRamBankCol = rowBank;
+   if ((context) && (!context->cacheOn)) context->cycles += 2;
+  }
+  return T2ReadByte(mem, addr & 0xFFFFF);
 }
 
 //////////////////////////////////////////////////////////////////////////////
 
 static u16 FASTCALL HighWramMemoryReadWord(SH2_struct *context, u8* mem, u32 addr)
 {
+    int rowBank = ((addr>>10)&0x3FF);
+    if (rowBank != lastHWRamBankCol) {
+     lastHWRamBankCol = rowBank;
+     if ((context) && (!context->cacheOn)) context->cycles += 2;
+    }
    return T2ReadWord(mem, addr & 0xFFFFF);
 }
 
@@ -339,6 +351,11 @@ static u16 FASTCALL HighWramMemoryReadWord(SH2_struct *context, u8* mem, u32 add
 
 static u32 FASTCALL HighWramMemoryReadLong(SH2_struct *context, u8* mem, u32 addr)
 {
+  int rowBank = ((addr>>10)&0x3FF);
+  if (rowBank != lastHWRamBankCol) {
+   lastHWRamBankCol = rowBank;
+   if ((context) && (!context->cacheOn)) context->cycles += 2;
+  }
    return T2ReadLong(mem, addr & 0xFFFFF);
 }
 
@@ -346,6 +363,11 @@ static u32 FASTCALL HighWramMemoryReadLong(SH2_struct *context, u8* mem, u32 add
 
 static void FASTCALL HighWramMemoryWriteByte(SH2_struct *context, u8* mem, u32 addr, u8 val)
 {
+  int rowBank = ((addr>>10)&0x3FF);
+  if (rowBank != lastHWRamBankCol) {
+   lastHWRamBankCol = rowBank;
+   if (context) context->cycles += 2;
+  }
    T2WriteByte(mem, addr & 0xFFFFF, val);
 }
 
@@ -353,6 +375,11 @@ static void FASTCALL HighWramMemoryWriteByte(SH2_struct *context, u8* mem, u32 a
 
 static void FASTCALL HighWramMemoryWriteWord(SH2_struct *context, u8* mem, u32 addr, u16 val)
 {
+  int rowBank = ((addr>>10)&0x3FF);
+  if (rowBank != lastHWRamBankCol) {
+   lastHWRamBankCol = rowBank;
+   if (context) context->cycles += 2;
+  }
    T2WriteWord(mem, addr & 0xFFFFF, val);
 }
 
@@ -360,13 +387,25 @@ static void FASTCALL HighWramMemoryWriteWord(SH2_struct *context, u8* mem, u32 a
 
 static void FASTCALL HighWramMemoryWriteLong(SH2_struct *context, u8* mem, u32 addr, u32 val)
 {
+  int rowBank = ((addr>>10)&0x3FF);
+  if (rowBank != lastHWRamBankCol) {
+   lastHWRamBankCol = rowBank;
+   if (context) context->cycles += 2;
+  }
    T2WriteLong(mem, addr & 0xFFFFF, val);
 }
 
 //////////////////////////////////////////////////////////////////////////////
 
+static u32 lastLWRamBankCol = 0;
+
 static u8 FASTCALL LowWramMemoryReadByte(SH2_struct *context, UNUSED u8* memory, u32 addr)
 {
+    int rowBank = ((addr>>11)&0x1FF);
+    if (rowBank != lastLWRamBankCol) {
+     lastLWRamBankCol = rowBank;
+     if ((context) && (!context->cacheOn)) context->cycles += 4;
+    }
    return T2ReadByte(memory, addr & 0xFFFFF);
 }
 
@@ -374,6 +413,11 @@ static u8 FASTCALL LowWramMemoryReadByte(SH2_struct *context, UNUSED u8* memory,
 
 static u16 FASTCALL LowWramMemoryReadWord(SH2_struct *context, UNUSED u8* memory, u32 addr)
 {
+  int rowBank = ((addr>>11)&0x1FF);
+  if (rowBank != lastLWRamBankCol) {
+   lastLWRamBankCol = rowBank;
+   if ((context) && (!context->cacheOn)) context->cycles += 4;
+  }
    return T2ReadWord(memory, addr & 0xFFFFF);
 }
 
@@ -381,6 +425,11 @@ static u16 FASTCALL LowWramMemoryReadWord(SH2_struct *context, UNUSED u8* memory
 
 static u32 FASTCALL LowWramMemoryReadLong(SH2_struct *context, UNUSED u8* memory, u32 addr)
 {
+  int rowBank = ((addr>>11)&0x1FF);
+  if (rowBank != lastLWRamBankCol) {
+   lastLWRamBankCol = rowBank;
+   if ((context) && (!context->cacheOn)) context->cycles += 4;
+  }
    return T2ReadLong(memory, addr & 0xFFFFF);
 }
 
@@ -388,6 +437,11 @@ static u32 FASTCALL LowWramMemoryReadLong(SH2_struct *context, UNUSED u8* memory
 
 static void FASTCALL LowWramMemoryWriteByte(SH2_struct *context, UNUSED u8* memory, u32 addr, u8 val)
 {
+  int rowBank = ((addr>>11)&0x1FF);
+  if (rowBank != lastLWRamBankCol) {
+   lastLWRamBankCol = rowBank;
+   if (context) context->cycles += 4;
+  }
    T2WriteByte(memory, addr & 0xFFFFF, val);
 }
 
@@ -395,6 +449,11 @@ static void FASTCALL LowWramMemoryWriteByte(SH2_struct *context, UNUSED u8* memo
 
 static void FASTCALL LowWramMemoryWriteWord(SH2_struct *context, UNUSED u8* memory, u32 addr, u16 val)
 {
+  int rowBank = ((addr>>11)&0x1FF);
+  if (rowBank != lastLWRamBankCol) {
+   lastLWRamBankCol = rowBank;
+   if (context) context->cycles += 4;
+  }
    T2WriteWord(memory, addr & 0xFFFFF, val);
 }
 
@@ -402,6 +461,11 @@ static void FASTCALL LowWramMemoryWriteWord(SH2_struct *context, UNUSED u8* memo
 
 static void FASTCALL LowWramMemoryWriteLong(SH2_struct *context, UNUSED u8* memory, u32 addr, u32 val)
 {
+  int rowBank = ((addr>>11)&0x1FF);
+  if (rowBank != lastLWRamBankCol) {
+   lastLWRamBankCol = rowBank;
+   if (context) context->cycles += 4;
+  }
    T2WriteLong(memory, addr & 0xFFFFF, val);
 }
 
@@ -666,12 +730,12 @@ void MappedMemoryInit()
                                 &Vdp1RamWriteWord,
                                 &Vdp1RamWriteLong,
                                 &Vdp1Ram);
-   FillMemoryArea(0x5C8, 0x5CB, &Vdp1FrameBufferReadByte,
-                                &Vdp1FrameBufferReadWord,
-                                &Vdp1FrameBufferReadLong,
-                                &Vdp1FrameBufferWriteByte,
-                                &Vdp1FrameBufferWriteWord,
-                                &Vdp1FrameBufferWriteLong,
+   FillMemoryArea(0x5C8, 0x5CB, &Vdp1FrameBuffer16bReadByte,
+                                &Vdp1FrameBuffer16bReadWord,
+                                &Vdp1FrameBuffer16bReadLong,
+                                &Vdp1FrameBuffer16bWriteByte,
+                                &Vdp1FrameBuffer16bWriteWord,
+                                &Vdp1FrameBuffer16bWriteLong,
                                 &VoidMem);
    FillMemoryArea(0x5D0, 0x5D7, &Vdp1ReadByte,
                                 &Vdp1ReadWord,
@@ -736,7 +800,29 @@ u32 FASTCALL DMAMappedMemoryReadDrawLong(u32 addr)
     return ReadLongDrawList[(addr >> 16) & 0xFFF](NULL, *(MemoryBuffer[(addr >> 16) & 0xFFF]), addr);
 }
 
+void switchFB16bit()
+{
+  FillMemoryArea(0x5C8, 0x5CB,
+    &Vdp1FrameBuffer16bReadByte,
+    &Vdp1FrameBuffer16bReadWord,
+    &Vdp1FrameBuffer16bReadLong,
+    &Vdp1FrameBuffer16bWriteByte,
+    &Vdp1FrameBuffer16bWriteWord,
+    &Vdp1FrameBuffer16bWriteLong,
+    &VoidMem);
+}
 
+void switchFB8bit()
+{
+  FillMemoryArea(0x5C8, 0x5CB,
+    &Vdp1FrameBuffer8bReadByte,
+    &Vdp1FrameBuffer8bReadWord,
+    &Vdp1FrameBuffer8bReadLong,
+    &Vdp1FrameBuffer8bWriteByte,
+    &Vdp1FrameBuffer8bWriteWord,
+    &Vdp1FrameBuffer8bWriteLong,
+    &VoidMem);
+}
 
 u8 FASTCALL DMAMappedMemoryReadByte(u32 addr) {
    return ReadByteList[(addr >> 16) & 0xFFF](NULL, *(MemoryBuffer[(addr >> 16) & 0xFFF]), addr);
@@ -748,14 +834,14 @@ CACHE_LOG("rb %x %x\n", addr, addr >> 29);
    {
       case 0x1:
       {
-        context->isAccessingCPUBUS |= A_BUS_ACCESS; //When cpu access CPU-BUs at the same time as SCU, there might be a penalty
+        SH2UpdateABusAccess(context, 1); //When cpu access CPU-BUs at the same time as SCU, there might be a penalty
         return ReadByteList[(addr >> 16) & 0xFFF](context, *(MemoryBuffer[(addr >> 16) & 0xFFF]), addr);
       }
       case 0x0:
       case 0x4:
       {
-         if (context->cacheOn) context->isAccessingCPUBUS &= ~A_BUS_ACCESS;
-         else context->isAccessingCPUBUS |= A_BUS_ACCESS;
+         if (context->cacheOn) SH2UpdateABusAccess(context, 0);
+         else SH2UpdateABusAccess(context, 1);
          return CacheReadByteList[(addr >> 16) & 0xFFF](context, *(MemoryBuffer[(addr >> 16) & 0xFFF]), addr);
       }
       case 0x2:
@@ -807,12 +893,12 @@ u16 FASTCALL SH2MappedMemoryReadWord(SH2_struct *context, u32 addr)
    {
       case 0x1:
       {
-        context->isAccessingCPUBUS |= A_BUS_ACCESS; //When cpu access CPU-BUs at the same time as SCU, there might be a penalty
+        SH2UpdateABusAccess(context, 1);; //When cpu access CPU-BUs at the same time as SCU, there might be a penalty
         return ReadWordList[(addr >> 16) & 0xFFF](context, *(MemoryBuffer[(addr >> 16) & 0xFFF]), addr);
       }
       case 0x0: //0x0 cache
-      if (context->cacheOn) context->isAccessingCPUBUS &= ~A_BUS_ACCESS;
-      else context->isAccessingCPUBUS |= A_BUS_ACCESS;
+      if (context->cacheOn) SH2UpdateABusAccess(context, 0);
+      else SH2UpdateABusAccess(context, 1);
            return CacheReadWordList[(addr >> 16) & 0xFFF](context, *(MemoryBuffer[(addr >> 16) & 0xFFF]), addr);
       case 0x2:
       case 0x5:
@@ -863,13 +949,13 @@ u32 FASTCALL SH2MappedMemoryReadLong(SH2_struct *context, u32 addr)
    {
       case 0x1: //0x0 no cache
       {
-        context->isAccessingCPUBUS |= A_BUS_ACCESS; //When cpu access CPU-BUs at the same time as SCU, there might be a penalty
+        SH2UpdateABusAccess(context, 1); //When cpu access CPU-BUs at the same time as SCU, there might be a penalty
         return ReadLongList[(addr >> 16) & 0xFFF](context, *(MemoryBuffer[(addr >> 16) & 0xFFF]), addr);
       }
       case 0x0:
       {
-        if (context->cacheOn) context->isAccessingCPUBUS &= ~A_BUS_ACCESS;
-        else context->isAccessingCPUBUS |= A_BUS_ACCESS;
+        if (context->cacheOn) SH2UpdateABusAccess(context, 0);
+        else SH2UpdateABusAccess(context, 1);
          return CacheReadLongList[(addr >> 16) & 0xFFF](context, *(MemoryBuffer[(addr >> 16) & 0xFFF]), addr);
       }
       case 0x2:
@@ -928,15 +1014,15 @@ void FASTCALL SH2MappedMemoryWriteByte(SH2_struct *context, u32 addr, u8 val)
    {
       case 0x1:
       {
-        context->isAccessingCPUBUS |= A_BUS_ACCESS; //When cpu access CPU-BUs at the same time as SCU, there might be a penalty
+        SH2UpdateABusAccess(context, 1); //When cpu access CPU-BUs at the same time as SCU, there might be a penalty
         WriteByteList[(addr >> 16) & 0xFFF](context, *(MemoryBuffer[(addr >> 16) & 0xFFF]), addr, val);
         return;
       }
       case 0x0:
       {
         CACHE_LOG("wb %x %x\n", addr, addr >> 29);
-        if (context->cacheOn) context->isAccessingCPUBUS &= ~A_BUS_ACCESS;
-        else context->isAccessingCPUBUS |= A_BUS_ACCESS;
+        if (context->cacheOn) SH2UpdateABusAccess(context, 0);
+        else SH2UpdateABusAccess(context, 1);
          CacheWriteByteList[(addr >> 16) & 0xFFF](context, *(MemoryBuffer[(addr >> 16) & 0xFFF]), addr, val);
          return;
       }
@@ -997,7 +1083,7 @@ void FASTCALL SH2MappedMemoryWriteWord(SH2_struct *context, u32 addr, u16 val)
    {
       case 0x1:
       {
-        context->isAccessingCPUBUS |= A_BUS_ACCESS; //When cpu access CPU-BUs at the same time as SCU, there might be a penalty
+        SH2UpdateABusAccess(context, 1); //When cpu access CPU-BUs at the same time as SCU, there might be a penalty
         WriteWordList[(addr >> 16) & 0xFFF](context, *(MemoryBuffer[(addr >> 16) & 0xFFF]), addr, val);
         return;
       }
@@ -1005,8 +1091,8 @@ void FASTCALL SH2MappedMemoryWriteWord(SH2_struct *context, u32 addr, u16 val)
       {
 CACHE_LOG("ww %x %x\n", addr, addr >> 29);
          // Cache/Non-Cached
-         if (context->cacheOn) context->isAccessingCPUBUS &= ~A_BUS_ACCESS;
-         else context->isAccessingCPUBUS |= A_BUS_ACCESS;
+         if (context->cacheOn) SH2UpdateABusAccess(context, 0);
+         else SH2UpdateABusAccess(context, 1);
          CacheWriteWordList[(addr >> 16) & 0xFFF](context, *(MemoryBuffer[(addr >> 16) & 0xFFF]), addr, val);
          return;
       }
@@ -1068,7 +1154,7 @@ void FASTCALL SH2MappedMemoryWriteLong(SH2_struct *context, u32 addr, u32 val)
    {
       case 0x1:
       {
-        context->isAccessingCPUBUS |= A_BUS_ACCESS; //When cpu access CPU-BUs at the same time as SCU, there might be a penalty
+        SH2UpdateABusAccess(context, 1); //When cpu access CPU-BUs at the same time as SCU, there might be a penalty
         WriteLongList[(addr >> 16) & 0xFFF](context, *(MemoryBuffer[(addr >> 16) & 0xFFF]), addr, val);
         return;
       }
@@ -1076,8 +1162,8 @@ void FASTCALL SH2MappedMemoryWriteLong(SH2_struct *context, u32 addr, u32 val)
       {
 CACHE_LOG("wl %x %x\n", addr, addr >> 29);
          // Cache/Non-Cached
-         if (context->cacheOn) context->isAccessingCPUBUS &= ~A_BUS_ACCESS;
-         else context->isAccessingCPUBUS |= A_BUS_ACCESS;
+         if (context->cacheOn) SH2UpdateABusAccess(context, 0);
+         else SH2UpdateABusAccess(context, 1);
          CacheWriteLongList[(addr >> 16) & 0xFFF](context, *(MemoryBuffer[(addr >> 16) & 0xFFF]), addr, val);
          return;
       }
@@ -1450,14 +1536,9 @@ int YabSaveStateBuffer(void ** buffer, size_t * size)
    if (buffer != NULL) *buffer = NULL;
    *size = 0;
 
-   // Mute scsp & lock its thread (workaround for audio issues ? it doesn't seem reliable though)
-   ScspMuteAudio(SCSP_MUTE_SYSTEM);
-   ScspLockThread();
-
    // Get size
    status = YabSaveStateStream(NULL);
    if (status != 0) {
-      ScspUnLockThread();
       return status;
    }
    *size = MemStateGetOffset();
@@ -1465,22 +1546,14 @@ int YabSaveStateBuffer(void ** buffer, size_t * size)
    // Allocate buffer
    *buffer = (void *)malloc(*size);
    if (buffer == NULL) {
-      ScspUnLockThread();
-      ScspUnMuteAudio(SCSP_MUTE_SYSTEM);
       return -1;
    }
 
    // Fill buffer
    status = YabSaveStateStream(buffer);
    if (status != 0) {
-      ScspUnLockThread();
-      ScspUnMuteAudio(SCSP_MUTE_SYSTEM);
       return status;
    }
-
-   // Unlock scsp thread
-   ScspUnLockThread();
-   ScspUnMuteAudio(SCSP_MUTE_SYSTEM);
 
    return 0;
 }
@@ -1664,11 +1737,7 @@ int YabLoadStateBuffer(const void * buffer, size_t size)
 {
    int status;
 
-   ScspMuteAudio(SCSP_MUTE_SYSTEM);
-   ScspLockThread();
    status = YabLoadStateStream(buffer, size);
-   ScspUnLockThread();
-   ScspUnMuteAudio(SCSP_MUTE_SYSTEM);
 
    return status;
 }

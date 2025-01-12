@@ -92,13 +92,12 @@ const Items mCartridgeTypes = Items()
 
 const Items mVideoFilterMode = Items()
 	<< Item("0", "None")
-        << Item("1", "Bilinear")
+	<< Item("1", "Bilinear")
 	<< Item("2", "BiCubic")
-	<< Item("3", "Deinterlacing Bob")
-	<< Item("4", "Deinterlacing Debug Bob")
-	<< Item("5", "Deinterlacing OSSC Bob")
-	<< Item("6", "Deinterlacing OSSC Debug Bob")
-	<< Item("7", "Deinterlacing Scanline");
+	<< Item("3", "Deinterlacing Adaptative")
+	<< Item("4", "Deinterlacing Debug Adaptative")
+	<< Item("5", "Deinterlacing Bob")
+	<< Item("6", "Scanline");
 
 const Items mUpscaleFilterMode = Items()
 	<< Item("0", "None")
@@ -106,22 +105,17 @@ const Items mUpscaleFilterMode = Items()
 	<< Item("2", "4xBRZ")
 	<< Item("3", "6xBRZ");
 
-const Items mPolygonGenerationMode = Items()
-	<< Item("0", "Triangles using perspective correction")
-	<< Item("1", "CPU Tesselation")
-	<< Item("2", "GPU Tesselation");
-
 const Items mResolutionMode = Items()
-	<< Item("1", "Original (original resolution of the Saturn)")
-	<< Item("2", "480p")
-	<< Item("4", "720p")
-	<< Item("8", "1080p")
-	<< Item("16", "Native (current resolution of the window)");
+	<< Item("1", "1x (original resolution of the Saturn)")
+	<< Item("8", "2x")
+	<< Item("32", "4x")
+	<< Item("64", "Native (current resolution of the window)");
 
 const Items mAspectRatio = Items()
 	<< Item("0", "Original aspect ratio")
 	<< Item("1", "Stretch to window")
-	<< Item("2", "Integer scaling");
+	<< Item("2", "Pixel Perfect - Full screen")
+	<< Item("3", "Pixel Perfect");
 
 const Items mMeshMode = Items()
 	<< Item("0", "Original")
@@ -179,8 +173,21 @@ UISettings::UISettings(QList <translation_struct> *translations, QWidget* p )
 		connect( tb, SIGNAL( clicked() ), this, SLOT( tbBrowse_clicked() ) );
 	}
 
+}
+
+void UISettings::setCurrentOpenedTab(int idx)
+{
+	twPages->setCurrentIndex(3);
+}
+
+int UISettings::exec()
+{
+	// load settings
+	loadSettings();
 	// retranslate widgets
 	QtYabause::retranslateWidget( this );
+
+	return QDialog::exec();
 }
 
 void UISettings::requestFile( const QString& c, QLineEdit* e, const QString& filters, QString proposedPath)
@@ -218,7 +225,7 @@ void UISettings::requestSTVFolder( const QString& c, QLineEdit* e, QString propo
 	int const nbGames = STVGetRomList(existingDirectoryPath.toStdString().c_str(), 1);
 	cbSTVGame->clear();
 	for(int i = 0; i< nbGames; i++){
-		cbSTVGame->addItem(getSTVGameName(i),i);
+		cbSTVGame->addItem(getSTVGameName(i),getSTVRomset(i));
 	}
 	cbSTVGame->model()->sort(0);
 }
@@ -296,7 +303,7 @@ void UISettings::tbBrowse_clicked()
 	{
 		if ( cbCdRom->currentText().contains( "dummy", Qt::CaseInsensitive ) )
 		{
-			CommonDialogs::information( QtYabause::translate( "The dummies cores don't need configuration." ) );
+			CommonDialogs::error( QtYabause::translate( "The dummies cores don't need configuration." ) );
 			return;
 		}
 		else if ( cbCdRom->currentText().contains( "iso", Qt::CaseInsensitive ) )
@@ -421,44 +428,14 @@ void UISettings::changeFilterMode(int id)
     if (VIDCore != NULL) VIDCore->SetSettingValue(VDP_SETTING_FILTERMODE, (mVideoFilterMode.at(id).id).toInt());
 }
 
-void UISettings::changeVideoMode(int id)
-{
-	// if (VIDCoreList[id]->id == 1) {//OpenGL
-	// 	//Tesselation on
-	// 	Tesselation->setVisible(true);
-	// 	cbPolygonGeneration->setVisible(true);
-	// 	//Gouraud off
-	// 	BandingMode->setVisible(false);
-	// 	cbBandingModeFilter->setVisible(false);
-	// 	//Wireframe off
-	// 	Wireframe->setVisible(false);
-	// 	cbWireframeFilter->setVisible(false);
-	// }
-	if (VIDCoreList[id]->id == VIDCORE_CS) {//Compute Shader
-		//Tesselation offcol4
-		Tesselation->setVisible(false);
-		cbPolygonGeneration->setVisible(false);
-		//Gouraud on
-		BandingMode->setVisible(true);
-		cbBandingModeFilter->setVisible(true);
-		//Wireframe on
-		Wireframe->setVisible(true);
-		cbWireframeFilter->setVisible(true);
-	}
-}
-
 void UISettings::changeUpscaleMode(int id)
 {
     if (VIDCore != NULL) VIDCore->SetSettingValue(VDP_SETTING_UPSCALMODE, (mUpscaleFilterMode.at(id).id).toInt());
 }
 
-void UISettings::changePolygonMode(int id)
-{
-    if (VIDCore != NULL) VIDCore->SetSettingValue(VDP_SETTING_POLYGON_MODE, (mPolygonGenerationMode.at(id).id).toInt());
-}
-
 void UISettings::on_cbCartridge_currentIndexChanged( int id )
 {
+	if (id < 0) return;
 	Settings const* const s = QtYabause::settings();
 	auto const path = s->value(getCartridgePathSettingsKey(id)).toString();
 
@@ -485,21 +462,30 @@ void UISettings::on_cbCartridge_currentIndexChanged( int id )
 
 	leCartridge->setVisible(mCartridgeTypes[id].enableFlag);
 	tbCartridge->setVisible(mCartridgeTypes[id].enableFlag);
-	lCartridgePath->setVisible(mCartridgeTypes[id].enableFlag);
+	if (id == CART_ROMSTV) {
+		lCartridgeSTVPath->setVisible(mCartridgeTypes[id].enableFlag);
+		lCartridgePath->setVisible(false);
+	} else {
+		lCartridgeSTVPath->setVisible(false);
+		lCartridgePath->setVisible(mCartridgeTypes[id].enableFlag);
+	}
 	lCartridgeModemIP->setVisible(mCartridgeTypes[id].ipFlag);
 	leCartridgeModemIP->setVisible(mCartridgeTypes[id].ipFlag);
 	lCartridgeModemPort->setVisible(mCartridgeTypes[id].ipFlag);
 	leCartridgeModemPort->setVisible(mCartridgeTypes[id].ipFlag);
-    if (mCartridgeTypes[id].pathFlag) {
+	if (mCartridgeTypes[id].pathFlag) {
 		QString const & str = leCartridge->text();
-    	int const nbGames = STVGetRomList(str.toStdString().c_str(), 0);
-        cbSTVGame->clear();
-        for(int i = 0; i < nbGames; i++){
-			cbSTVGame->addItem(getSTVGameName(i),i);
-        }
-        cbSTVGame->model()->sort(0);
-    }
-    cbSTVGame->setVisible(mCartridgeTypes[id].pathFlag);
+		int const nbGames = STVGetRomList(str.toStdString().c_str(), 0);
+		cbSTVGame->clear();
+		for(int i = 0; i < nbGames; i++){
+			cbSTVGame->addItem(getSTVGameName(i),getSTVRomset(i));
+		}
+		cbSTVGame->model()->sort(0);
+		VolatileSettings * const vs = QtYabause::volatileSettings();
+		int curGame = cbSTVGame->findData( vs->value( "Cartridge/STVGame" ).toString());
+		cbSTVGame->setCurrentIndex( curGame );
+	}
+	cbSTVGame->setVisible(mCartridgeTypes[id].pathFlag);
 	lRegion->setVisible(mCartridgeTypes[id].pathFlag);
 	cbRegion->setVisible(mCartridgeTypes[id].pathFlag);
 	selectedCartridgeType = id;
@@ -510,12 +496,6 @@ void UISettings::loadCores()
 	// CD Drivers
 	for ( int i = 0; CDCoreList[i] != NULL; i++ )
 		cbCdRom->addItem( QtYabause::translate( CDCoreList[i]->Name ), CDCoreList[i]->id );
-
-	// VDI Drivers
-	for ( int i = 0; VIDCoreList[i] != NULL; i++ )
-		cbVideoCore->addItem( QtYabause::translate( VIDCoreList[i]->Name ), VIDCoreList[i]->id );
-
-		connect(cbVideoCore, SIGNAL(currentIndexChanged(int)), this, SLOT(changeVideoMode(int)));
 
 #if YAB_PORT_OSD
 	// OSD Drivers
@@ -537,12 +517,6 @@ void UISettings::loadCores()
 		cbUpscaleMode->addItem(QtYabause::translate(it.Name), it.id);
 
         connect(cbUpscaleMode, SIGNAL(currentIndexChanged(int)), this, SLOT(changeUpscaleMode(int)));
-
-	// Polygon Generation
-	foreach(const Item& it, mPolygonGenerationMode)
-		cbPolygonGeneration->addItem(QtYabause::translate(it.Name), it.id);
-
-		connect(cbPolygonGeneration, SIGNAL(currentIndexChanged(int)), this, SLOT(changePolygonMode(int)));
 
 	// Resolution
   foreach(const Item& it, mResolutionMode)
@@ -679,11 +653,11 @@ void UISettings::loadSettings()
 	cbUseCache->setChecked( s->value( "General/SH2Cache" ).toBool() );
 	cbCdRom->setCurrentIndex( cbCdRom->findData( s->value( "General/CdRom", QtYabause::defaultCDCore().id ).toInt() ) );
 	leCdRom->setText( s->value( "General/CdRomISO" ).toString() );
+	QtYabause::updateTitle();
 	if (s->value( "General/CdRom", QtYabause::defaultCDCore().id ).toInt() == CDCORE_ARCH)
 		cbCdDrive->setCurrentIndex(leCdRom->text().isEmpty() ? 0 : cbCdDrive->findText(leCdRom->text()));
 
 	leSaveStates->setText( s->value( "General/SaveStates", getDataDirPath() ).toString() );
-
 	//screenshots
 	{
 		auto const defaultScreenshotsPath = QtYabause::DefaultPaths::Screenshots();
@@ -727,13 +701,6 @@ void UISettings::loadSettings()
 	else
 		dteBaseTime->setDateTime( QDateTime(QDate(1998, 1, 1), QTime(12, 0, 0)) );
 
-	// video
-	if (s->value( "Video/VideoCore", QtYabause::defaultVIDCore().id ).toInt() != VIDCORE_CS) {
-		cbVideoCore->setCurrentIndex(cbVideoCore->findData(VIDCORE_CS));
-	} else {
-		cbVideoCore->setCurrentIndex( cbVideoCore->findData( s->value( "Video/VideoCore", QtYabause::defaultVIDCore().id ).toInt() ) );
-	}
-	changeVideoMode(cbVideoCore->currentIndex());
 #if YAB_PORT_OSD
 	cbOSDCore->setCurrentIndex( cbOSDCore->findData( s->value( "Video/OSDCore", QtYabause::defaultOSDCore().id ).toInt() ) );
 #endif
@@ -741,7 +708,6 @@ void UISettings::loadSettings()
 
 	cbFilterMode->setCurrentIndex(cbFilterMode->findData(s->value("Video/filter_type", mVideoFilterMode.at(0).id).toInt()));
         cbUpscaleMode->setCurrentIndex(cbUpscaleMode->findData(s->value("Video/upscale_type", mUpscaleFilterMode.at(0).id).toInt()));
-	cbPolygonGeneration->setCurrentIndex(cbPolygonGeneration->findData(s->value("Video/polygon_generation_mode", mPolygonGenerationMode.at(1).id).toInt()));
 	cbResolution->setCurrentIndex(cbResolution->findData(s->value("Video/resolution_mode", mResolutionMode.at(0).id).toInt()));
   cbAspectRatio->setCurrentIndex(cbAspectRatio->findData(s->value("Video/AspectRatio", mAspectRatio.at(0).id).toInt()));
 	cbWireframeFilter->setCurrentIndex(cbWireframeFilter->findData(s->value("Video/Wireframe", mWireframe.at(0).id).toInt()));
@@ -758,7 +724,7 @@ void UISettings::loadSettings()
 	leCartridge->setText( s->value(getCartridgePathSettingsKey()).toString() );
 	leCartridgeModemIP->setText( s->value( "Cartridge/ModemIP", QString("127.0.0.1") ).toString() );
 	leCartridgeModemPort->setText( s->value( "Cartridge/ModemPort", QString("1337") ).toString() );
-        cbSTVGame->setCurrentIndex( cbSTVGame->findData( s->value( "Cartridge/STVGame", -1 ).toInt() ) );
+  cbSTVGame->setCurrentIndex( cbSTVGame->findData( s->value( "Cartridge/STVGame" ).toString() ) );
 	leMemory->setText( s->value( "Memory/Path", getDataDirPath().append( "/bkram.bin" ) ).toString() );
 	leMpegROM->setText( s->value( "MpegROM/Path" ).toString() );
 	checkBox_extended_internal_backup->setChecked(s->value("Memory/ExtendMemory").toBool());
@@ -772,18 +738,6 @@ void UISettings::loadSettings()
 	cbRegion->setCurrentIndex( cbRegion->findData( s->value( "STV/Region", mRegions.at( 0 ).id ).toString() ) );
 	cbSH2Interpreter->setCurrentIndex( cbSH2Interpreter->findData( s->value( "Advanced/SH2Interpreter", QtYabause::defaultSH2Core().id ).toInt() ) );
    cb68kCore->setCurrentIndex(cb68kCore->findData(s->value("Advanced/68kCore", QtYabause::default68kCore().id).toInt()));
-
-	// view
-	bgShowMenubar->setId( rbMenubarNever, BD_NEVERHIDE );
-	bgShowMenubar->setId( rbMenubarFullscreen, BD_HIDEFS );
-	bgShowMenubar->setId( rbMenubarAlways, BD_ALWAYSHIDE );
-	bgShowMenubar->setId( rbMenubarFullscreenHover, BD_SHOWONFSHOVER );
-	bgShowMenubar->button( s->value( "View/Menubar", BD_SHOWONFSHOVER ).toInt() )->setChecked( true );
-
-	bgShowToolbar->setId( rbToolbarNever, BD_NEVERHIDE );
-	bgShowToolbar->setId( rbToolbarFullscreen, BD_HIDEFS );
-	bgShowToolbar->setId( rbToolbarAlways, BD_ALWAYSHIDE );
-	bgShowToolbar->button( s->value( "View/Toolbar", BD_HIDEFS ).toInt() )->setChecked( true );
 
 	// debug
 	leAddr2Line->setText( s->value( "Debug/Addr2Line" ).toString() );
@@ -840,7 +794,6 @@ void UISettings::saveSettings()
 	s->setValue( "autostart", cbAutostart->isChecked() );
 
 	// video
-	s->setValue( "Video/VideoCore", cbVideoCore->itemData( cbVideoCore->currentIndex() ).toInt() );
 #if YAB_PORT_OSD
 	s->setValue( "Video/OSDCore", cbOSDCore->itemData( cbOSDCore->currentIndex() ).toInt() );
 #endif
@@ -857,7 +810,6 @@ void UISettings::saveSettings()
 	s->setValue( "Video/Fullscreen", cbFullscreen->isChecked() );
 	s->setValue( "Video/filter_type", cbFilterMode->itemData(cbFilterMode->currentIndex()).toInt());
 	s->setValue( "Video/upscale_type", cbUpscaleMode->itemData(cbUpscaleMode->currentIndex()).toInt());
-	s->setValue( "Video/polygon_generation_mode", cbPolygonGeneration->itemData(cbPolygonGeneration->currentIndex()).toInt());
 	s->setValue("Video/resolution_mode", cbResolution->itemData(cbResolution->currentIndex()).toInt());
 
 	s->setValue( "General/ClockSync", cbClockSync->isChecked() );
@@ -867,11 +819,25 @@ void UISettings::saveSettings()
 	s->setValue( "Sound/SoundCore", cbSoundCore->itemData( cbSoundCore->currentIndex() ).toInt() );
 
 	// cartridge/memory
+	int currentCart = s->value( "Cartridge/Type").toInt();
+	int newCart = cbCartridge->itemData( cbCartridge->currentIndex() ).toInt();
+	if ( currentCart != newCart) {
+		if (currentCart != CART_ROMSTV) {
+			s->setValue( "Cartridge/LastCart", currentCart);
+		}
+		if ((currentCart == CART_ROMSTV) || (newCart == CART_ROMSTV)) {
+			yabsys.isReloadingImage = 2;
+		}
+	}
 	s->setValue( "Cartridge/Type", cbCartridge->itemData( cbCartridge->currentIndex() ).toInt() );
 	s->setValue(getCartridgePathSettingsKey(), leCartridge->text() );
 	s->setValue( "Cartridge/ModemIP", leCartridgeModemIP->text() );
 	s->setValue( "Cartridge/ModemPort", leCartridgeModemPort->text() );
-        s->setValue( "Cartridge/STVGame", cbSTVGame->itemData( cbSTVGame->currentIndex() ).toInt() );
+	if (s->value( "Cartridge/STVGame").toString() != cbSTVGame->currentData().toString()) {
+		yabsys.isReloadingImage = 2;
+	}
+  s->setValue( "Cartridge/STVGame", cbSTVGame->currentData().toString() );
+  s->setValue( "Cartridge/STVGameName", cbSTVGame->currentText() );
 	s->setValue( "Memory/Path", leMemory->text() );
 	s->setValue( "MpegROM/Path", leMpegROM->text() );
   s->setValue("Memory/ExtendMemory", checkBox_extended_internal_backup->isChecked());
@@ -885,10 +851,6 @@ void UISettings::saveSettings()
 	s->setValue( "STV/Region", cbRegion->itemData( cbRegion->currentIndex() ).toString() );
 	s->setValue( "Advanced/SH2Interpreter", cbSH2Interpreter->itemData( cbSH2Interpreter->currentIndex() ).toInt() );
    s->setValue("Advanced/68kCore", cb68kCore->itemData(cb68kCore->currentIndex()).toInt());
-
-	// view
-	s->setValue( "View/Menubar", bgShowMenubar->checkedId() );
-	s->setValue( "View/Toolbar", bgShowToolbar->checkedId() );
 
 	// shortcuts
 	applyShortcuts();
@@ -905,6 +867,7 @@ void UISettings::saveSettings()
 
 	// debug
 	s->setValue( "Debug/Addr2Line", leAddr2Line->text() );
+	QtYabause::updateTitle();
 }
 
 void UISettings::accept()

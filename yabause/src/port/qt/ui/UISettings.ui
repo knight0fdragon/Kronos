@@ -299,25 +299,6 @@
        <item row="20" column="1">
         <widget class="QComboBox" name="cbFilterMode"/>
        </item>
-       <item row="23" column="0">
-        <widget class="QLabel" name="Tesselation">
-         <property name="font">
-          <font>
-           <weight>75</weight>
-           <bold>true</bold>
-          </font>
-         </property>
-         <property name="text">
-          <string>Tesselation :</string>
-         </property>
-         <property name="textFormat">
-          <enum>Qt::PlainText</enum>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-         </property>
-        </widget>
-       </item>
        <item row="4" column="0" colspan="3">
         <widget class="QComboBox" name="cbOSDCore"/>
        </item>
@@ -346,9 +327,6 @@
          </property>
         </widget>
        </item>
-       <item row="23" column="1">
-        <widget class="QComboBox" name="cbPolygonGeneration"/>
-       </item>
        <item row="28" column="1">
         <widget class="QComboBox" name="cbWireframeFilter"/>
        </item>
@@ -371,22 +349,6 @@
          </property>
          <property name="alignment">
           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="0" colspan="3">
-        <widget class="QLabel" name="lVideoCore">
-         <property name="font">
-          <font>
-           <weight>75</weight>
-           <bold>true</bold>
-          </font>
-         </property>
-         <property name="text">
-          <string>Video Core</string>
-         </property>
-         <property name="textFormat">
-          <enum>Qt::PlainText</enum>
          </property>
         </widget>
        </item>
@@ -430,9 +392,6 @@
           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
          </property>
         </widget>
-       </item>
-       <item row="1" column="0" colspan="3">
-        <widget class="QComboBox" name="cbVideoCore"/>
        </item>
        <item row="12" column="0">
         <widget class="QCheckBox" name="cbFullscreen">
@@ -747,6 +706,16 @@
          </property>
         </widget>
        </item>
+       <item row="5" column="0">
++        <widget class="QLabel" name="lCartridgeSTVPath">
++         <property name="text">
++          <string>Mame romset 0.269:</string>
++         </property>
++         <property name="visible">
++          <bool>false</bool>
++        </property>
++        </widget>
++       </item>
       </layout>
      </widget>
      <widget class="QWidget" name="wInput">
@@ -908,122 +877,6 @@
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="wView">
-      <attribute name="title">
-       <string>View</string>
-      </attribute>
-      <layout class="QGridLayout">
-       <item row="6" column="0">
-        <spacer>
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>2</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item row="0" column="0" colspan="3">
-        <widget class="QLabel" name="lHideMenubar">
-         <property name="font">
-          <font>
-           <weight>75</weight>
-           <bold>true</bold>
-          </font>
-         </property>
-         <property name="text">
-          <string>Hide Menubar</string>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="0">
-        <widget class="QRadioButton" name="rbMenubarNever">
-         <property name="text">
-          <string>Never</string>
-         </property>
-         <attribute name="buttonGroup">
-          <string notr="true">bgShowMenubar</string>
-         </attribute>
-        </widget>
-       </item>
-       <item row="1" column="1">
-        <widget class="QRadioButton" name="rbMenubarFullscreen">
-         <property name="text">
-          <string>On fullscreen</string>
-         </property>
-         <attribute name="buttonGroup">
-          <string notr="true">bgShowMenubar</string>
-         </attribute>
-        </widget>
-       </item>
-       <item row="1" column="2">
-        <widget class="QRadioButton" name="rbMenubarAlways">
-         <property name="text">
-          <string>Always</string>
-         </property>
-         <attribute name="buttonGroup">
-          <string notr="true">bgShowMenubar</string>
-         </attribute>
-        </widget>
-       </item>
-       <item row="2" column="0" colspan="3">
-        <widget class="QLabel" name="lHideToolbar">
-         <property name="font">
-          <font>
-           <weight>75</weight>
-           <bold>true</bold>
-          </font>
-         </property>
-         <property name="text">
-          <string>Hide Toolbar</string>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="0">
-        <widget class="QRadioButton" name="rbToolbarNever">
-         <property name="text">
-          <string>Never</string>
-         </property>
-         <attribute name="buttonGroup">
-          <string notr="true">bgShowToolbar</string>
-         </attribute>
-        </widget>
-       </item>
-       <item row="3" column="1">
-        <widget class="QRadioButton" name="rbToolbarFullscreen">
-         <property name="text">
-          <string>On fullscreen</string>
-         </property>
-         <attribute name="buttonGroup">
-          <string notr="true">bgShowToolbar</string>
-         </attribute>
-        </widget>
-       </item>
-       <item row="3" column="2">
-        <widget class="QRadioButton" name="rbToolbarAlways">
-         <property name="text">
-          <string>Always</string>
-         </property>
-         <attribute name="buttonGroup">
-          <string notr="true">bgShowToolbar</string>
-         </attribute>
-        </widget>
-       </item>
-       <item row="1" column="3">
-        <widget class="QRadioButton" name="rbMenubarFullscreenHover">
-         <property name="text">
-          <string>Display on Hover</string>
-         </property>
-         <attribute name="buttonGroup">
-          <string notr="true">bgShowMenubar</string>
-         </attribute>
-        </widget>
-       </item>
-      </layout>
-     </widget>
      <widget class="QWidget" name="tab">
       <attribute name="title">
        <string>Shortcuts</string>
@@ -1178,8 +1031,4 @@
    </hints>
   </connection>
  </connections>
- <buttongroups>
-  <buttongroup name="bgShowToolbar"/>
-  <buttongroup name="bgShowMenubar"/>
- </buttongroups>
 </ui>

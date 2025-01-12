@@ -38,6 +38,9 @@ YabauseThread::YabauseThread( QObject* o )
 	mInit = -1;
 	memset(&mYabauseConf, 0, sizeof(mYabauseConf));
 	showFPS = false;
+	mIsCdIn = false;
+	mIsCDDirty = false;
+	emit initDone();
 }
 
 YabauseThread::~YabauseThread()
@@ -67,23 +70,18 @@ void YabauseThread::deInitEmulation()
 
 bool YabauseThread::pauseEmulation( bool pause, bool reset )
 {
-	if ( mPause == pause && !reset ) {
-		return true;
-	}
-
-	if ( mInit == 0 && reset ) {
-		deInitEmulation();
-	}
-
-	initEmulation();
-
 	if ( mInit < 0 )
 	{
-		emit error( QtYabause::translate( "Can't initialize Kronos." ), false );
+		emit error( QtYabause::translate( "Can't Pause kronos while not initialized." ), false );
 		return false;
 	}
 
 	mPause = pause;
+
+	if (mIsCDDirty && mIsCdIn && !pause && (mYabauseConf.cdpath!= NULL) && (strlen(mYabauseConf.cdpath)>0)) {
+		CloseTray();
+		mIsCDDirty = false;
+	}
 
 	if ( mPause ) {
 		ScspMuteAudio(SCSP_MUTE_SYSTEM);
@@ -100,7 +98,6 @@ bool YabauseThread::pauseEmulation( bool pause, bool reset )
 		if (vs->value("autorun/load").toBool()) {
 			YabLoadStateSlot( QtYabause::volatileSettings()->value( "General/SaveStates", getDataDirPath() ).toString().toLatin1().constData(), vs->value("autorun/load/slot").toInt() );
 		}
-		vs->setValue("autostart", false);
 	}
 
 	emit this->pause( mPause );
@@ -110,10 +107,17 @@ bool YabauseThread::pauseEmulation( bool pause, bool reset )
 
 bool YabauseThread::resetEmulation()
 {
+	if (yabsys.isReloadingImage == 2) mInit = -1;
+	yabsys.isReloadingImage = 0;
 	if ( mInit < 0 ) {
-		return false;
+		initEmulation();
 	}
 
+	if ( mInit < 0 )
+	{
+		emit error( QtYabause::translate( "Can't initialize Kronos." ), false );
+		return false;
+	}
 	YabauseReset();
 
 	emit reset();
@@ -353,7 +357,8 @@ void YabauseThread::reloadSettings()
 	mYabauseConf.sndcoretype = vs->value( "Sound/SoundCore", mYabauseConf.sndcoretype ).toInt();
 	mYabauseConf.cdcoretype = vs->value( "General/CdRom", mYabauseConf.cdcoretype ).toInt();
 	mYabauseConf.carttype = vs->value( "Cartridge/Type", mYabauseConf.carttype ).toInt();
-	mYabauseConf.stvgame = vs->value( "Cartridge/STVGame", mYabauseConf.stvgame ).toInt();
+	if (mYabauseConf.carttype == CART_ROMSTV) mYabauseConf.cdcoretype = CDCORE_DUMMY;
+	mYabauseConf.stvgame = strdup( vs->value( "Cartridge/STVGame", mYabauseConf.stvgame ).toString().toLatin1().constData());
 	mYabauseConf.regionid = 0;
 	const QString r = vs->value( "STV/Region", mYabauseConf.regionid ).toString();
 	if ( r.isEmpty() || r == "Auto" )
@@ -391,6 +396,7 @@ void YabauseThread::reloadSettings()
 
 	mYabauseConf.smpcpath = strdup( vs->value( "General/BiosSettings", mYabauseConf.smpcpath ).toString().toLatin1().constData() );
 	mYabauseConf.cdpath = strdup( vs->value( "General/CdRomISO", mYabauseConf.cdpath ).toString().toLatin1().constData() );
+	QtYabause::updateTitle();
 	showFPS = vs->value( "General/ShowFPS", false ).toBool();
 	mYabauseConf.vsyncon = vs->value("General/EnableVSync", true).toBool();
 	mYabauseConf.usecache = vs->value("General/SH2Cache", false).toBool();
@@ -419,7 +425,7 @@ void YabauseThread::reloadSettings()
 	mYabauseConf.auto_cart = 1;
 
 	emit requestSize( QSize( vs->value( "Video/WinWidth", 0 ).toInt(), vs->value( "Video/WinHeight", 0 ).toInt() ) );
-	emit requestFullscreen( vs->value( "Video/Fullscreen", false ).toBool() );
+	// emit requestFullscreen( vs->value( "Video/Fullscreen", false ).toBool() );
 	emit requestVolumeChange( vs->value( "Sound/Volume", 100 ).toInt() );
 
 	reloadClock();
@@ -443,12 +449,11 @@ void YabauseThread::OpenTray(){
 }
 
 int YabauseThread::CloseTray(){
-
 	VolatileSettings* vs = QtYabause::volatileSettings();
 	mYabauseConf.cdcoretype = vs->value("General/CdRom", mYabauseConf.cdcoretype).toInt();
 	mYabauseConf.cdpath = strdup(vs->value("General/CdRomISO", mYabauseConf.cdpath).toString().toLatin1().constData());
 
-	return Cs2ForceCloseTray(mYabauseConf.cdcoretype, mYabauseConf.cdpath);
+	return (Cs2ForceCloseTray(mYabauseConf.cdcoretype, mYabauseConf.cdpath)==0);
 }
 
 void YabauseThread::resetYabauseConf()
@@ -471,7 +476,7 @@ void YabauseThread::resetYabauseConf()
 	mYabauseConf.buppath = 0;
 	mYabauseConf.mpegpath = 0;
 	mYabauseConf.cartpath = 0;
-        mYabauseConf.stvgame = -1;
+  mYabauseConf.stvgame = 0;
 	mYabauseConf.skip_load = 0;
 	int numThreads = QThread::idealThreadCount();
 	mYabauseConf.usethreads = numThreads <= 1 ? 0 : 1;

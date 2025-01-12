@@ -24,6 +24,10 @@
 #include <QImageWriter>
 #include <QGraphicsPixmapItem>
 
+void UIDebugVDP2Viewer::clearItems() {
+	while (cbScreen->count() != 0)
+		cbScreen->removeItem(0);
+}
 void UIDebugVDP2Viewer::addItem(int id) {
 	switch(id) {
 		case NBG0:
@@ -131,7 +135,7 @@ void UIDebugVDP2Viewer::on_pbSaveAsBitmap_clicked ()
 	}
 	bool YMirrored = true;
 	if (index == SPRITE) YMirrored = false;
-   QImage img((uchar *)vdp2texture, width, width, format);
+   QImage img((uchar *)vdp2texture, width, height, format);
    img = img.mirrored(false, YMirrored).rgbSwapped();
 
 	// request a file to save to to user
@@ -140,7 +144,7 @@ void UIDebugVDP2Viewer::on_pbSaveAsBitmap_clicked ()
 	// write image if ok
 	if ( !s.isEmpty() )
 		if ( !img.save( s ) )
-			CommonDialogs::information( QtYabause::translate( "An error occured while writing file." ) );
+			CommonDialogs::error( QtYabause::translate( "An error occured while writing file." ) );
 }
 
 void UIDebugVDP2Viewer::on_cbOpaque_toggled(bool enable) {

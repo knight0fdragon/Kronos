@@ -134,23 +134,38 @@ SHADER_VERSION
 "uniform float u_vheight; \n"
 "uniform float u_vwidth; \n"
 "uniform float u_hratio; \n"
+"uniform int u_interlace;\n"
+"uniform int u_frame;\n"
 "uniform highp sampler2D s_texture;\n"
 "uniform sampler2D s_color;\n"
+"uniform sampler2D s_color_map;\n"
 "out vec4 fragColor;\n"
+"int getColorLine(int line){\n"
+"  vec4 val = texelFetch(s_color_map, ivec2(line, 0), 0);\n"
+"  return (int(val.g*255.0)<<8)|int(val.r*255.0);\n"
+"}\n"
 "void main()\n"
 "{\n"
 "  ivec2 linepos; \n "
 "  linepos.y = 0; \n "
 "  linepos.x = int( (u_vheight-gl_FragCoord.y) * u_emu_height);\n"
-"  vec4 txindex = texelFetch( s_texture, ivec2(v_texcoord) ,0 );\n"
+"  ivec2 pos = ivec2(v_texcoord.xy);\n"
+// "  if (u_interlace != 0) {\n"
+// // "    pos.x = int(v_texcoord.x);\n"
+// // "    pos.y = int(floor((v_texcoord.y*2.0+u_frame)/u_scale.y));\n"
+// "    pos.y = (int(v_texcoord.y)&(~0x1))+u_frame;\n"
+// "  }\n"
+"  vec4 txindex = texelFetch( s_texture, pos ,0 );\n"
 "  if(txindex.a == 0.0) { discard; }\n"
 "  int msb = int(txindex.b * 255.0)&0x1; \n"
 "  int tx = int(txindex.g*255.0)<<8 | int(txindex.r*255.0);\n"
-"  int ty = int(float(linepos.x)/u_hratio);\n"
+"  int ty = getColorLine(int(float(linepos.x)/u_hratio));\n"
 "  fragColor = texelFetch( s_color,  ivec2( tx , ty )  , 0 );\n"
 "  int blue = int(fragColor.b * 255.0) & 0xFE;\n"
 "  fragColor.b = float(blue|msb)/255.0;\n" //Blue LSB bit is used for special color calculation
 "  fragColor.a = txindex.a; \n"
+// "  if (u_interlace != 0) fragColor.g = (float(pos.y))/255.0;\n"
+// "  if (u_interlace != 0) fragColor.b = (float(v_texcoord.y))/255.0;\n"
 "}\n";
 
 
@@ -158,10 +173,13 @@ const GLchar * pYglprg_normal_cram_f[] = { Yglprg_normal_cram_f, NULL };
 static int id_normal_cram_s_texture = -1;
 static int id_normal_cram_emu_height = -1;
 static int id_normal_cram_vdp2_hratio = -1;
+static int id_normal_cram_vdp2_interlace = -1;
+static int id_normal_cram_vdp2_frame = -1;
 static int id_normal_cram_emu_width = -1;
 static int id_normal_cram_vheight = -1;
 static int id_normal_cram_vwidth = -1;
 static int id_normal_cram_s_color = -1;
+static int id_normal_cram_s_color_map = -1;
 static int id_normal_cram_matrix = -1;
 
 
@@ -174,10 +192,13 @@ int Ygl_uniformNormalCram(void * p, YglTextureManager *tm, Vdp2 *varVdp2Regs, in
   glEnableVertexAttribArray(1);
   glUniform1i(id_normal_cram_s_texture, 0);
   glUniform1i(id_normal_cram_s_color, 1);
+  glUniform1i(id_normal_cram_s_color_map, 2);
   glUniform1f(id_normal_cram_vdp2_hratio, (float)_Ygl->vdp2hdensity);
+  glUniform1i(id_normal_cram_vdp2_interlace, (_Ygl->interlace==DOUBLE_INTERLACE)?1:0);
+  glUniform1i(id_normal_cram_vdp2_frame, ((varVdp2Regs->TVSTAT>>1)&0x1)==1);
   if ((id == RBG0)||(id == RBG1)){
     glUniform1f(id_normal_cram_emu_height, (float)_Ygl->rheight / (float)_Ygl->height);
-    glUniform1f(id_normal_cram_emu_width, (float)_Ygl->rwidth / (float)_Ygl->width);
+    glUniform1f(id_normal_cram_emu_width, (float)_Ygl->rwidth /(float)_Ygl->width);
     glUniform1f(id_normal_cram_vheight, (float)_Ygl->height);
     glUniform1f(id_normal_cram_vwidth, (float)_Ygl->width);
   } else {
@@ -188,6 +209,8 @@ int Ygl_uniformNormalCram(void * p, YglTextureManager *tm, Vdp2 *varVdp2Regs, in
   }
   glActiveTexture(GL_TEXTURE1);
   glBindTexture(GL_TEXTURE_2D, _Ygl->cram_tex);
+  glActiveTexture(GL_TEXTURE2);
+  glBindTexture(GL_TEXTURE_2D, _Ygl->cram_map_tex);
   return 0;
 }
 
@@ -211,18 +234,24 @@ SHADER_VERSION
 "in vec4 v_texcoord;\n"
 "uniform highp sampler2D s_texture;\n"
 "uniform sampler2D s_color;\n"
+"uniform sampler2D s_color_map;\n"
 "out vec4 fragColor;\n"
+"int getColorLine(int line){\n"
+"  vec4 val = texelFetch(s_color_map, ivec2(line, 0), 0);\n"
+"  return (int(val.g*255.0)<<8)|int(val.r*255.0);\n"
+"}\n"
 "void main()\n"
 "{\n"
 "  vec4 txindex = texelFetch( s_texture, ivec2(int(v_texcoord.x),int(v_texcoord.y)) ,0 );\n"
 "  if(txindex.a == 0.0) { discard; }\n"
-"  vec4 fragColor = texelFetch( s_color,  ivec2( ( int(txindex.g*255.0)<<8 | int(txindex.r*255.0)) ,0 )  , 0 );\n"
+"  vec4 fragColor = texelFetch( s_color,  ivec2( ( int(txindex.g*255.0)<<8 | int(txindex.r*255.0)) , getColorLine(0) )  , 0 );\n"
 "  fragColor.a = txindex.a;\n"
 "}\n";
 
 const GLchar * pYglprg_normal_cram_addcol_f[] = { Yglprg_normal_cram_addcol_f, NULL };
 static int id_normal_cram_s_texture_addcol = -1;
 static int id_normal_cram_s_color_addcol = -1;
+static int id_normal_cram_s_color_map_addcol = -1;
 static int id_normal_cram_matrix_addcol = -1;
 
 
@@ -235,8 +264,11 @@ int Ygl_uniformAddColCram(void * p, YglTextureManager *tm, Vdp2 *varVdp2Regs, in
   glEnableVertexAttribArray(1);
   glUniform1i(id_normal_cram_s_texture_addcol, 0);
   glUniform1i(id_normal_cram_s_color_addcol, 1);
+  glUniform1i(id_normal_cram_s_color_map_addcol, 2);
   glActiveTexture(GL_TEXTURE1);
   glBindTexture(GL_TEXTURE_2D, _Ygl->cram_tex);
+  glActiveTexture(GL_TEXTURE2);
+  glBindTexture(GL_TEXTURE_2D, _Ygl->cram_map_tex);
   return 0;
 }
 
@@ -323,6 +355,10 @@ int Ygl_uniformMosaic(void * p, YglTextureManager *tm, Vdp2 *varVdp2Regs, int id
     glEnableVertexAttribArray(prg->texcoordp);
     glUniform1i(id_normal_cram_s_texture, 0);
     glUniform1i(id_normal_cram_s_color, 1);
+    glUniform1i(id_normal_cram_s_color_map, 2);
+
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, _Ygl->cram_map_tex);
 
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, _Ygl->cram_tex);
@@ -370,6 +406,7 @@ typedef struct  {
   int idvdp1Mesh;
   int idvdp2regs;
   int idcram;
+  int idcram_map;
 } DrawFrameBufferUniform;
 
 #define MAX_FRAME_BUFFER_UNIFORM (BLIT_TEXTURE_NB_PROG)
@@ -414,9 +451,11 @@ uniform sampler2D s_vdp1Mesh;\n \
 uniform sampler2D s_win0;  \n \
 uniform sampler2D s_win1;  \n \
 uniform sampler2D s_color; \n \
+uniform sampler2D s_color_map; \n \
 uniform sampler2D s_vdp2reg; \n \
 uniform sampler2D s_perline; \n \
 uniform float u_emu_height;\n \
+uniform float u_vdp2_h_density;\n \
 uniform vec2 u_emu_vdp1_ratio;\n \
 uniform float u_emu_vdp2_width;\n \
 uniform float u_vheight; \n \
@@ -659,6 +698,7 @@ int YglInitDrawFrameBufferShaders(int id, int CS) {
   g_draw_framebuffer_uniforms[arrayid].idvdp1Mesh = glGetUniformLocation(_prgid[id], (const GLchar *)"s_vdp1Mesh");
   g_draw_framebuffer_uniforms[arrayid].idvdp2regs = glGetUniformLocation(_prgid[id], (const GLchar *)"s_vdp2reg");
   g_draw_framebuffer_uniforms[arrayid].idcram = glGetUniformLocation(_prgid[id], (const GLchar *)"s_color");
+  g_draw_framebuffer_uniforms[arrayid].idcram_map = glGetUniformLocation(_prgid[id], (const GLchar *)"s_color_map");
   return 0;
 }
 
@@ -690,6 +730,10 @@ int Ygl_uniformVDP2DrawFramebuffer(float * offsetcol, int nb_screen, Vdp2* varVd
   glUniform1i(g_draw_framebuffer_uniforms[arrayid].idcram, 11);
   glActiveTexture(GL_TEXTURE11);
   glBindTexture(GL_TEXTURE_2D, _Ygl->cram_tex);
+
+  glUniform1i(g_draw_framebuffer_uniforms[arrayid].idcram_map, 20);
+  glActiveTexture(GL_TEXTURE20);
+  glBindTexture(GL_TEXTURE_2D, _Ygl->cram_map_tex);
 
   glUniform1i(g_draw_framebuffer_uniforms[arrayid].idvdp2regs, 12);
   glActiveTexture(GL_TEXTURE12);
@@ -734,9 +778,12 @@ int YglProgramInit()
 
   id_normal_cram_s_texture = glGetUniformLocation(_prgid[PG_VDP2_NORMAL_CRAM], (const GLchar *)"s_texture");
   id_normal_cram_s_color = glGetUniformLocation(_prgid[PG_VDP2_NORMAL_CRAM], (const GLchar *)"s_color");
+  id_normal_cram_s_color_map = glGetUniformLocation(_prgid[PG_VDP2_NORMAL_CRAM], (const GLchar *)"s_color_map");
   id_normal_cram_matrix = glGetUniformLocation(_prgid[PG_VDP2_NORMAL_CRAM], (const GLchar *)"u_mvpMatrix");
   id_normal_cram_emu_height = glGetUniformLocation(_prgid[PG_VDP2_NORMAL_CRAM], (const GLchar *)"u_emu_height");
   id_normal_cram_vdp2_hratio = glGetUniformLocation(_prgid[PG_VDP2_NORMAL_CRAM], (const GLchar *)"u_hratio");
+  id_normal_cram_vdp2_interlace = glGetUniformLocation(_prgid[PG_VDP2_NORMAL_CRAM], (const GLchar *)"u_interlace");
+  id_normal_cram_vdp2_frame = glGetUniformLocation(_prgid[PG_VDP2_NORMAL_CRAM], (const GLchar *)"u_frame");
   id_normal_cram_vheight = glGetUniformLocation(_prgid[PG_VDP2_NORMAL_CRAM], (const GLchar *)"u_vheight");
   id_normal_cram_vwidth = glGetUniformLocation(_prgid[PG_VDP2_NORMAL_CRAM], (const GLchar *)"u_vwidth");
 
@@ -884,15 +931,13 @@ static const char fclear_img[] =
   "precision highp float;       \n"
   "#endif\n"
   "layout(origin_upper_left) in vec4 gl_FragCoord; \n"
-  "uniform float u_emu_height; \n"
-  "uniform float u_vheight; \n"
   "uniform sampler2D u_Clear;     \n"
   "out vec4 fragColor; \n"
   "void main()   \n"
   "{  \n"
 "    ivec2 linepos; \n "
 "    linepos.y = 0; \n "
-"    linepos.x = int( gl_FragCoord.y * u_emu_height);\n"
+"    linepos.x = int(gl_FragCoord.y);\n"
   "  fragColor = texelFetch( u_Clear, linepos,0 ); \n"
   "} \n";
 
@@ -959,9 +1004,6 @@ int YglDrawBackScreen() {
   else{
     GLUSEPROG(clear_prg);
   }
-  glUniform1f(glGetUniformLocation(clear_prg, "u_emu_height"), (float)_Ygl->rheight / (float)_Ygl->rheight);
-  glUniform1f(glGetUniformLocation(clear_prg, "u_vheight"), (float)_Ygl->rheight);
-
   glDisable(GL_STENCIL_TEST);
   glDisable(GL_DEPTH_TEST);
   glDisable(GL_BLEND);
@@ -974,6 +1016,130 @@ int YglDrawBackScreen() {
 
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, _Ygl->back_tex);
+  glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+  // Clean up
+  glDisableVertexAttribArray(0);
+
+  return 0;
+}
+
+//----------------------------------------------------------------------------------------
+static int fill_prg = -1;
+
+static const char vfill_img[] =
+  SHADER_VERSION
+  "layout (location = 0) in vec2 a_position;   \n"
+  "layout (location = 1) in vec2 a_texcoord;   \n"
+  "out vec2 v_texcoord;     \n"
+  "void main()       \n"
+  "{ \n"
+  " gl_Position = vec4(a_position.x, a_position.y, 0.0, 1.0); \n"
+  " v_texcoord  = a_texcoord; \n"
+  "} \n";
+
+
+static const char ffill_img[] =
+  SHADER_VERSION
+  "#ifdef GL_ES\n"
+  "precision highp float;       \n"
+  "#endif\n"
+  "layout(origin_upper_left) in vec4 gl_FragCoord; \n"
+  "uniform sampler2D u_Fill;     \n"
+  "in vec2 v_texcoord;     \n"
+  "out vec4 fragColor; \n"
+  "void main()   \n"
+  "{  \n"
+  "  fragColor = texture(u_Fill, v_texcoord);\n"
+  "} \n";
+
+
+int YglFillWithBackScreen() {
+
+  float const vertexPosition[] = {
+    1.0f, -1.0f,
+    -1.0f, -1.0f,
+    1.0f, 1.0f,
+    -1.0f, 1.0f };
+  float const textureCoord[] = {
+    1.0f, 0.0f,
+    0.0f, 0.0f,
+    1.0f, 1.0f,
+    0.0f, 1.0f
+  };
+
+  if (fill_prg == -1){
+    GLuint vshader;
+    GLuint fshader;
+    GLint compiled, linked;
+
+    const GLchar * vfill_img_v[] = { vfill_img, NULL };
+    const GLchar * ffill_img_v[] = { ffill_img, NULL };
+
+    fill_prg = glCreateProgram();
+    if (fill_prg == 0){
+      fill_prg = -1;
+      return -1;
+    }
+
+    YGLLOG("DRAW_BACK_SCREEN\n");
+
+    vshader = glCreateShader(GL_VERTEX_SHADER);
+    fshader = glCreateShader(GL_FRAGMENT_SHADER);
+
+    glShaderSource(vshader, 1, vfill_img_v, NULL);
+    glCompileShader(vshader);
+    glGetShaderiv(vshader, GL_COMPILE_STATUS, &compiled);
+    if (compiled == GL_FALSE) {
+      YGLLOG("Compile error in vertex shader.\n");
+      Ygl_printShaderError(vshader);
+      clear_prg = -1;
+      return -1;
+    }
+    glShaderSource(fshader, 1, ffill_img_v, NULL);
+    glCompileShader(fshader);
+    glGetShaderiv(fshader, GL_COMPILE_STATUS, &compiled);
+    if (compiled == GL_FALSE) {
+      YGLLOG("Compile error in fragment shader.\n");
+      Ygl_printShaderError(fshader);
+      clear_prg = -1;
+      return -1;
+    }
+
+    glAttachShader(fill_prg, vshader);
+    glAttachShader(fill_prg, fshader);
+    glLinkProgram(fill_prg);
+    glGetProgramiv(fill_prg, GL_LINK_STATUS, &linked);
+    if (linked == GL_FALSE) {
+      YGLLOG("Link error..\n");
+      Ygl_printShaderError(fill_prg);
+      fill_prg = -1;
+      return -1;
+    }
+
+    GLUSEPROG(fill_prg);
+    glUniform1i(glGetUniformLocation(fill_prg, "u_Fill"), 0);
+  }
+  else{
+    GLUSEPROG(fill_prg);
+  }
+  glDisable(GL_STENCIL_TEST);
+  glDisable(GL_DEPTH_TEST);
+  glDisable(GL_BLEND);
+
+  glEnableVertexAttribArray(0);
+  glBindBuffer(GL_ARRAY_BUFFER, _Ygl->vertexPosition_buf);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(vertexPosition), vertexPosition, GL_STREAM_DRAW);
+  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+  glEnableVertexAttribArray(0);
+  glEnableVertexAttribArray(1);
+  glBindBuffer(GL_ARRAY_BUFFER, _Ygl->textureCoord_buf);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(textureCoord), textureCoord, GL_STREAM_DRAW);
+  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, 0);
+  glEnableVertexAttribArray(1);
+
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, _Ygl->back_fbotex);
   glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
   // Clean up
@@ -1047,7 +1213,7 @@ int YglBlitTexture(int* prioscreens, int* modescreens, int* isRGB, int * isBlur,
     vdp2blit_prg = Ygl_uniformVDP2DrawFramebuffer(offsetcol, id, varVdp2Regs );
 
 
-  int gltext[20] = {GL_TEXTURE0, GL_TEXTURE1, GL_TEXTURE2, GL_TEXTURE3, GL_TEXTURE4, GL_TEXTURE5, GL_TEXTURE6, GL_TEXTURE7, GL_TEXTURE8, GL_TEXTURE9, GL_TEXTURE10, GL_TEXTURE11, GL_TEXTURE12, GL_TEXTURE13, GL_TEXTURE14, GL_TEXTURE15, GL_TEXTURE16, GL_TEXTURE17, GL_TEXTURE18, GL_TEXTURE19};
+  int gltext[21] = {GL_TEXTURE0, GL_TEXTURE1, GL_TEXTURE2, GL_TEXTURE3, GL_TEXTURE4, GL_TEXTURE5, GL_TEXTURE6, GL_TEXTURE7, GL_TEXTURE8, GL_TEXTURE9, GL_TEXTURE10, GL_TEXTURE11, GL_TEXTURE12, GL_TEXTURE13, GL_TEXTURE14, GL_TEXTURE15, GL_TEXTURE16, GL_TEXTURE17, GL_TEXTURE18, GL_TEXTURE19, GL_TEXTURE20};
   int useLnclRBG0 = 0;
   int useLnclRBG1 = 0;
   for (int i = 0; i< 6; i++) {
@@ -1101,30 +1267,31 @@ int YglBlitTexture(int* prioscreens, int* modescreens, int* isRGB, int * isBlur,
   glUniform1i(glGetUniformLocation(vdp2blit_prg, "s_lncl_off_rgb0"), 17);
   glUniform1i(glGetUniformLocation(vdp2blit_prg, "s_lncl_off_rgb1"), 18);
   glUniform1f(glGetUniformLocation(vdp2blit_prg, "u_emu_height"),(float)_Ygl->rheight / (float)_Ygl->height);
+  glUniform1f(glGetUniformLocation(vdp2blit_prg, "u_vdp2_h_density"), _Ygl->vdp2hdensity);
   YGLLOG("All: \n\
     rheight %d\n\
     height %d\n\
     vdp1 height %d\n \
-    vdp1 HRatio %f\n\
+    vdp1 Ratio %f\n\
     vdp1hdensity %f\n\
     vdp2hdensity %f\n\
     ",
     _Ygl->rheight,
     _Ygl->height,
     _Ygl->vdp1height,
-    _Ygl->vdp1hratio,
+    _Ygl->vdp1ratio,
     _Ygl->vdp1hdensity,
     _Ygl->vdp2hdensity
     );
-  YGLLOG("result => %f\n", _Ygl->vdp1hratio*_Ygl->vdp1hdensity/_Ygl->vdp2hdensity * (float)_Ygl->rheight/(float)_Ygl->height);
+  YGLLOG("result => %f\n", _Ygl->vdp1ratio*_Ygl->vdp1hdensity/_Ygl->vdp2hdensity * (float)_Ygl->rheight/(float)_Ygl->height);
 
   glUniform2f(glGetUniformLocation(vdp2blit_prg, "u_emu_vdp1_ratio"),
-    _Ygl->vdp1wratio*_Ygl->vdp1wdensity/_Ygl->vdp2wdensity * (float)_Ygl->rwidth/(float)_Ygl->width,
-    _Ygl->vdp1hratio*_Ygl->vdp1hdensity/_Ygl->vdp2hdensity * (float)_Ygl->rheight/(float)_Ygl->height
+    _Ygl->vdp1ratio*_Ygl->vdp1wdensity/_Ygl->vdp2wdensity * (float)_Ygl->rwidth/(float)_Ygl->width,
+    _Ygl->vdp1ratio*_Ygl->vdp1hdensity/_Ygl->vdp2hdensity * (float)_Ygl->rheight/(float)_Ygl->height
   );
   glUniform1f(glGetUniformLocation(vdp2blit_prg, "u_emu_vdp2_width"),(float)(_Ygl->width) / (float)(_Ygl->rwidth));
   glUniform1f(glGetUniformLocation(vdp2blit_prg, "u_vheight"), (float)_Ygl->height);
-  glUniform2f(glGetUniformLocation(vdp2blit_prg, "vdp1Ratio"), _Ygl->vdp1wratio, _Ygl->vdp1hratio);//((float)_Ygl->rwidth*(float)_Ygl->vdp1wratio * (float)_Ygl->vdp1wdensity)/((float)_Ygl->vdp1width*(float)_Ygl->vdp2wdensity), ((float)_Ygl->rheight*(float)_Ygl->vdp1hratio * (float)_Ygl->vdp1hdensity)/((float)_Ygl->vdp1height * (float)_Ygl->vdp2hdensity));
+  glUniform2f(glGetUniformLocation(vdp2blit_prg, "vdp1Ratio"), _Ygl->vdp1ratio, _Ygl->vdp1ratio);//((float)_Ygl->rwidth*(float)_Ygl->vdp1ratio * (float)_Ygl->vdp1wdensity)/((float)_Ygl->vdp1width*(float)_Ygl->vdp2wdensity), ((float)_Ygl->rheight*(float)_Ygl->vdp1ratio * (float)_Ygl->vdp1hdensity)/((float)_Ygl->vdp1height * (float)_Ygl->vdp2hdensity));
   glUniform1i(glGetUniformLocation(vdp2blit_prg, "ram_mode"), Vdp2Internal.ColorMode);
   glUniform1i(glGetUniformLocation(vdp2blit_prg, "extended_cc"), ((varVdp2Regs->CCCTL & 0x8400) == 0x400) );
   glUniform1i(glGetUniformLocation(vdp2blit_prg, "u_lncl"),lncl_val); //_Ygl->prioVa
@@ -1145,20 +1312,20 @@ int YglBlitTexture(int* prioscreens, int* modescreens, int* isRGB, int * isBlur,
   glUniform1i(glGetUniformLocation(vdp2blit_prg, "win1"), Win1);
   glUniform1i(glGetUniformLocation(vdp2blit_prg, "win1_mode"), Win1_mode);
   glUniform1i(glGetUniformLocation(vdp2blit_prg, "win_op"), Win_op);
-#ifndef __LIBRETRO__
-  if (((varVdp2Regs->TVMD>>6)&0x3) == 0){
+// #ifndef __LIBRETRO__
+  if (_Ygl->interlace == NORMAL_INTERLACE){
     //double density interlaced or progressive _ Do not mix fields. Maybe required by double density. To check
     glUniform1i(glGetUniformLocation(vdp2blit_prg, "nbFrame"),2);
   } else {
     //Single density
-    if (((varVdp2Regs->TVSTAT>>1)&0x1)==1)
+    if (((varVdp2Regs->TVSTAT>>1)&0x1)==0)
     glUniform1i(glGetUniformLocation(vdp2blit_prg, "nbFrame"),1);
     else
     glUniform1i(glGetUniformLocation(vdp2blit_prg, "nbFrame"),0);
   }
-#else
-  glUniform1i(glGetUniformLocation(vdp2blit_prg, "nbFrame"),-1);
-#endif
+// #else
+  // glUniform1i(glGetUniformLocation(vdp2blit_prg, "nbFrame"),-1);
+// #endif
 
   YglMatrix m;
 
@@ -1214,7 +1381,7 @@ int YglBlitTexture(int* prioscreens, int* modescreens, int* isRGB, int * isBlur,
   }
 
   glActiveTexture(gltext[7]);
-  glBindTexture(GL_TEXTURE_2D, _Ygl->back_fbotex[0]);
+  glBindTexture(GL_TEXTURE_2D, _Ygl->back_fbotex);
 
   if (_Ygl->linecolorscreen_tex != 0){
     glActiveTexture(gltext[8]);
@@ -1240,7 +1407,7 @@ int YglBlitTexture(int* prioscreens, int* modescreens, int* isRGB, int * isBlur,
   glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
   // Clean up
-  for (int i = 0; i<20; i++) {
+  for (int i = 0; i<21; i++) {
     glActiveTexture(gltext[i]);
     glBindTexture(GL_TEXTURE_2D, 0);
   }
@@ -1633,6 +1800,7 @@ static int u_h = -1;
 static int u_l = -1;
 static int u_d = -1;
 static int u_f = -1;
+static int u_s = -1;
 static int outputSize = -1;
 static int inputSize = -1;
 
@@ -1659,6 +1827,7 @@ static const char fblit_head[] =
   "uniform vec2 lineNumber; \n"
   "uniform float decim; \n"
   "uniform int field; \n"
+  "uniform int scale; \n"
   "in highp vec2 vTexCoord;     \n"
   "uniform sampler2D u_Src;     \n"
   "out vec4 fragColor; \n";
@@ -1668,6 +1837,11 @@ static const char fblit_img[] =
   "{   \n"
 "	fragColor = Filter( u_Src, vTexCoord ); \n";
 
+  static const char fblit_retro_img[] =
+  "void main()\n"
+  "{\n"
+  " fragColor = Filter( u_Src, vTexCoord ); \n";
+
 static const char fblit_img_end[] =
   "} \n";
 
@@ -1676,63 +1850,54 @@ static const char fblitnear_img[] =
   "{ \n"
   "     return texture( textureSampler, TexCoord ) ; \n"
   "} \n";
+static const char fblitnear_interlace_img[] =
+  "vec4 Filter( sampler2D textureSampler, vec2 TexCoord ) \n"
+  "{ \n"
+  "     ivec2 texSize = textureSize(textureSampler,0);\n"
+  "     ivec2 coord = ivec2(texSize*TexCoord);\n"
+  "     return texelFetch( textureSampler, coord, 0);\n"
+  "} \n";
 
-  static const char fbobsecure_img[] =
+  static const char fboadaptative_img[] =
     "vec4 Filter( sampler2D textureSampler, vec2 TexCoord ) \n"
     "{ \n"
     "    ivec2 coord = ivec2(vec2(textureSize(textureSampler,0))*TexCoord);\n"
     "    vec4 cur = texture( textureSampler, TexCoord ); \n"
-    "    if ((coord.y&0x1)==0x1) {\n"
-    "     vec4 val1 = texelFetch( textureSampler, ivec2(coord.x,coord.y-1) , 0 ); \n"
-    "     vec4 val2 = texelFetch( textureSampler, ivec2(coord.x,coord.y+1) , 0 ); \n"
+    "    if ((int(coord.y/scale)&0x1)==0x1) {\n"
+    "     vec4 val1 = texelFetch( textureSampler, ivec2(coord.x,coord.y-scale) , 0 ); \n"
+    "     vec4 val2 = texelFetch( textureSampler, ivec2(coord.x,coord.y+scale) , 0 ); \n"
     "     vec4 interpol = mix( val1, val2,vec4(0.5)); \n"
     "     if (distance(val1, val2) > 0.5f) return interpol;\n"
     "     if (distance(cur, interpol) < 0.15f) return cur; else return interpol;\n"
-    "}\n"
-    " else"
+    "    }\n"
+    "    else"
     "     return cur; \n"
     "} \n";
 
-    static const char fbobsecure_debug_img[] =
+    static const char fboadaptative_debug_img[] =
       "vec4 Filter( sampler2D textureSampler, vec2 TexCoord ) \n"
       "{ \n"
       "    ivec2 coord = ivec2(vec2(textureSize(textureSampler,0))*TexCoord);\n"
       "    vec4 cur = texture( textureSampler, TexCoord ); \n"
-      "    if ((coord.y&0x1)==0x1) {\n"
-      "     vec4 val1 = texelFetch( textureSampler, ivec2(coord.x,coord.y-1) , 0 ); \n"
-      "     vec4 val2 = texelFetch( textureSampler, ivec2(coord.x,coord.y+1) , 0 ); \n"
+      "    if ((int(coord.y/scale)&0x1)==0x1) {\n"
+      "     vec4 val1 = texelFetch( textureSampler, ivec2(coord.x,coord.y-scale) , 0 ); \n"
+      "     vec4 val2 = texelFetch( textureSampler, ivec2(coord.x,coord.y+scale) , 0 ); \n"
       "     vec4 interpol = mix( val1, val2,vec4(0.5)); \n"
       "     if (distance(val1, val2) > 0.5f) return vec4(0.0,1.0,0.0,1.0);\n"
       "     if (distance(cur, interpol) < 0.15f) return vec4(1.0,0.0,0.0,1.0); else return vec4(0.0,1.0,0.0,1.0);\n"
-      "}\n"
-      " else"
+      "    }\n"
+      "    else"
       "     return cur; \n"
       "} \n";
 
-    static const char fbobossc_img[] =
+    static const char fbobob_img[] =
       "vec4 Filter( sampler2D textureSampler, vec2 TexCoord ) \n"
       "{ \n"
       "    ivec2 coord = ivec2(vec2(textureSize(textureSampler,0))*TexCoord);\n"
-      "    vec4 cur = texture( textureSampler, TexCoord ); \n"
-      "    if ((coord.y&0x1)!=field) {\n"
-      "     vec4 cur = texelFetch( textureSampler, ivec2(coord.x,coord.y-1) , 0 ); \n"
-      "     return cur; \n"
-      "}\n"
-      " else"
-      "     return cur; \n"
+      "    coord.y = (((coord.y/scale)&~0x1) + field)*scale;\n"
+      "    return texelFetch( textureSampler, ivec2(coord.x,coord.y) , 0 ); \n"
       "} \n";
 
-      static const char fbobossc_debug_img[] =
-        "vec4 Filter( sampler2D textureSampler, vec2 TexCoord ) \n"
-        "{ \n"
-        "    ivec2 coord = ivec2(vec2(textureSize(textureSampler,0))*TexCoord);\n"
-        "    vec4 cur = texture( textureSampler, TexCoord ); \n"
-        "    if ((coord.y&0x1)!=field) {\n"
-        "     return vec4(1.0,0.0,0.0,1.0); \n"
-        "}\n"
-        " else"
-        "     return cur; \n"
-        "} \n";
 
 static const char fblitbilinear_img[] =
   "// Function to get a texel data from a texture with GL_NEAREST property. \n"
@@ -1765,22 +1930,27 @@ static const char fblitbilinear_img[] =
 GLuint textureCoord_buf[2] = {0,0};
 
 static int last_upmode = 0;
+static InterlaceMode last_interlace = NORMAL_INTERLACE;
 
 int YglBlitFramebuffer(u32 srcTexture, float w, float h, float dispw, float disph) {
   float width = w;
   float height = h;
   int decim;
   u32 tex = srcTexture;
+  const GLchar * fblit_img_retro_v[] = { fblit_head, fblitnear_img, fblit_retro_img, fblit_img_end, NULL };
+  const GLchar * fblit_img_retro_interlace_v[] = { fblit_head, fblitnear_interlace_img, fblit_retro_img, fblit_img_end, NULL };
   const GLchar * fblit_img_v[] = { fblit_head, fblitnear_img, fblit_img, fblit_img_end, NULL };
+  const GLchar * fblit_img_interlace_v[] = { fblit_head, fblitnear_interlace_img, fblit_img, fblit_img_end, NULL };
   const GLchar * fblitbilinear_img_v[] = { fblit_head, fblitnear_img, fblit_img, fblit_img_end, NULL };
+  const GLchar * fblitbilinear_img_interlace_v[] = { fblit_head, fblitnear_interlace_img, fblit_img, fblit_img_end, NULL };
   const GLchar * fblitbicubic_img_v[] = { fblit_head, fblitbicubic_img, fblit_img, fblit_img_end, NULL };
   const GLchar * fblit_img_scanline_is_v[] = { fblit_head, fblitnear_img, fblit_img, Yglprg_blit_scanline_is_f, fblit_img_end, NULL };
+  const GLchar * fblit_img_scanline_is_interlace_v[] = { fblit_head, fblitnear_interlace_img, fblit_img, Yglprg_blit_scanline_interlace_is_f, fblit_img_end, NULL };
 
-  const GLchar * fblit_bob_secure_img_v[] = { fblit_head, fbobsecure_img, fblit_img, fblit_img_end, NULL };
-  const GLchar * fblit_bob_secure_debug_img_v[] = { fblit_head, fbobsecure_debug_img, fblit_img, fblit_img_end, NULL };
+  const GLchar * fblit_adaptative_img_v[] = { fblit_head, fboadaptative_img, fblit_img, fblit_img_end, NULL };
+  const GLchar * fblit_adaptative_debug_img_v[] = { fblit_head, fboadaptative_debug_img, fblit_img, fblit_img_end, NULL };
 
-  const GLchar * fblit_bob_ossc_img_v[] = { fblit_head, fbobossc_img, fblit_img, fblit_img_end, NULL };
-  const GLchar * fblit_bob_ossc_debug_img_v[] = { fblit_head, fbobossc_debug_img, fblit_img, fblit_img_end, NULL };
+  const GLchar * fblit_bob_img_v[] = { fblit_head, fbobob_img, fblit_img, fblit_img_end, NULL };
 
   int aamode = _Ygl->aamode;
 
@@ -1801,7 +1971,10 @@ int YglBlitFramebuffer(u32 srcTexture, float w, float h, float dispw, float disp
     1.0f, 1.0f };
 
   float nbLines = h;//yabsys.IsPal?625.0f:525.0f;
-  if (_Ygl->stretch == 2) nbLines = height;
+#ifdef __LIBRETRO__
+  nbLines = height;
+#endif
+  if ((_Ygl->stretch == INTEGER_RATIO) || (_Ygl->stretch == INTEGER_RATIO_FULL)) nbLines = height;
 
   if (_Ygl->upmode != UP_NONE) {
     int scale = 1;
@@ -1824,12 +1997,12 @@ int YglBlitFramebuffer(u32 srcTexture, float w, float h, float dispw, float disp
     height = scale*_Ygl->rheight;
   }
   //if ((aamode == AA_NONE) && ((w != dispw) || (h != disph))) aamode = AA_BILINEAR_FILTER;
-  if (((Vdp2Regs->TVMD>>6)&0x3) == 0) {
-    if (aamode >= AA_BOB_SECURE_FILTER) {
+  if (_Ygl->interlace == NORMAL_INTERLACE) {
+    if ((aamode >= AA_ADAPTATIVE_FILTER) && (aamode < AA_SCANLINE)) {
       aamode = AA_NONE;
     }
   }
-  if ((blit_prg == -1) || (blit_mode != aamode)){
+  if ((blit_prg == -1) || (blit_mode != aamode) || (last_interlace != _Ygl->interlace)){
     GLuint vshader;
     GLuint fshader;
     GLint compiled, linked;
@@ -1842,6 +2015,7 @@ int YglBlitFramebuffer(u32 srcTexture, float w, float h, float dispw, float disp
     }
 
     blit_mode = aamode;
+    last_interlace = _Ygl->interlace;
 
     YGLLOG("BLIT_FRAMEBUFFER\n");
 
@@ -1857,32 +2031,45 @@ int YglBlitFramebuffer(u32 srcTexture, float w, float h, float dispw, float disp
       blit_prg = -1;
       return -1;
     }
+#ifndef __LIBRETRO__
     switch(aamode) {
       case AA_NONE:
-        glShaderSource(fshader, 4, fblit_img_v, NULL);
+        if (_Ygl->interlace == NORMAL_INTERLACE)
+          glShaderSource(fshader, 4, fblit_img_v, NULL);
+        else
+          glShaderSource(fshader, 4, fblit_img_interlace_v, NULL);
         break;
       case AA_BILINEAR_FILTER:
-        glShaderSource(fshader, 4, fblitbilinear_img_v, NULL);
+        if (_Ygl->interlace == NORMAL_INTERLACE)
+          glShaderSource(fshader, 4, fblitbilinear_img_v, NULL);
+        else
+          glShaderSource(fshader, 4, fblitbilinear_img_interlace_v, NULL);
         break;
       case AA_BICUBIC_FILTER:
         glShaderSource(fshader, 4, fblitbicubic_img_v, NULL);
         break;
-      case AA_BOB_SECURE_FILTER:
-        glShaderSource(fshader, 4, fblit_bob_secure_img_v, NULL);
+      case AA_ADAPTATIVE_FILTER:
+        glShaderSource(fshader, 4, fblit_adaptative_img_v, NULL);
         break;
-      case AA_BOB_SECURE_DEBUG_FILTER:
-        glShaderSource(fshader, 4, fblit_bob_secure_debug_img_v, NULL);
+      case AA_ADAPTATIVE_DEBUG_FILTER:
+        glShaderSource(fshader, 4, fblit_adaptative_debug_img_v, NULL);
         break;
-      case AA_BOB_OSSC_FILTER:
-        glShaderSource(fshader, 4, fblit_bob_ossc_img_v, NULL);
-        break;
-      case AA_BOB_OSSC_DEBUG_FILTER:
-        glShaderSource(fshader, 4, fblit_bob_ossc_debug_img_v, NULL);
+      case AA_BOB_FILTER:
+        glShaderSource(fshader, 4, fblit_bob_img_v, NULL);
         break;
       case AA_SCANLINE:
-        glShaderSource(fshader, 5, fblit_img_scanline_is_v, NULL);
+        if (_Ygl->interlace == NORMAL_INTERLACE)
+          glShaderSource(fshader, 5, fblit_img_scanline_is_v, NULL);
+        else
+          glShaderSource(fshader, 5, fblit_img_scanline_is_interlace_v, NULL);
         break;
     }
+#else
+    if (_Ygl->interlace == NORMAL_INTERLACE)
+      glShaderSource(fshader, 4, fblit_img_retro_v, NULL);
+    else
+      glShaderSource(fshader, 4, fblit_img_retro_interlace_v, NULL);
+#endif
     glCompileShader(fshader);
     glGetShaderiv(fshader, GL_COMPILE_STATUS, &compiled);
     if (compiled == GL_FALSE) {
@@ -1910,6 +2097,7 @@ int YglBlitFramebuffer(u32 srcTexture, float w, float h, float dispw, float disp
     u_l = glGetUniformLocation(blit_prg, "lineNumber");
     u_d = glGetUniformLocation(blit_prg, "decim");
     u_f = glGetUniformLocation(blit_prg, "field");
+    u_s = glGetUniformLocation(blit_prg, "scale");
   }
   else{
     GLUSEPROG(blit_prg);
@@ -1942,6 +2130,7 @@ int YglBlitFramebuffer(u32 srcTexture, float w, float h, float dispw, float disp
   if (decim < 2) decim = 2;
   glUniform1f(u_d, (float)decim);
   glUniform1i(u_f, (Vdp2Regs->TVSTAT>>1)&0x1);
+  glUniform1i(u_s, _Ygl->vdp1ratio);
 
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, tex);
@@ -2013,7 +2202,6 @@ static int u_mosaic_th = -1;
 static int u_mosaic = -1;
 
 int YglBlitMosaic(u32 srcTexture, float w, float h, GLfloat* matrix, int * mosaic) {
-
   float vb[] = { 0, 0,
     2.0, 0.0,
     2.0, 2.0,

@@ -388,7 +388,7 @@ static const GLchar Yglprg_vdp2_sprite_type_E[] =
 static const GLchar Yglprg_vdp2_sprite_type_F[] =
 "FBCol getVDP1PixelCode(vec2 col, bool odd) {\n"
 "//Sprite type F\n"
-"  if (odd && ((uint(col.y*255.0) & 0x80u)==0x80u)) col.x = float(uint(col.x * 255.0) | 0x80u)/255.0\n;"
+"  if (odd && ((uint(col.y*255.0) & 0x80u)==0x80u)) col.x = float(uint(col.x * 255.0) | 0x80u)/255.0;\n"
 "  FBCol ret = zeroFBCol();\n"
 "  if (col.x != 0.0) ret.valid = 1;\n"
 "  else return ret;\n"
@@ -517,9 +517,12 @@ static const GLchar Yglprg_vdp2_common_start[] =
 " ret.b = float((((colindex & 0x7C00) >> 10) & 0x1F)<<3)/255.0;\n"
  " return ret;\n"
 "}\n"
-
-"vec4 getColoredPixel(int idx){ \n"
-"  return texelFetch( s_color,  ivec2( idx ,0 )  , 0 );"
+"int getColorLine(int line){\n"
+"  vec4 val = texelFetch(s_color_map, ivec2(line, 0), 0);\n"
+"  return (int(val.g*255.0)<<8)|int(val.r*255.0);\n"
+"}\n"
+"vec4 getColoredPixel(int idx, int line){ \n"
+"  return texelFetch( s_color,  ivec2( idx , getColorLine(int(float(line)/u_vdp2_h_density)) )  , 0 );\n"
 "}\n"
 
 "vec2 getVec2(int colindex) {\n"
@@ -553,7 +556,7 @@ static const GLchar Yglprg_vdp2_common_draw[] =
 "      if( mesh.isRGB == 0 ){ \n"// index color?
 "        if( mesh.code != 0 || meshdepth != 0){\n"
 "          mesh.code = mesh.code + u_color_ram_offset; \n"
-"          meshcol = getColoredPixel(mesh.code); \n"
+"          meshcol = getColoredPixel(mesh.code, line); \n"
 "        } else { \n"
 "          meshcol = vec4(0.0);\n"
 "        }\n"
@@ -576,7 +579,7 @@ static const GLchar Yglprg_vdp2_common_draw[] =
 "  if( ret.isRGB == 0 ){  // index color? \n"
 "    if( ret.code != 0 || depth != 0){\n"
 "      ret.code = ret.code + u_color_ram_offset; \n"
-"      txcol = getColoredPixel(ret.code); \n"
+"      txcol = getColoredPixel(ret.code, line); \n"
 "      tmpColor = txcol;\n"
 "      if (txcol.a != 0.0) msb = 1;\n"
 "      else msb = 0;\n"
@@ -1175,7 +1178,9 @@ ivec2 addr = ivec2(textureSize(s_back, 0) * v_texcoord.st);\n \
 colorback = texelFetch( s_back, addr,0 );\n \
 ivec2 linepos = ivec2(int(PosY * u_emu_height), 0);\n \
 linepos.y = is_perline[7];\n \
-if (mod(PosY,2) == nbFrame) discard;\n \
+if ((int(PosY/vdp1Ratio.y)&0x1) == nbFrame) {\n \
+  discard;\n \
+};\n \
 offset_color = texelFetch( s_perline, linepos,0 ).rgb;\n \
 offset_color.rgb = (offset_color.rgb - vec3(0.5))*2.0;\n \
 addr = ivec2(gl_FragCoord.xy);\n \
@@ -1206,11 +1211,7 @@ if (is_lncl_off["Stringify(ID)"] == 2) needColorOffRBG1 = true;\n \
 vdp2col"Stringify(ID)" = getPixel( s_texture"Stringify(ID)", v_texcoord.st, 0, 0 ); \n \
 linepos.y = is_perline["Stringify(ID)"];\n \
 offcol"Stringify(ID)" = texelFetch( s_perline, linepos,0 );\n \
-if (offcol"Stringify(ID)" == vec4(0.0)) vdp2col"Stringify(ID)" = vec4(0.0);\n \
-else {\n \
-  offcol"Stringify(ID)".rgb = (offcol"Stringify(ID)".rgb - vec3(0.5))*2.0;\n \
-  if (offcol"Stringify(ID)".a > 0.0) vdp2col"Stringify(ID)".a = float(int(offcol"Stringify(ID)".a * 255.0) | (int(vdp2col"Stringify(ID)".a * 255.0) & 0x7))/255.0;\n \
-}\n \
+offcol"Stringify(ID)".rgb = (offcol"Stringify(ID)".rgb - vec3(0.5))*2.0;\n \
 "
 
 #define COMMON_GET_PRIORITY_SCREEN_FB "\
