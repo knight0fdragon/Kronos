@@ -123,7 +123,7 @@ UIMemoryEditor::UIMemoryEditor( enum UIDebugCPU::PROCTYPE proc, YabauseThread *m
       saMemoryEditor->setEnabled(false);
       pbGotoAddress->setEnabled(false);
       pbSaveSelected->setEnabled(false);
-	    pbSaveTab->setEnabled(false);
+	  pbSaveTab->setEnabled(false);
       pbSearchMemory->setEnabled(false);
    }
    else

@@ -65,6 +65,11 @@ extern VideoInterface_struct *VIDCoreList[];
 }
 
 //#define USE_UNIFIED_TITLE_TOOLBAR
+void UIYabause::sendThreadReset()
+{
+	mLocker = new YabauseLocker(mYabauseThread, ACTION_RESET);
+	mLocker->lock();
+};
 
 void UIYabause::threadInitialized() {
 	VolatileSettings* vs = QtYabause::volatileSettings();
@@ -73,7 +78,7 @@ void UIYabause::threadInitialized() {
 		STVGetRomList(path, 0);
 	}
 }
-
+QMutex mutex;
 UIYabause::UIYabause( QWidget* parent )
 	: QMainWindow( parent )
 {
@@ -198,9 +203,31 @@ UIYabause::UIYabause( QWidget* parent )
 	showMenuBarHeight = menubar->height();
 	translations = QtYabause::getTranslationList();
 }
-
+extern "C" {
+	  extern char LogFile[];
+	  extern int LogIndex;
+	 /* extern char netlinkSendBuffer[];
+	  extern int netlinkSendLen;
+	  extern char netlinkRecvBuffer[];
+	  extern int netlinkRecvLen;*/
+}
 UIYabause::~UIYabause()
 {
+#if PATCH
+	FILE* fp = fopen("netLogPatched.txt", "wb");
+	//FILE* fp2 = fopen("netLogBytesSendPatched.txt", "wb");
+	//FILE* fp3 = fopen("netLogBytesRecvPatched.txt", "wb");
+#else
+	FILE* fp = fopen("netLogOrig.txt", "wb");
+	//FILE* fp2 = fopen("netLogBytesSendOrig.txt", "wb");
+	//FILE* fp3 = fopen("netLogBytesRecvOrig.txt", "wb");
+#endif
+	fwrite(LogFile, LogIndex, 1, fp);
+	/*fwrite(netlinkSendBuffer, 1, netlinkSendLen, fp2);
+	fwrite(netlinkRecvBuffer, 1, netlinkRecvLen, fp3);*/
+	fclose(fp);
+	// fclose(fp2);
+	 //fclose(fp3);
 	mCanLog = false;
 }
 
@@ -949,7 +976,9 @@ void UIYabause::on_aFileScreenshot_triggered()
 }
 
 void UIYabause::on_aFileQuit_triggered()
-{ close(); }
+{ 
+	close();
+}
 
 void UIYabause::on_aEmulationRun_triggered()
 {
@@ -1050,10 +1079,12 @@ void UIYabause::on_aViewFullscreen_triggered( bool b )
 	fullscreenRequested( b );
 }
 
+
 void UIYabause::breakpointHandlerMSH2(breakpoint_userdata *userdata)
 {
 	ScspMuteAudio(SCSP_MUTE_SYSTEM);
 	if (userdata) {
+		
 		if (userdata->PCAddress == userdata->BPAddress) {
 			if (CommonDialogs::information( QtYabause::translate( "MSH2 reached code breakpoint at " ).append("0x%1").arg(userdata->PCAddress, 0, 16)))
 			UIDebugSH2(UIDebugCPU::PROC_MSH2, mYabauseThread, this ).exec();

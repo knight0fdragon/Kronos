@@ -20,7 +20,7 @@
 
 #ifndef SH2CORE_H
 #define SH2CORE_H
-
+#define PATCH 1
 #include "core.h"
 #include "threads.h"
 
@@ -107,6 +107,8 @@ typedef struct
    u32 PR;
    u32 PC;
 } sh2regs_struct;
+extern void UpdatePC(u32 PC);
+
 
 typedef struct
 {
@@ -431,6 +433,7 @@ void SH2IntcSetIrl(SH2_struct *sh, u8 irl, u8 d);
 void SH2IntcSetNmi(SH2_struct *sh);
 void SH2EvaluateInterrupt(SH2_struct *sh);
 
+typedef struct SH2_struct_s SH2_struct_s, * pno;
 typedef struct SH2_struct_s
 {
    sh2regs_struct regs;
@@ -438,7 +441,7 @@ typedef struct SH2_struct_s
    u8 isAccessingCPUBUS;
    u8 isAccessingVram;
    u8 isBlocked;
-
+   pno(*UpdatePC)(SH2_struct_s*,u32);
    struct
    {
       u32 leftover;

@@ -386,7 +386,7 @@ static void FASTCALL SH2bf(SH2_struct * sh)
    }
    else
    {
-      sh->regs.PC+=2;
+      sh->UpdatePC(sh,sh->regs.PC + 2);
       sh->cycles++;
    }
 }
@@ -503,7 +503,7 @@ static void FASTCALL SH2bts(SH2_struct * sh)
    }
    else
    {
-      sh->regs.PC+=2;
+      sh->UpdatePC(sh,sh->regs.PC + 2);
       sh->cycles++;
    }
 }
@@ -560,7 +560,7 @@ static void FASTCALL SH2cmpgt(SH2_struct * sh)
       sh->regs.SR.part.T = 1;
    else
       sh->regs.SR.part.T = 0;
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -573,7 +573,7 @@ static void FASTCALL SH2cmphi(SH2_struct * sh)
       sh->regs.SR.part.T = 1;
    else
       sh->regs.SR.part.T = 0;
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -586,7 +586,7 @@ static void FASTCALL SH2cmphs(SH2_struct * sh)
       sh->regs.SR.part.T = 1;
    else
       sh->regs.SR.part.T = 0;
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -603,7 +603,7 @@ static void FASTCALL SH2cmpim(SH2_struct * sh)
       sh->regs.SR.part.T = 1;
    else
       sh->regs.SR.part.T = 0;
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -615,7 +615,7 @@ static void FASTCALL SH2cmppl(SH2_struct * sh)
       sh->regs.SR.part.T = 1;
    else
       sh->regs.SR.part.T = 0;
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -627,7 +627,7 @@ static void FASTCALL SH2cmppz(SH2_struct * sh)
       sh->regs.SR.part.T = 1;
    else
       sh->regs.SR.part.T = 0;
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -649,7 +649,7 @@ static void FASTCALL SH2cmpstr(SH2_struct * sh)
       sh->regs.SR.part.T = 1;
    else
       sh->regs.SR.part.T = 0;
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -1033,7 +1033,7 @@ static void FASTCALL SH2ldcvbr(SH2_struct * sh)
 static void FASTCALL SH2ldsmach(SH2_struct * sh)
 {
    sh->regs.MACH = sh->regs.R[INSTRUCTION_B(sh->instruction)];
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -1199,7 +1199,7 @@ static void FASTCALL SH2macl(SH2_struct * sh)
       sh->regs.MACL=Res0;
    }
 #endif
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles += 3;
 }
 
@@ -1292,7 +1292,7 @@ static void FASTCALL SH2macw(SH2_struct * sh)
       if (templ>sh->regs.MACL)
          sh->regs.MACH+=1;
    }
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles += 3;
 }
 #endif
@@ -1302,7 +1302,7 @@ static void FASTCALL SH2macw(SH2_struct * sh)
 static void FASTCALL SH2mov(SH2_struct * sh)
 {
    sh->regs.R[INSTRUCTION_B(sh->instruction)]=sh->regs.R[INSTRUCTION_C(sh->instruction)];
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -1313,7 +1313,7 @@ static void FASTCALL SH2mova(SH2_struct * sh)
    s32 disp = INSTRUCTION_CD(sh->instruction);
 
    sh->regs.R[0]=((sh->regs.PC+4)&0xFFFFFFFC)+(disp<<2);
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -1349,7 +1349,7 @@ static void FASTCALL SH2movbl4(SH2_struct * sh)
    s32 disp = INSTRUCTION_D(sh->instruction);
 
    sh->regs.R[0] = (s32)(s8)SH2MappedMemoryReadByte(sh, sh->regs.R[m] + disp);
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -1360,7 +1360,7 @@ static void FASTCALL SH2movblg(SH2_struct * sh)
    s32 disp = INSTRUCTION_CD(sh->instruction);
 
    sh->regs.R[0] = (s32)(s8)SH2MappedMemoryReadByte(sh, sh->regs.GBR + disp);
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -1421,7 +1421,7 @@ static void FASTCALL SH2movbs4(SH2_struct * sh)
    s32 n = INSTRUCTION_C(sh->instruction);
 
    SH2MappedMemoryWriteByte(sh, sh->regs.R[n]+disp,sh->regs.R[0]);
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -1498,7 +1498,7 @@ static void FASTCALL SH2movllg(SH2_struct * sh)
    s32 disp = INSTRUCTION_CD(sh->instruction);
 
    sh->regs.R[0] = SH2MappedMemoryReadLong(sh, sh->regs.GBR + (disp << 2));
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -1570,7 +1570,7 @@ static void FASTCALL SH2movlsg(SH2_struct * sh)
    s32 disp = INSTRUCTION_CD(sh->instruction);
 
    SH2MappedMemoryWriteLong(sh, sh->regs.GBR+(disp<<2),sh->regs.R[0]);
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -1591,7 +1591,7 @@ static void FASTCALL SH2movwi(SH2_struct * sh)
    s32 n = INSTRUCTION_B(sh->instruction);
 
    sh->regs.R[n] = (s32)(s16)SH2MappedMemoryReadWord(sh, sh->regs.PC + (disp<<1) + 4);
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -1615,7 +1615,7 @@ static void FASTCALL SH2movwl0(SH2_struct * sh)
    s32 n = INSTRUCTION_B(sh->instruction);
 
    sh->regs.R[n] = (s32)(s16)SH2MappedMemoryReadWord(sh, sh->regs.R[m]+sh->regs.R[0]);
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -1627,7 +1627,7 @@ static void FASTCALL SH2movwl4(SH2_struct * sh)
    s32 disp = INSTRUCTION_D(sh->instruction);
 
    sh->regs.R[0] = (s32)(s16)SH2MappedMemoryReadWord(sh, sh->regs.R[m]+(disp<<1));
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -1687,7 +1687,7 @@ static void FASTCALL SH2movws0(SH2_struct * sh)
 {
    SH2MappedMemoryWriteWord(sh, sh->regs.R[INSTRUCTION_B(sh->instruction)] + sh->regs.R[0],
                          sh->regs.R[INSTRUCTION_C(sh->instruction)]);
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -1699,7 +1699,7 @@ static void FASTCALL SH2movws4(SH2_struct * sh)
    s32 n = INSTRUCTION_C(sh->instruction);
 
    SH2MappedMemoryWriteWord(sh, sh->regs.R[n]+(disp<<1),sh->regs.R[0]);
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -1710,7 +1710,7 @@ static void FASTCALL SH2movwsg(SH2_struct * sh)
    s32 disp = INSTRUCTION_CD(sh->instruction);
 
    SH2MappedMemoryWriteWord(sh, sh->regs.GBR+(disp<<1),sh->regs.R[0]);
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -1722,7 +1722,7 @@ static void FASTCALL SH2mull(SH2_struct * sh)
    s32 n = INSTRUCTION_B(sh->instruction);
 
    sh->regs.MACL = sh->regs.R[n] * sh->regs.R[m];
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles += 2;
 }
 
@@ -1746,7 +1746,7 @@ static void FASTCALL SH2mulu(SH2_struct * sh)
    s32 n = INSTRUCTION_B(sh->instruction);
 
    sh->regs.MACL = ((u32)(u16)sh->regs.R[n] * (u32)(u16)sh->regs.R[m]);
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -1755,7 +1755,7 @@ static void FASTCALL SH2mulu(SH2_struct * sh)
 static void FASTCALL SH2neg(SH2_struct * sh)
 {
    sh->regs.R[INSTRUCTION_B(sh->instruction)]=0-sh->regs.R[INSTRUCTION_C(sh->instruction)];
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -1775,7 +1775,7 @@ static void FASTCALL SH2negc(SH2_struct * sh)
       sh->regs.SR.part.T=0;
    if (temp < sh->regs.R[n])
       sh->regs.SR.part.T=1;
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -1852,7 +1852,7 @@ static void FASTCALL SH2rotcl(SH2_struct * sh)
    else
       sh->regs.SR.part.T=0;
 
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -1880,7 +1880,7 @@ static void FASTCALL SH2rotcr(SH2_struct * sh)
    else
       sh->regs.SR.part.T=0;
 
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -1902,7 +1902,7 @@ static void FASTCALL SH2rotl(SH2_struct * sh)
    else
       sh->regs.R[n]&=0xFFFFFFFE;
 
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -1924,7 +1924,7 @@ static void FASTCALL SH2rotr(SH2_struct * sh)
    else
       sh->regs.R[n]&=0x7FFFFFFF;
 
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -1949,7 +1949,7 @@ static void FASTCALL SH2rts(SH2_struct * sh)
    u32 temp;
 
    temp = sh->regs.PC;
-   sh->regs.PC = sh->regs.PR;
+   sh->UpdatePC(sh,sh->regs.PR);
 
    sh->cycles += 2;
    SH2delay(sh, temp + 2);
@@ -2018,7 +2018,7 @@ static void FASTCALL SH2shll(SH2_struct * sh)
       sh->regs.SR.part.T=1;
 
    sh->regs.R[n]<<=1;
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -2027,7 +2027,7 @@ static void FASTCALL SH2shll(SH2_struct * sh)
 static void FASTCALL SH2shll2(SH2_struct * sh)
 {
    sh->regs.R[INSTRUCTION_B(sh->instruction)] <<= 2;
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -2036,7 +2036,7 @@ static void FASTCALL SH2shll2(SH2_struct * sh)
 static void FASTCALL SH2shll8(SH2_struct * sh)
 {
    sh->regs.R[INSTRUCTION_B(sh->instruction)]<<=8;
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -2045,7 +2045,7 @@ static void FASTCALL SH2shll8(SH2_struct * sh)
 static void FASTCALL SH2shll16(SH2_struct * sh)
 {
    sh->regs.R[INSTRUCTION_B(sh->instruction)]<<=16;
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -2061,7 +2061,7 @@ static void FASTCALL SH2shlr(SH2_struct * sh)
       sh->regs.SR.part.T=1;
 
    sh->regs.R[n]>>=1;
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -2071,7 +2071,7 @@ static void FASTCALL SH2shlr2(SH2_struct * sh)
 {
    s32 n = INSTRUCTION_B(sh->instruction);
    sh->regs.R[n]>>=2;
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -2081,7 +2081,7 @@ static void FASTCALL SH2shlr8(SH2_struct * sh)
 {
    s32 n = INSTRUCTION_B(sh->instruction);
    sh->regs.R[n]>>=8;
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -2091,7 +2091,7 @@ static void FASTCALL SH2shlr16(SH2_struct * sh)
 {
    s32 n = INSTRUCTION_B(sh->instruction);
    sh->regs.R[n]>>=16;
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -2101,7 +2101,7 @@ static void FASTCALL SH2stcgbr(SH2_struct * sh)
 {
    s32 n = INSTRUCTION_B(sh->instruction);
    sh->regs.R[n]=sh->regs.GBR;
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -2112,7 +2112,7 @@ static void FASTCALL SH2stcmgbr(SH2_struct * sh)
    s32 n = INSTRUCTION_B(sh->instruction);
    sh->regs.R[n]-=4;
    SH2MappedMemoryWriteLong(sh, sh->regs.R[n],sh->regs.GBR);
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles += 2;
 }
 
@@ -2123,7 +2123,7 @@ static void FASTCALL SH2stcmsr(SH2_struct * sh)
    s32 n = INSTRUCTION_B(sh->instruction);
    sh->regs.R[n]-=4;
    SH2MappedMemoryWriteLong(sh, sh->regs.R[n],sh->regs.SR.all);
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles += 2;
 }
 
@@ -2134,7 +2134,7 @@ static void FASTCALL SH2stcmvbr(SH2_struct * sh)
    s32 n = INSTRUCTION_B(sh->instruction);
    sh->regs.R[n]-=4;
    SH2MappedMemoryWriteLong(sh, sh->regs.R[n],sh->regs.VBR);
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles += 2;
 }
 
@@ -2144,7 +2144,7 @@ static void FASTCALL SH2stcsr(SH2_struct * sh)
 {
    s32 n = INSTRUCTION_B(sh->instruction);
    sh->regs.R[n] = sh->regs.SR.all & 0x3F3;
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -2154,7 +2154,7 @@ static void FASTCALL SH2stcvbr(SH2_struct * sh)
 {
    s32 n = INSTRUCTION_B(sh->instruction);
    sh->regs.R[n]=sh->regs.VBR;
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -2164,7 +2164,7 @@ static void FASTCALL SH2stsmach(SH2_struct * sh)
 {
    s32 n = INSTRUCTION_B(sh->instruction);
    sh->regs.R[n]=sh->regs.MACH;
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -2174,7 +2174,7 @@ static void FASTCALL SH2stsmacl(SH2_struct * sh)
 {
    s32 n = INSTRUCTION_B(sh->instruction);
    sh->regs.R[n]=sh->regs.MACL;
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -2185,7 +2185,7 @@ static void FASTCALL SH2stsmmach(SH2_struct * sh)
    s32 n = INSTRUCTION_B(sh->instruction);
    sh->regs.R[n] -= 4;
    SH2MappedMemoryWriteLong(sh, sh->regs.R[n],sh->regs.MACH);
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -2196,7 +2196,7 @@ static void FASTCALL SH2stsmmacl(SH2_struct * sh)
    s32 n = INSTRUCTION_B(sh->instruction);
    sh->regs.R[n] -= 4;
    SH2MappedMemoryWriteLong(sh, sh->regs.R[n],sh->regs.MACL);
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -2207,7 +2207,7 @@ static void FASTCALL SH2stsmpr(SH2_struct * sh)
    s32 n = INSTRUCTION_B(sh->instruction);
    sh->regs.R[n] -= 4;
    SH2MappedMemoryWriteLong(sh, sh->regs.R[n],sh->regs.PR);
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -2217,7 +2217,7 @@ static void FASTCALL SH2stspr(SH2_struct * sh)
 {
    s32 n = INSTRUCTION_B(sh->instruction);
    sh->regs.R[n] = sh->regs.PR;
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -2228,7 +2228,7 @@ static void FASTCALL SH2sub(SH2_struct * sh)
    s32 m = INSTRUCTION_C(sh->instruction);
    s32 n = INSTRUCTION_B(sh->instruction);
    sh->regs.R[n]-=sh->regs.R[m];
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -2294,7 +2294,7 @@ static void FASTCALL SH2subv(SH2_struct * sh)
    else
       sh->regs.SR.part.T=0;
 
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -2310,7 +2310,7 @@ static void FASTCALL SH2swapb(SH2_struct * sh)
    temp1=(sh->regs.R[m]&0x000000ff)<<8;
    sh->regs.R[n]=(sh->regs.R[m]>>8)&0x000000ff;
    sh->regs.R[n]=sh->regs.R[n]|temp1|temp0;
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -2324,7 +2324,7 @@ static void FASTCALL SH2swapw(SH2_struct * sh)
    temp=(sh->regs.R[m]>>16)&0x0000FFFF;
    sh->regs.R[n]=sh->regs.R[m]<<16;
    sh->regs.R[n]|=temp;
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -2344,7 +2344,7 @@ static void FASTCALL SH2tas(SH2_struct * sh)
 
    temp|=0x00000080;
    SH2MappedMemoryWriteByte(sh, sh->regs.R[n],temp);
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles += 4;
 }
 
@@ -2392,7 +2392,7 @@ static void FASTCALL SH2tsti(SH2_struct * sh)
    else
       sh->regs.SR.part.T = 0;
 
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 
@@ -2411,7 +2411,7 @@ static void FASTCALL SH2tstm(SH2_struct * sh)
    else
       sh->regs.SR.part.T = 0;
 
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles += 3;
 }
 
@@ -2462,7 +2462,7 @@ static void FASTCALL SH2xtrct(SH2_struct * sh)
    temp=(sh->regs.R[m]<<16)&0xFFFF0000;
    sh->regs.R[n]=(sh->regs.R[n]>>16)&0x0000FFFF;
    sh->regs.R[n]|=temp;
-   sh->regs.PC+=2;
+   sh->UpdatePC(sh,sh->regs.PC + 2);
    sh->cycles++;
 }
 

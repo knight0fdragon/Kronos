@@ -148,7 +148,8 @@ static void FASTCALL BiosSetScuInterrupt(SH2_struct * sh)
       SH2MappedMemoryWriteLong(sh, 0x06000900+(sh->regs.R[4] << 2), sh->regs.R[5]);
    }
 
-   sh->regs.PC = sh->regs.PR;
+  // sh->UpdatePC(sh,sh->regs.PR);
+   sh->UpdatePC(sh,sh->regs.PR);
    SH2SetRegisters(sh, &sh->regs);
 }
 
@@ -163,7 +164,7 @@ static void FASTCALL BiosGetScuInterrupt(SH2_struct * sh)
 
    sh->regs.R[0] = SH2MappedMemoryReadLong(sh, 0x06000900+(sh->regs.R[4] << 2));
 
-   sh->regs.PC = sh->regs.PR;
+   sh->UpdatePC(sh,sh->regs.PR);
    SH2SetRegisters(sh, &sh->regs);
 }
 
@@ -184,7 +185,7 @@ static void FASTCALL BiosSetSh2Interrupt(SH2_struct * sh)
       SH2MappedMemoryWriteLong(sh, sh->regs.VBR+(sh->regs.R[4] << 2), sh->regs.R[5]);
    }
 
-   sh->regs.PC = sh->regs.PR;
+   sh->UpdatePC(sh,sh->regs.PR);
    SH2SetRegisters(sh, &sh->regs);
 }
 
@@ -199,7 +200,7 @@ static void FASTCALL BiosGetSh2Interrupt(SH2_struct * sh)
 
    sh->regs.R[0] = SH2MappedMemoryReadLong(sh, sh->regs.VBR+(sh->regs.R[4] << 2));
 
-   sh->regs.PC = sh->regs.PR;
+   sh->UpdatePC(sh,sh->regs.PR);
    SH2SetRegisters(sh, &sh->regs);
 }
 
@@ -222,7 +223,7 @@ static void FASTCALL BiosSetScuInterruptMask(SH2_struct * sh)
    if (!(sh->regs.R[4] & 0x8000)) // double check this
       SH2MappedMemoryWriteLong(sh, 0x25FE00A8, 1); // A-bus Interrupt Acknowledge
 
-   sh->regs.PC = sh->regs.PR;
+   sh->UpdatePC(sh,sh->regs.PR);
    SH2SetRegisters(sh, &sh->regs);
 }
 
@@ -248,7 +249,7 @@ static void FASTCALL BiosChangeScuInterruptMask(SH2_struct * sh)
    if (!(sh->regs.R[4] & 0x8000)) // double check this
       SH2MappedMemoryWriteLong(sh, 0x25FE00A8, 1); // A-bus Interrupt Acknowledge
 
-   sh->regs.PC = sh->regs.PR;
+   sh->UpdatePC(sh,sh->regs.PR);
    SH2SetRegisters(sh, &sh->regs);
 }
 
@@ -257,7 +258,7 @@ static void FASTCALL BiosChangeScuInterruptMask(SH2_struct * sh)
 static void FASTCALL BiosCDINIT2(SH2_struct * sh)
 {
    SH2GetRegisters(sh, &sh->regs);
-   sh->regs.PC = sh->regs.PR;
+   sh->UpdatePC(sh,sh->regs.PR);
    SH2SetRegisters(sh, &sh->regs);
 }
 
@@ -266,7 +267,7 @@ static void FASTCALL BiosCDINIT2(SH2_struct * sh)
 static void FASTCALL BiosCDINIT1(SH2_struct * sh)
 {
    SH2GetRegisters(sh, &sh->regs);
-   sh->regs.PC = sh->regs.PR;
+   sh->UpdatePC(sh,sh->regs.PR);
    SH2SetRegisters(sh, &sh->regs);
 }
 
@@ -289,7 +290,7 @@ static void FASTCALL BiosGetSemaphore(SH2_struct * sh)
    temp |= 0x80;
    SH2MappedMemoryWriteByte(sh, 0x06000B00 + sh->regs.R[4], temp);
 
-   sh->regs.PC = sh->regs.PR;
+   sh->UpdatePC(sh,sh->regs.PR);
    SH2SetRegisters(sh, &sh->regs);
 }
 
@@ -304,7 +305,7 @@ static void FASTCALL BiosClearSemaphore(SH2_struct * sh)
 
    SH2MappedMemoryWriteByte(sh, 0x06000B00 + sh->regs.R[4], 0);
 
-   sh->regs.PC = sh->regs.PR;
+   sh->UpdatePC(sh,sh->regs.PR);
    SH2SetRegisters(sh, &sh->regs);
 }
 
@@ -356,7 +357,7 @@ static void FASTCALL BiosChangeSystemClock(SH2_struct * sh)
    if (!(mask & 0x8000))
       SH2MappedMemoryWriteLong(sh, 0x25FE00A8, 1); // A-bus Interrupt Acknowledge
 
-   sh->regs.PC = sh->regs.PR;
+   sh->UpdatePC(sh,sh->regs.PR);
    SH2SetRegisters(sh, &sh->regs);
 }
 
@@ -381,7 +382,7 @@ static void FASTCALL BiosChangeScuInterruptPriority(SH2_struct * sh)
          scumasklist[i] &= 0x0000FFFF;
    }
 
-   sh->regs.PC = sh->regs.PR;
+   sh->UpdatePC(sh,sh->regs.PR);
    SH2SetRegisters(sh, &sh->regs);
 }
 
@@ -393,7 +394,7 @@ static void FASTCALL BiosExecuteCDPlayer(SH2_struct * sh)
 
 //   LOG("BiosExecuteCDPlayer\n");
 
-   sh->regs.PC = sh->regs.PR;
+   sh->UpdatePC(sh,sh->regs.PR);
    SH2SetRegisters(sh, &sh->regs);
 }
 
@@ -405,7 +406,7 @@ static void FASTCALL BiosPowerOnMemoryClear(SH2_struct * sh)
 
 //   LOG("BiosPowerOnMemoryClear\n");
 
-   sh->regs.PC = sh->regs.PR;
+   sh->UpdatePC(sh,sh->regs.PR);
    SH2SetRegisters(sh, &sh->regs);
 }
 
@@ -417,7 +418,7 @@ static void FASTCALL BiosCheckMPEGCard(SH2_struct * sh)
 
    //LOG("BiosCheckMPEGCard\n");
 
-   sh->regs.PC = sh->regs.PR;
+   sh->UpdatePC(sh,sh->regs.PR);
    SH2SetRegisters(sh, &sh->regs);
 }
 
@@ -756,7 +757,7 @@ void FASTCALL BiosBUPInit(SH2_struct * sh)
 
    // cycles need to be incremented
 
-   sh->regs.PC = sh->regs.PR;
+   sh->UpdatePC(sh,sh->regs.PR);
    SH2SetRegisters(sh, &sh->regs);
 }
 
@@ -780,13 +781,13 @@ void FASTCALL BiosBUPSelectPartition(SH2_struct * sh)
    if (ret != 0) {
      // Error
      sh->regs.R[0] = ret;
-     sh->regs.PC = sh->regs.PR;
+     sh->UpdatePC(sh,sh->regs.PR);
      SH2SetRegisters(sh, &sh->regs);
      return;
    }
 
    sh->regs.R[0] = 0; // returns 0 if there's no error
-   sh->regs.PC = sh->regs.PR;
+   sh->UpdatePC(sh,sh->regs.PR);
    SH2SetRegisters(sh, &sh->regs);
 }
 
@@ -801,7 +802,7 @@ void FASTCALL BiosBUPFormat(SH2_struct * sh)
    BupFormat(sh->regs.R[4]);
 
    sh->regs.R[0] = 0; // returns 0 if there's no error
-   sh->regs.PC = sh->regs.PR;
+   sh->UpdatePC(sh,sh->regs.PR);
    SH2SetRegisters(sh, &sh->regs);
 }
 
@@ -829,7 +830,7 @@ void FASTCALL BiosBUPStatus(SH2_struct * sh)
    {
       // Error
       sh->regs.R[0] = ret;
-      sh->regs.PC = sh->regs.PR;
+      sh->UpdatePC(sh,sh->regs.PR);
       SH2SetRegisters(sh, &sh->regs);
       return;
    }
@@ -850,7 +851,7 @@ void FASTCALL BiosBUPStatus(SH2_struct * sh)
    // cycles need to be incremented
 
    sh->regs.R[0] = ret; // returns 0 if there's no error
-   sh->regs.PC = sh->regs.PR;
+   sh->UpdatePC(sh,sh->regs.PR);
    SH2SetRegisters(sh, &sh->regs);
 }
 
@@ -881,7 +882,7 @@ void FASTCALL BiosBUPWrite(SH2_struct * sh)
    {
       // Error
       sh->regs.R[0] = ret;
-      sh->regs.PC = sh->regs.PR;
+      sh->UpdatePC(sh,sh->regs.PR);
       SH2SetRegisters(sh, &sh->regs);
       return;
    }
@@ -896,7 +897,7 @@ void FASTCALL BiosBUPWrite(SH2_struct * sh)
       {
          // Nope, let's bail instead
          sh->regs.R[0] = 6;
-         sh->regs.PC = sh->regs.PR;
+         sh->UpdatePC(sh,sh->regs.PR);
          SH2SetRegisters(sh, &sh->regs);
          return;
       }
@@ -930,7 +931,7 @@ void FASTCALL BiosBUPWrite(SH2_struct * sh)
    {
       // Nope, time to bail
       sh->regs.R[0] = 4;
-      sh->regs.PC = sh->regs.PR;
+      sh->UpdatePC(sh,sh->regs.PR);
       SH2SetRegisters(sh, &sh->regs);
       return;
    }
@@ -940,7 +941,7 @@ void FASTCALL BiosBUPWrite(SH2_struct * sh)
    {
       // Just return an error that might make sense
       sh->regs.R[0] = 8;
-      sh->regs.PC = sh->regs.PR;
+      sh->UpdatePC(sh,sh->regs.PR);
       SH2SetRegisters(sh, &sh->regs);
       return;
    }
@@ -1045,7 +1046,7 @@ void FASTCALL BiosBUPWrite(SH2_struct * sh)
    YabFlushBackups();
 
    sh->regs.R[0] = 0; // returns 0 if there's no error
-   sh->regs.PC = sh->regs.PR;
+   sh->UpdatePC(sh,sh->regs.PR);
    SH2SetRegisters(sh, &sh->regs);
 }
 
@@ -1072,7 +1073,7 @@ void FASTCALL BiosBUPDelete(SH2_struct * sh)
    {
       // Error
       sh->regs.R[0] = ret;
-      sh->regs.PC = sh->regs.PR;
+      sh->UpdatePC(sh,sh->regs.PR);
       SH2SetRegisters(sh, &sh->regs);
       return;
    }
@@ -1083,7 +1084,7 @@ void FASTCALL BiosBUPDelete(SH2_struct * sh)
       // Since the save doesn't exist, let's bail with an error
 
       sh->regs.R[0] = 5;
-      sh->regs.PC = sh->regs.PR;
+      sh->UpdatePC(sh,sh->regs.PR);
       SH2SetRegisters(sh, &sh->regs);
       return;
    }
@@ -1091,7 +1092,7 @@ void FASTCALL BiosBUPDelete(SH2_struct * sh)
    DeleteSave(addr, block, blocksize);
 
    sh->regs.R[0] = 0; // returns 0 if there's no error
-   sh->regs.PC = sh->regs.PR;
+   sh->UpdatePC(sh,sh->regs.PR);
    SH2SetRegisters(sh, &sh->regs);
 }
 
@@ -1120,7 +1121,7 @@ void FASTCALL BiosBUPDirectory(SH2_struct * sh)
    {
       // Error
      sh->regs.R[0] = 0; // should be return 0 when it's failed
-      sh->regs.PC = sh->regs.PR;
+      sh->UpdatePC(sh,sh->regs.PR);
       SH2SetRegisters(sh, &sh->regs);
       return;
    }
@@ -1140,7 +1141,7 @@ void FASTCALL BiosBUPDirectory(SH2_struct * sh)
    if (sh->regs.R[6] < i)
    {
       sh->regs.R[0] = -(s32)i; // returns the number of successfully read dir entries
-      sh->regs.PC = sh->regs.PR;
+      sh->UpdatePC(sh,sh->regs.PR);
       SH2SetRegisters(sh, &sh->regs);
       return;
    }
@@ -1209,7 +1210,7 @@ void FASTCALL BiosBUPDirectory(SH2_struct * sh)
    }
 
    sh->regs.R[0] = i; // returns the number of successfully read dir entries
-   sh->regs.PC = sh->regs.PR;
+   sh->UpdatePC(sh,sh->regs.PR);
    SH2SetRegisters(sh, &sh->regs);
 }
 
@@ -1238,7 +1239,7 @@ void FASTCALL BiosBUPVerify(SH2_struct * sh)
    {
       // Error
       sh->regs.R[0] = ret;
-      sh->regs.PC = sh->regs.PR;
+      sh->UpdatePC(sh,sh->regs.PR);
       SH2SetRegisters(sh, &sh->regs);
       return;
    }
@@ -1248,7 +1249,7 @@ void FASTCALL BiosBUPVerify(SH2_struct * sh)
    {
       // Since the save doesn't exist, let's bail with an error
       sh->regs.R[0] = 5; // Not found
-      sh->regs.PC = sh->regs.PR;
+      sh->UpdatePC(sh,sh->regs.PR);
       SH2SetRegisters(sh, &sh->regs);
       return;
    }
@@ -1262,7 +1263,7 @@ void FASTCALL BiosBUPVerify(SH2_struct * sh)
    {
       // Just return an error that might make sense
       sh->regs.R[0] = 8; // Broken
-      sh->regs.PC = sh->regs.PR;
+      sh->UpdatePC(sh,sh->regs.PR);
       SH2SetRegisters(sh, &sh->regs);
       return;
    }
@@ -1282,7 +1283,7 @@ void FASTCALL BiosBUPVerify(SH2_struct * sh)
          free(blocktbl);
          // Ok, the data doesn't match
          sh->regs.R[0] = 7; // No match
-         sh->regs.PC = sh->regs.PR;
+         sh->UpdatePC(sh,sh->regs.PR);
          SH2SetRegisters(sh, &sh->regs);
          return;
       }
@@ -1295,7 +1296,7 @@ void FASTCALL BiosBUPVerify(SH2_struct * sh)
    free(blocktbl);
 
    sh->regs.R[0] = 0; // returns 0 if there's no error
-   sh->regs.PC = sh->regs.PR;
+   sh->UpdatePC(sh,sh->regs.PR);
    SH2SetRegisters(sh, &sh->regs);
 }
 
@@ -1439,7 +1440,7 @@ void FASTCALL BiosBUPGetDate(SH2_struct * sh)
    // Year
    SH2MappedMemoryWriteByte(sh, sh->regs.R[5], (u8)(((div / 0x5B5) * 4) + yearoffset));
 
-   sh->regs.PC = sh->regs.PR;
+   sh->UpdatePC(sh,sh->regs.PR);
    SH2SetRegisters(sh, &sh->regs);
 }
 
@@ -1487,7 +1488,7 @@ void FASTCALL BiosBUPSetDate(SH2_struct * sh)
    date += SH2MappedMemoryReadByte(sh, sh->regs.R[4]+4);
 
    sh->regs.R[0] = date;
-   sh->regs.PC = sh->regs.PR;
+   sh->UpdatePC(sh,sh->regs.PR);
    SH2SetRegisters(sh, &sh->regs);
 }
 
@@ -1532,7 +1533,7 @@ static void FASTCALL BiosHandleScuInterrupt(SH2_struct * sh, int vector)
    sh->regs.PR = 0x00000480;
 
    // Now execute the interrupt
-   sh->regs.PC = SH2MappedMemoryReadLong(sh, 0x06000900+(vector << 2));
+   sh->UpdatePC(sh, SH2MappedMemoryReadLong(sh, 0x06000900+(vector << 2)));
 //   LOG("Interrupt PC = %08X. Read from %08X\n", sh->regs.PC, 0x06000900+(vector << 2));
 
    SH2SetRegisters(sh, &sh->regs);
@@ -1574,7 +1575,7 @@ static void FASTCALL BiosHandleScuInterruptReturn(SH2_struct * sh)
    sh->regs.R[0] = SH2MappedMemoryReadLong(sh, sh->regs.R[15]);
    sh->regs.R[15] += 4;
 
-   sh->regs.PC = SH2MappedMemoryReadLong(sh, sh->regs.R[15]);
+   sh->UpdatePC(sh, SH2MappedMemoryReadLong(sh, sh->regs.R[15]));
    sh->regs.R[15] += 4;
    sh->regs.SR.all = SH2MappedMemoryReadLong(sh, sh->regs.R[15]) & 0x000003F3;
    sh->regs.R[15] += 4;
@@ -2257,7 +2258,7 @@ void FASTCALL BiosBUPRead(SH2_struct * sh)
    {
       // Error
       sh->regs.R[0] = ret;
-      sh->regs.PC = sh->regs.PR;
+      sh->UpdatePC(sh,sh->regs.PR);
       SH2SetRegisters(sh, &sh->regs);
       return;
    }
@@ -2268,7 +2269,7 @@ void FASTCALL BiosBUPRead(SH2_struct * sh)
       LOG("BiosBUPRead not found");
       // save doesn't exist
       sh->regs.R[0] = 5;
-      sh->regs.PC = sh->regs.PR;
+      sh->UpdatePC(sh,sh->regs.PR);
       SH2SetRegisters(sh, &sh->regs);
       return;
    }
@@ -2282,7 +2283,7 @@ void FASTCALL BiosBUPRead(SH2_struct * sh)
    {
       // Just return an error that might make sense
       sh->regs.R[0] = 8;
-      sh->regs.PC = sh->regs.PR;
+      sh->UpdatePC(sh,sh->regs.PR);
       SH2SetRegisters(sh, &sh->regs);
       return;
    }
@@ -2311,7 +2312,7 @@ void FASTCALL BiosBUPRead(SH2_struct * sh)
    free(blocktbl);
 
    sh->regs.R[0] = 0; // returns 0 if there's no error
-   sh->regs.PC = sh->regs.PR;
+   sh->UpdatePC(sh,sh->regs.PR);
    SH2SetRegisters(sh, &sh->regs);
 }
 

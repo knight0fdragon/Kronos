@@ -113,7 +113,7 @@ void SH2HandleInterrupts(SH2_struct *context)
     context->branchDepth = 0;
     insertInterruptReturnHandling(context); //Insert a new interrupt handling once this one will have been executed
     // force the next PC (or PC+2?) to be decodeWithInterrupt so that next interrupt is evaluated when back from IT
-    context->regs.PC = SH2MappedMemoryReadLong(context,context->regs.VBR + (context->intVector << 2));
+    context->UpdatePC(context,SH2MappedMemoryReadLong(context,context->regs.VBR + (context->intVector << 2)));
     if (SH2Core->id == SH2CORE_KRONOS_DEBUG_INTERPRETER) {
       //Show the interrupt as a JSR
       context->instruction = 0x400B;
@@ -469,7 +469,7 @@ static INLINE void SH2UBCInterrupt(SH2_struct *context, u32 flag)
       context->regs.R[15] -= 4;
       SH2MappedMemoryWriteLong(context, context->regs.R[15], context->regs.PC);
       context->regs.SR.part.I = 15;
-      context->regs.PC = SH2MappedMemoryReadLong(context, context->regs.VBR + (12 << 2));
+      context->UpdatePC(context, SH2MappedMemoryReadLong(context, context->regs.VBR + (12 << 2)));
       LOG("interrupt successfully handled\n");
    }
    context->onchip.BRCR |= flag;
@@ -635,7 +635,7 @@ FASTCALL void SH2KronosDebugInterpreterExec(SH2_struct *context, u32 cycles)
 {
   context->target_cycles = context->cycles + cycles;
 
-    SH2HandleInterrupts(context);
+   SH2HandleInterrupts(context);
    while ((context->cycles < context->target_cycles) || (context->doNotInterrupt != 0))
 
    {
@@ -875,7 +875,8 @@ void SH2KronosInterpreterSetPR(SH2_struct *context, u32 value)
 
 void SH2KronosInterpreterSetPC(SH2_struct *context, u32 value)
 {
-    context->regs.PC = value;
+    //context->regs.PC = value;
+    context->UpdatePC(context, value); 
 }
 
 void SH2KronosUpdateInterruptReturnHandling(SH2_struct *context) {
@@ -905,7 +906,7 @@ void SH2KronosUpdateInterruptDebugReturnHandling(SH2_struct *context) {
 static void SH2KronosNotifyInterrupt(SH2_struct *context) {
   if (SH2MappedMemoryReadWord(context, context->regs.PC) == 0x1B) {
     //SH2 on a sleep command, wake it up
-    context->regs.PC+=2;
+    context->UpdatePC(context,context->regs.PC + 2);
   }
 
   if (context->interruptReturnAddress == 0) {

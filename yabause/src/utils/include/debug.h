@@ -66,7 +66,7 @@ extern "C"{
 #else
 #define CDLOG(...)
 #endif
-
+  // #define NETLINK_DEBUG 1
 #ifdef NETLINK_DEBUG
 #define NETLINK_LOG(...) DebugPrintf(MainLog, __FILE__, __LINE__, __VA_ARGS__)
 #else

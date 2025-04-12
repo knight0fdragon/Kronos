@@ -370,7 +370,6 @@ void UIDebugSH2::updateCodePage(u32 evaluateAddress)
     }
   }
 }
-
 void UIDebugSH2::updateAll()
 {
    updateRegList();
@@ -383,6 +382,7 @@ void UIDebugSH2::updateAll()
       updateBackTrace();
       updateTrackInfLoop();
       updateCodePage(sh2regs.PC);
+      
    }
 }
 
@@ -462,6 +462,7 @@ void UIDebugSH2::setRegister(int index, u32 value)
             break;
          case 22:
             sh2regs.PC = value;
+            
             updateCodeList(sh2regs.PC);
             break;
       }

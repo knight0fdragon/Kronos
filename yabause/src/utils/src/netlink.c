@@ -21,7 +21,7 @@
 	\brief Netlink emulation functions.
 */
 
-
+#define PRINTNL 1
 #include <ctype.h>
 #include "cs2.h"
 #include "error.h"
@@ -34,7 +34,7 @@
 #include "threads.h"
 #endif
 
-Netlink* NetlinkArea = NULL;
+volatile Netlink* NetlinkArea = NULL;
 
 static volatile u8 netlink_listener_thread_running;
 static volatile u8 netlink_connect_thread_running;
@@ -85,27 +85,34 @@ static void NetworkStopListener()
 		}
 		NetlinkArea->listensocket = -1;
 		netlink_listener_thread_running = 0;
+		YuiMsg("Netlink waiting for thread to end.\n");
 		YabThreadWait(YAB_THREAD_NETLINKLISTENER);
+		YuiMsg("Netlink thread ended.\n");
 	}
 	YuiMsg("Netlink stopped listener.\n");
 }
 
 //////////////////////////////////////////////////////////////////////////////
 
-int NetworkRestartListener(int port)
+int NetworkRestartListener(void)
 {
-	YuiMsg("Netlink restarting listener.\n");
+	int port = atoi(NetlinkArea->portstring);
+	YuiMsg("Netlink restarting listener on %d.\n", port);
 	int ret;
 	if ((ret = YabSockListenSocket(port, &NetlinkArea->listensocket)) != 0)
 	{
 		YuiMsg("Netlink failed to restart listener. Code %d\n", ret);
 		return ret;
 	}
-	void* params[2] = { (void*)(pointer)NetlinkArea->listensocket, (void*)(pointer)port };
+
+	pointer* params = malloc(sizeof(pointer) * 2);
+	params[0] = (pointer)NetlinkArea->listensocket;
+	params[1] = (pointer)NetlinkArea->portstring;
+
 
 	YabThreadStart(YAB_THREAD_NETLINKLISTENER, netlink_listener, (void**)params);
 	//netlink_listener((void*)(pointer)NetlinkArea->listensocket);
-	YuiMsg("Netlink restarted listener.\n");
+	YuiMsg("Netlink restarted listener on %d.\n", port);
 	return ret;
 
 }
@@ -329,7 +336,7 @@ static void FASTCALL NetlinkDoATWriteData(const char* string)
 	while (string[i] != 0)
 	{
 		NetlinkArea->inbuffer[NetlinkArea->inbufferend] = '\x10';
-		
+
 		NetlinkArea->inbufferend++;
 		if (NetlinkArea->inbufferend == NETLINK_BUFFER_SIZE)
 		{
@@ -351,7 +358,7 @@ static void FASTCALL NetlinkDoATWriteData(const char* string)
 
 			NetlinkArea->inbufferend = 0;
 		}
-		
+
 
 		if (NetlinkArea->inbufferend == NetlinkArea->inbufferstart)
 		{
@@ -466,6 +473,7 @@ char* FASTCALL ExtractString()
 	else
 	{
 		int error = 0;
+		return "Error";
 	}
 	return dialString;
 }
@@ -518,7 +526,7 @@ void FASTCALL NetlinkWriteByte(SH2_struct* context, u8* memory, u32 addr, u8 val
 
 				NetlinkArea->inbufferend = 0;
 			}
-			
+
 
 			// If interrupt has been triggered because THB is empty, reset it
 			if ((NetlinkArea->reg.IER & 0x2) && (NetlinkArea->reg.IIR & 0xF) == 0x2)
@@ -550,7 +558,7 @@ void FASTCALL NetlinkWriteByte(SH2_struct* context, u8* memory, u32 addr, u8 val
 					if (NetlinkArea->inbuffer[NetlinkArea->inbufferstart] == 0xD)
 					{
 						//fresh AT command, use this to start accepting
-						NetworkRestartListener(atoi(NetlinkArea->portstring));
+						NetworkRestartListener();
 					}
 					int end = NetlinkArea->inbufferend;
 					// Handle AT command
@@ -768,14 +776,15 @@ void FASTCALL NetlinkWriteByte(SH2_struct* context, u8* memory, u32 addr, u8 val
 								}*/
 								//strchr(dialedNumber, '\r')[0] = '\0';
 								char* dialString = ExtractString();
-								YuiMsg("Starting dial %s\n", dialString);
-								
+								YuiMsg("Starting to dial %s\n", dialString);
+
 
 								NetlinkArea->inbufferstart += strlen(dialString);
-								
-								
+
+
 								NetlinkDoATWriteData(dialString);
-								free(dialString);
+								if (strcmp(dialString, "Error"))
+									free(dialString);
 							}
 
 
@@ -1212,12 +1221,12 @@ void* netlink_client(void* data)
 		}
 
 		int bufferSize = NetlinkArea->inbufferend - NetlinkArea->inbufferstart;
-		if (bufferSize < 0 ) bufferSize += NETLINK_BUFFER_SIZE;
+		if (bufferSize < 0) bufferSize += NETLINK_BUFFER_SIZE;
 
-		if ( (NetlinkArea->modemstate == NL_MODEMSTATE_DATA) 
-		  && bufferSize > 0 
-		  && YabSockIsWriteSet(client->sock) 
-		  && NetlinkArea->thb_write_time > 1000)
+		if ((NetlinkArea->modemstate == NL_MODEMSTATE_DATA)
+			&& bufferSize > 0
+			&& YabSockIsWriteSet(client->sock)
+			&& NetlinkArea->thb_write_time > 1000)
 		{
 			//NETLINK_LOG("Sending to external source...");
 
@@ -1244,7 +1253,16 @@ void* netlink_client(void* data)
 				if ((bytes = YabSockSend(client->sock, (void*)data, bufferSize, 0)) >= 0)
 				{
 					//NETLINK_LOG("Successfully sent %d byte(s)\n", bytes);
+#if PRINTNL
+					char buffer[1024];
+					int len = 0;
 
+					for (int i = 0; i < bytes; i++)
+					{
+						len += sprintf(&buffer[len], "0x%02X ", (unsigned char)data[ i]);
+					}
+					YuiMsg("Data sent: %s", buffer);
+#endif
 					NetlinkArea->inbufferstart += bytes;
 					bufferSize -= bytes;
 					if (NetlinkArea->inbufferstart >= NETLINK_BUFFER_SIZE)
@@ -1275,7 +1293,7 @@ void* netlink_client(void* data)
 		}
 
 
-		if (( NetlinkArea->modemstate == NL_MODEMSTATE_COMMAND)
+		if ((NetlinkArea->modemstate == NL_MODEMSTATE_COMMAND)
 			&& bufferSize > 0
 			&& YabSockIsWriteSet(client->sock)
 			&& NetlinkArea->thb_write_time > 1000)
@@ -1309,9 +1327,19 @@ void* netlink_client(void* data)
 					if ((bytes = YabSockSend(client->sock, (void*)&data[d], 2, 0)) >= 0)
 					{
 						//NETLINK_LOG("Successfully sent %d byte(s)\n", bytes);
+#if PRINTNL
+						char buffer[1024];
+						int len = 0;
 
+						len += sprintf(&buffer[len], "0x%02X ", data[d]);
+						if (bytes > 1) {
+
+							len += sprintf(&buffer[len], "0x%02X ", data[d + 1]);
+						}
+						YuiMsg("Code sent: %s", buffer);
+#endif
 						NetlinkArea->inbufferstart += bytes;
-						
+
 						if (NetlinkArea->inbufferstart >= NETLINK_BUFFER_SIZE)
 						{
 							NetlinkArea->inbufferstart -= NETLINK_BUFFER_SIZE;
@@ -1374,9 +1402,19 @@ void* netlink_client(void* data)
 			if ((bytes = YabSockReceive(client->sock, (void*)&NetlinkArea->outbuffer[NetlinkArea->outbufferend], sizeof(NetlinkArea->outbuffer) - 1 - NetlinkArea->outbufferend, 0)) > 0)
 			{
 				//NETLINK_LOG("Successfully received %d byte(s)\n", bytes);
+#if PRINTNL
+				char buffer[1024];
+				int len = 0;
+				for (int i = 0; i < bytes; i++)
+				{
+					len += sprintf(&buffer[len], "0x%02X ", NetlinkArea->outbuffer[NetlinkArea->outbufferend + i]);
+				}
+				YuiMsg("Data received: %s", buffer);
+#endif
 				NetlinkArea->outbufferend += bytes;
 				NetlinkArea->outbuffersize += bytes;
 				NetlinkArea->outbufferupdate = 1;
+
 			}
 		}
 	}
@@ -1387,8 +1425,10 @@ void* netlink_client(void* data)
 
 void* netlink_listener(void** data)
 {
+
 	YabSock Listener = (YabSock)(pointer)data[0];
-	int port = (int)(pointer)data[1];
+	int port = (int)atoi((pointer)data[1]);
+	free(data);
 	netlink_thread* client = NULL;
 
 	netlink_listener_thread_running = 1;

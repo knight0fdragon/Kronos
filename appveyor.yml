@@ -56,7 +56,7 @@ before_build:
   - cd C:\projects\yabause\yabause
   - mkdir build
   - cd build
-  - if NOT ["%compiler_type%"]==["msys2-mingw-w64-x86_64"] cmake -G "%generator%" %cmake_args% -DSDL2MAIN_LIBRARY=C:/SDL2-2.0.3/lib/%sdl_arch%/SDL2main.lib -DSDL2_INCLUDE_DIR=C:/SDL2-2.0.3/include/ -DSDL2_LIBRARY=C:/SDL2-2.0.3/lib/%sdl_arch%/SDL2.lib ..
+  - if NOT ["%compiler_type%"]==["msys2-mingw-w64-x86_64"] cmake -G "%generator%" %cmake_args% -DSDL2MAIN_LIBRARY=C:/Qt/SDL2-2.30.11/lib/%sdl_arch%/SDL2main.lib -DSDL2_INCLUDE_DIR=C:/Qt/SDL2-2.30.11/include/ -DSDL2_LIBRARY=C:/SDL2-2.0.3/lib/%sdl_arch%/SDL2.lib ..
 
   #MSYS2
   - if ["%compiler_type%"]==["msys2-mingw-w64-x86_64"] set MSYSTEM=MINGW64

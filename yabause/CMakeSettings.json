@@ -25,6 +25,26 @@
           "name": "YAB_NETWORK",
           "value": "True",
           "type": "BOOL"
+        },
+        {
+          "name": "SDL2_LIBRARY_TEMP",
+          "value": "C:/Qt/SDL2-2.30.11/lib/x64/SDL2test.lib",
+          "type": "FILEPATH"
+        },
+        {
+          "name": "SDL2_INCLUDE_DIR",
+          "value": "C:/Qt/SDL2-2.30.11/include",
+          "type": "PATH"
+        },
+        {
+          "name": "SDL2_LIBRARY",
+          "value": "C:/Qt/SDL2-2.30.11/lib/x64/SDL2.lib",
+          "type": "STRING"
+        },
+        {
+          "name": "SDL2MAIN_LIBRARY",
+          "value": "C:/Qt/SDL2-2.30.11/lib/x64/SDL2main.lib",
+          "type": "FILEPATH"
         }
       ]
     },
@@ -127,6 +147,26 @@
         {
           "name": "YAB_OPTIMIZATION",
           "value": " -s -fdata-sections -ffunction-sections -Wl,--gc-sections",
+          "type": "STRING"
+        },
+        {
+          "name": "SDL2MAIN_LIBRARY",
+          "value": "C:/Qt/SDL2-2.30.11/lib/x64/SDL2main.lib",
+          "type": "FILEPATH"
+        },
+        {
+          "name": "SDL2_LIBRARY_TEMP",
+          "value": "C:/Qt/SDL2-2.30.11/lib/x64/SDL2test.lib",
+          "type": "FILEPATH"
+        },
+        {
+          "name": "SDL2_INCLUDE_DIR",
+          "value": "C:/Qt/SDL2-2.30.11/include",
+          "type": "PATH"
+        },
+        {
+          "name": "SDL2_LIBRARY",
+          "value": "C:/Qt/SDL2-2.30.11/lib/x64/SDL2.lib",
           "type": "STRING"
         }
       ],

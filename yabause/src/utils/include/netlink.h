@@ -97,6 +97,7 @@ typedef struct {
    int internet_enable;
    volatile u32 thb_write_time;
    int escape_count;
+   int port;
 } Netlink;
 
 typedef struct
@@ -106,7 +107,7 @@ typedef struct
    YabSock sock;
 } netlink_thread;
 
-extern Netlink *NetlinkArea;
+extern volatile Netlink *NetlinkArea;
 
 u8 FASTCALL NetlinkReadByte(SH2_struct *context, u8* memory, u32 addr);
 void FASTCALL NetlinkWriteByte(SH2_struct *context, u8* memory, u32 addr, u8 val);

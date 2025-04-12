@@ -48,8 +48,8 @@ void enableCache(SH2_struct* ctx);
 void disableCache(SH2_struct* ctx);
 void InvalidateCache(SH2_struct* ctx);
 
-static void (*SH2BlockableExec)(SH2_struct *context, u32 cycles);
-static void (*SH2StandardExec)(SH2_struct *context, u32 cycles);
+static void (*SH2BlockableExec)(SH2_struct* context, u32 cycles);
+static void (*SH2StandardExec)(SH2_struct* context, u32 cycles);
 
 #define CACHE_LOG
 
@@ -57,7 +57,242 @@ void DMATransferCycles(SH2_struct* context, Dmac* dmac, int cycles);
 int DMAProc(SH2_struct* context, int cycles);
 
 //////////////////////////////////////////////////////////////////////////////
-
+volatile char LogFile[1024 * 1024 * 512];
+volatile int LogIndex = 0;
+//#if PATCH
+//u32 addrs[] = {
+//0x06003320,
+//0x06003324,
+//0x06003328,
+//0x06003334,
+//0x06003340,
+//0x06003358,
+//0x06003370,
+//0x0600337c,
+//0x06003388,
+//0x06003394,
+//0x060033d0,
+//0x060033e8,
+//0x0600340c,
+//0x06003418,
+//0x0600343c,
+//0x06003470,
+//0x060034a4,
+//0x060034b4,
+//0x060034c8,
+//0x060034e0,
+//0x06003540,
+//0x0600355c,
+//0x06003578,
+//0x060035a8,
+//0x060035d0,
+//0x06003654,
+//0x06003678,
+//0x060036f4,
+//0x060037ec,
+//0x0600381c,
+//0x06003850,
+//0x06003888,
+//0x060038ac,
+//0x060038c8,
+//0x060038f4,
+//0x0600390c,
+//0x06003928,
+//0x06003948,
+//0x06003980,
+//0x060039a4,
+//0x060039d0,
+//0x060039f8,
+//0x06003a04,
+//0x06003a10,
+//0x06003a50,
+//0x06003a90,
+//0x06003aac,
+//0x06003ad4,
+//0x06003b50,
+//0x06003c08,
+//0x06003d74,
+//0x06003d98,
+//0x06003e00,
+//0x06003e98,
+//0x06003eb0,
+//0x06003ee0,
+//0x06003f00,
+//0x06003fac,
+//0x0600401c,
+//0x06004054,
+//0x060040a4,
+//0x06004158,
+//0x060041d8,
+//0x06004208,
+//0x06004264,
+//0x060045c4,
+//0x0600478c,
+//0x060047bc,
+//0x06004850,
+//0x06004888,
+//0x060048e4 };
+//#else
+//u32 addrs[] =
+//{
+//0x06003320,
+//0x0600357C,
+//0x06003590,
+//0x060035A0,
+//0x060035B0,
+//0x060035E4,
+//0x06003618,
+//0x0600362C,
+//0x0600363C,
+//0x06003880,
+//0x060038C4,
+//0x060038F4,
+//0x06003924,
+//0x06003934,
+//0x06003B60,
+//0x0600447C,
+//0/*0x060044E8*/,
+//0x06004598,
+//0x060045C4,
+//0x06004784,
+//0/*0x06004810*/,
+//0/*0x06004822*/,
+//0x06004848,
+//0x06004640,
+//0x06004880,
+//0x06004618,
+//0/*0x060048F0*/,
+//0/*0x06004674*/,
+//0x060044FC,
+//0x060045E4,
+//0/*0x06004980*/,
+//0/*0x060047E8*/,
+//0x060049C8,
+//0x060049E8,
+//0x06004A20,
+//0x06004A40,
+//0x06004A60,
+//0x06004A90,
+//0x060033D8,
+//0x06003404,
+//0x0600364C,
+//0x06004AE8,
+//0x06004B20,
+//0x06004B64,
+//0x06004CD0,
+//0x06004BAC,
+//0x06004BCC,
+//0x06004C1C,
+//0x06003334,
+//0x060039D0,
+//0x06004D20,
+//0x0600343C,
+//0x060034BC,
+//0x06004D64,
+//0x06004D80,
+//0x06004E94,
+//0x06004068,
+//0x06004104,
+//0x06004EBC,
+//0x06003680,
+//0x060036D8,
+//0x06004DFC,
+//0x00000000,
+//0x00000000,
+//0x00000000,
+//0x00000000,
+//0x00000000,
+//0x060050F4,
+//0x06003968,
+//0x06003B94,
+//0x06004220,
+//0x06004434,
+//0x060037C8,
+//0x06004DBC,
+//0x06004534,
+//0x0600417C,
+//0,
+//0
+//};
+//#endif
+u8 hitAddr[0x100000];
+char* addrnames[1024];
+//char* addrnames[] = {
+//
+//"XBNull",
+//"Unused",
+//"XBMasterPlayerName",
+//"XBSlavePlayerName",
+//"XBLocalPlayerName",
+//"XBRemotePlayerName",
+//"XBLocalIsMaster",
+//"XBGetRandomSeed",
+//"XBPracticeGameTask",
+//"PowerCycleModem",
+//"ResetModem",
+//"ThrowError",
+//"XBSetErrorCallback",
+//"FillInfo",
+//"ChangeFromSession2",
+//"ClearErrorComponents",
+//"ResetHeartBeat",
+//"XBLineNoise",
+//"CheckSpaceAvailable",
+//"ReadFromBuffer",
+//"WriteModem",
+//"ReadModem",
+//"FlushSerialInput",
+//"ResetNetworkData",
+//"InitSerialModem",
+//"ClearLineNoise",
+//"ReadSerialByte",
+//"HandleNetworkData",
+//"WaitForNetworkData",
+//"IsSpaceAvailable",
+//"WriteByte",
+//"IncrementalWriteByte",
+//"IsLineStatusEmptyTX",
+//"CarrierDetect",
+//"CarrierTimeout",
+//"RingIndicator",
+//"DoesModemExist",
+//"CheckModemInstalled",
+//"XBMakeLocalGame",
+//"XBMakePracticeGame",
+//"XBAllowReturnToXOS",
+//"XBHangupModem",
+//"InitHardware",
+//"WaitCarrierTimeout",
+//"SendCommand",
+//"AnswerCommand",
+//"StartModem",
+//"Setup",
+//"XBMakeMaster",
+//"DoNetworkFunctions",
+//"ClearInfoCount",
+//"XBDebugInit",
+//"XBInitXBand",
+//"XBGetInfo",
+//"XBPracticeTimeLeft",
+//"CalculateCRC16",
+//"ReadStringFromBuffer",
+//"WriteStringToBuffer",
+//"GetCRCValue",
+//"SaveState",
+//"XBNetworkGameError",
+//"XBListenForCall",
+//"Division",
+//"CalcDataQueueSize",
+//"PerformTransfers",
+//"XBExchangeGameData",
+//"XBCloseSession",
+//"XBReadyToExit",
+//"CheckPracticeTime",
+//"XBVBLTask",
+//"XBOpenSession"
+//
+//
+//};
 void SH2IntcSetIrl(SH2_struct* sh, u8 irl, u8 d)
 {
 	if (sh->intc.irl != irl) {
@@ -138,95 +373,171 @@ void SH2EvaluateInterrupt(SH2_struct* sh) {
 }
 
 
-static void SH2StandardExecFast(SH2_struct *context, u32 cycles) {
-  SH2Core->Exec(context, cycles);
+static void SH2StandardExecFast(SH2_struct* context, u32 cycles) {
+	SH2Core->Exec(context, cycles);
 }
 
-static void SH2StandardExecDebug(SH2_struct *context, u32 cycles) {
-  int oldbp = context->bp.inbreakpoint;
-  SH2Core->Exec(context, cycles);
-  if (context->bp.inbreakpoint && !oldbp) {
-    context->bp.BreakpointCallBack(context, 0, &context->bp.BreakpointUserData);
-    context->bp.inbreakpoint = 0;
-  }
+
+#define foreach(item, array) \
+    for(int keep = 1, \
+            count = 0,\
+            size = sizeof (array) / sizeof *(array); \
+        keep && count != size; \
+        keep = !keep, count++) \
+      for(item = (array) + count; keep; keep = !keep)
+void FASTCALL UpdatePC(SH2_struct* context, u32 PC)
+{
+	context->regs.PC = PC;
+
+	int addr = PC - 0x06000000;
+
+	if (LogIndex > 0x10000000 || addr < 0 || addr >= 0x100000 || hitAddr[addr] == 0xFF) return;
+	
+	LogIndex += sprintf(&LogFile[LogIndex], "Address hit: 0x%08X,r4:0x%08X,r5:0x%08X,r6:0x%08X,r7:0x%08X,r0:0x%08X,SR:0x%08X\t%s\n", 
+		PC,context->regs.R[4], context->regs.R[5], context->regs.R[6], context->regs.R[7], context->regs.R[0], context->regs.SR.all, addrnames[hitAddr[addr]]);
+	LogFile[LogIndex] = 0;  //guarantee null terminator
+	//YuiMsg("Address hit: 0x%08X,r4:0x%08X,r5:0x%08X,r6:0x%08X,r7:0x%08X\t%s\n", *addr, 
+	//	  context->regs.R[4], context->regs.R[5], context->regs.R[6], context->regs.R[7], addrnames[i]);
+
+
+}
+
+static void SH2StandardExecDebug(SH2_struct* context, u32 cycles) {
+	int oldbp = context->bp.inbreakpoint;
+	int PC = context->regs.PC;
+
+
+
+
+	SH2Core->Exec(context, cycles);
+	if (context->bp.inbreakpoint && !oldbp) {
+		context->bp.BreakpointCallBack(context, 0, &context->bp.BreakpointUserData);
+		context->bp.inbreakpoint = 0;
+	}
+
 }
 
 static sh2regs_struct oldRegs;
-static void SH2BlockableExecDebug(SH2_struct *context, u32 cycles) {
-  if (context->isBlocked == 0) {
-    int oldbp = context->bp.inbreakpoint;
-    SH2Core->ExecSave(context, cycles, &oldRegs);
-    if (context->bp.inbreakpoint && !oldbp) {
-      context->bp.BreakpointCallBack(context, 0, &context->bp.BreakpointUserData);
-      context->bp.inbreakpoint = 0;
-    }
-  } else {
-    context->cycles += cycles;
-  }
+static void SH2BlockableExecDebug(SH2_struct* context, u32 cycles) {
+	if (context->isBlocked == 0) {
+		int oldbp = context->bp.inbreakpoint;
+		SH2Core->ExecSave(context, cycles, &oldRegs);
+		if (context->bp.inbreakpoint && !oldbp) {
+			context->bp.BreakpointCallBack(context, 0, &context->bp.BreakpointUserData);
+			context->bp.inbreakpoint = 0;
+		}
+	}
+	else {
+		context->cycles += cycles;
+	}
 }
-static void SH2BlockableExecFast(SH2_struct *context, u32 cycles) {
-  if (context->isBlocked == 0) {
-    SH2Core->ExecSave(context, cycles, &oldRegs);
-  } else {
-    context->cycles += cycles;
-  }
+static void SH2BlockableExecFast(SH2_struct* context, u32 cycles) {
+	if (context->isBlocked == 0) {
+		SH2Core->ExecSave(context, cycles, &oldRegs);
+	}
+	else {
+		context->cycles += cycles;
+	}
 }
 
 void SH2SetExecSet(int debug) {
-  if (debug == 0) {
-    SH2BlockableExec = SH2BlockableExecFast;
-    SH2StandardExec = SH2StandardExecFast;
-  } else {
-    SH2BlockableExec = SH2BlockableExecDebug;
-    SH2StandardExec = SH2StandardExecDebug;
-  }
+	if (debug == 0) {
+		SH2BlockableExec = SH2BlockableExecFast;
+		SH2StandardExec = SH2StandardExecFast;
+	}
+	else {
+		SH2BlockableExec = SH2BlockableExecDebug;
+		SH2StandardExec = SH2StandardExecDebug;
+		int i = 0;
+		for (int k = 0; k < 0x100000; k++)
+		{
+			hitAddr[k] = 0xFF;
+		}
+		
+		
+		FILE* fp = NULL;
+		char line[1024];// Adjust the buffer size as needed
+
+		char* token;
+		while(fp == NULL)
+			fp = fopen("addrs.txt", "r"); // Replace "filename.txt" with your file
+
+		if (fp == NULL) {
+			printf("Error opening file!\n");
+			return 1;
+		}
+
+		int i2 = 0;
+	
+		while (fgets(line, sizeof(line), fp) != NULL) {
+			token = strtok(line, "x");
+			token = strtok(NULL, "               ");
+			char hexNumber[16];
+			sprintf(hexNumber,"%s",token );
+			int addr = strtol(hexNumber, NULL, 16);
+			if(addr > 0)
+				hitAddr[addr - 0x06000000] = i2;
+			token = strtok(NULL, "               ");
+			token = strtok(token, "\n");
+			char name[256];
+			sprintf(name,"%s", token);
+			addrnames[i2] = malloc(strlen(name));
+			if(addrnames[i2] != NULL)
+				strcpy(addrnames[i2], name);
+			
+			i2++;
+		}
+
+		fclose(fp);
+
+	}
 }
 
-void SH2UpdateABusAccess(SH2_struct *context, int on) {
-  if (context->isAccessingCPUBUS != on) {
-    context->isAccessingCPUBUS = on;
-    SH2UpdateBlockedState(context);
-  }
+void SH2UpdateABusAccess(SH2_struct* context, int on) {
+	if (context->isAccessingCPUBUS != on) {
+		context->isAccessingCPUBUS = on;
+		SH2UpdateBlockedState(context);
+	}
 }
 
-void SH2SetVRamAccess(SH2_struct *context, int mask) {
-  if (!(context->isAccessingVram & mask)) {
-    context->isAccessingVram |= mask;
-    SH2UpdateBlockedState(context);
-  }
+void SH2SetVRamAccess(SH2_struct* context, int mask) {
+	if (!(context->isAccessingVram & mask)) {
+		context->isAccessingVram |= mask;
+		SH2UpdateBlockedState(context);
+	}
 }
-void SH2ClearVRamAccess(SH2_struct *context, int mask) {
-  if (context->isAccessingVram & mask) {
-    context->isAccessingVram &= ~mask;
-    SH2UpdateBlockedState(context);
-  }
-}
-
-static int isDMABlocked(SH2_struct *context) {
-  return (context->isAccessingCPUBUS != 0)&&((context->blockingMask & A_BUS_ACCESS)!=0);
+void SH2ClearVRamAccess(SH2_struct* context, int mask) {
+	if (context->isAccessingVram & mask) {
+		context->isAccessingVram &= ~mask;
+		SH2UpdateBlockedState(context);
+	}
 }
 
-void SH2UpdateBlockedState(SH2_struct *context){
-  context->isBlocked =  (context->isAccessingCPUBUS != 0)||((context->blockingMask & A_BUS_ACCESS)!=0);
-  context->isBlocked |= ((context->isAccessingVram & context->blockingMask)!=0);
+static int isDMABlocked(SH2_struct* context) {
+	return (context->isAccessingCPUBUS != 0) && ((context->blockingMask & A_BUS_ACCESS) != 0);
 }
 
-void SH2SetCPUConcurrency(SH2_struct *context, u8 mask) {
-  if ((context->SH2InterruptibleExec != SH2BlockableExec) || !(context->blockingMask & mask)) {
-    context->blockingMask |= mask;
-    if (context->blockingMask != 0) context->SH2InterruptibleExec = SH2BlockableExec;
-    if (mask == A_BUS_ACCESS) SH2UpdateABusAccess(context, 0);
-    else SH2ClearVRamAccess(context, mask);
-  }
+void SH2UpdateBlockedState(SH2_struct* context) {
+	context->isBlocked = (context->isAccessingCPUBUS != 0) || ((context->blockingMask & A_BUS_ACCESS) != 0);
+	context->isBlocked |= ((context->isAccessingVram & context->blockingMask) != 0);
 }
 
-void SH2ClearCPUConcurrency(SH2_struct *context, u8 mask) {
-  if ((context->SH2InterruptibleExec != SH2StandardExec) && (context->blockingMask & mask)) {
-    context->blockingMask &= ~mask;
-    if (context->blockingMask == 0) context->SH2InterruptibleExec = SH2StandardExec;
-    if (mask == A_BUS_ACCESS) SH2UpdateABusAccess(context, 0);
-    else SH2ClearVRamAccess(context, mask);
-  }
+void SH2SetCPUConcurrency(SH2_struct* context, u8 mask) {
+	if ((context->SH2InterruptibleExec != SH2BlockableExec) || !(context->blockingMask & mask)) {
+		context->blockingMask |= mask;
+		if (context->blockingMask != 0) context->SH2InterruptibleExec = SH2BlockableExec;
+		if (mask == A_BUS_ACCESS) SH2UpdateABusAccess(context, 0);
+		else SH2ClearVRamAccess(context, mask);
+	}
+}
+
+void SH2ClearCPUConcurrency(SH2_struct* context, u8 mask) {
+	if ((context->SH2InterruptibleExec != SH2StandardExec) && (context->blockingMask & mask)) {
+		context->blockingMask &= ~mask;
+		if (context->blockingMask == 0) context->SH2InterruptibleExec = SH2StandardExec;
+		if (mask == A_BUS_ACCESS) SH2UpdateABusAccess(context, 0);
+		else SH2ClearVRamAccess(context, mask);
+	}
 }
 
 int SH2Init(int coreid)
@@ -235,47 +546,47 @@ int SH2Init(int coreid)
 	// MSH2
 	if ((MSH2 = (SH2_struct*)calloc(1, sizeof(SH2_struct))) == NULL)
 		return -1;
-	
+	MSH2->UpdatePC = UpdatePC;
 	MSH2->SH2InterruptibleExec = SH2StandardExec;
 
 	if (SH2TrackInfLoopInit(MSH2) != 0)
 		return -1;
 
-   MSH2->onchip.BCR1 = 0x0000;
-   MSH2->isslave = 0;
-   MSH2->isAccessingCPUBUS = 0;
-   MSH2->interruptReturnAddress = 0;
-   MSH2->isAccessingVram = 0;
-   MSH2->isBlocked = 0;
+	MSH2->onchip.BCR1 = 0x0000;
+	MSH2->isslave = 0;
+	MSH2->isAccessingCPUBUS = 0;
+	MSH2->interruptReturnAddress = 0;
+	MSH2->isAccessingVram = 0;
+	MSH2->isBlocked = 0;
 
-    MSH2->dma_ch0.CHCR = &MSH2->onchip.CHCR0;
-    MSH2->dma_ch0.CHCRM = &MSH2->onchip.CHCR0M;
-    MSH2->dma_ch0.SAR = &MSH2->onchip.SAR0;
-    MSH2->dma_ch0.DAR = &MSH2->onchip.DAR0;
-    MSH2->dma_ch0.TCR = &MSH2->onchip.TCR0;
-    MSH2->dma_ch0.VCRDMA = &MSH2->onchip.VCRDMA0;
-    MSH2->dma_ch1.CHCR = &MSH2->onchip.CHCR1;
-    MSH2->dma_ch1.CHCRM = &MSH2->onchip.CHCR1M;
-    MSH2->dma_ch1.SAR = &MSH2->onchip.SAR1;
-    MSH2->dma_ch1.DAR = &MSH2->onchip.DAR1;
-    MSH2->dma_ch1.TCR = &MSH2->onchip.TCR1;
-    MSH2->dma_ch1.VCRDMA = &MSH2->onchip.VCRDMA1;
+	MSH2->dma_ch0.CHCR = &MSH2->onchip.CHCR0;
+	MSH2->dma_ch0.CHCRM = &MSH2->onchip.CHCR0M;
+	MSH2->dma_ch0.SAR = &MSH2->onchip.SAR0;
+	MSH2->dma_ch0.DAR = &MSH2->onchip.DAR0;
+	MSH2->dma_ch0.TCR = &MSH2->onchip.TCR0;
+	MSH2->dma_ch0.VCRDMA = &MSH2->onchip.VCRDMA0;
+	MSH2->dma_ch1.CHCR = &MSH2->onchip.CHCR1;
+	MSH2->dma_ch1.CHCRM = &MSH2->onchip.CHCR1M;
+	MSH2->dma_ch1.SAR = &MSH2->onchip.SAR1;
+	MSH2->dma_ch1.DAR = &MSH2->onchip.DAR1;
+	MSH2->dma_ch1.TCR = &MSH2->onchip.TCR1;
+	MSH2->dma_ch1.VCRDMA = &MSH2->onchip.VCRDMA1;
 
 	// SSH2
 	if ((SSH2 = (SH2_struct*)calloc(1, sizeof(SH2_struct))) == NULL)
 		return -1;
-
+	SSH2->UpdatePC = UpdatePC;
 	SSH2->SH2InterruptibleExec = SH2StandardExec;
 
 	if (SH2TrackInfLoopInit(SSH2) != 0)
 		return -1;
 
-    SSH2->interruptReturnAddress = 0;
-    SSH2->onchip.BCR1 = 0x8000;
-    SSH2->isslave = 1;
-    SSH2->isAccessingCPUBUS = 0;
-    SSH2->isAccessingVram = 0;
-    SSH2->isBlocked = 0;
+	SSH2->interruptReturnAddress = 0;
+	SSH2->onchip.BCR1 = 0x8000;
+	SSH2->isslave = 1;
+	SSH2->isAccessingCPUBUS = 0;
+	SSH2->isAccessingVram = 0;
+	SSH2->isBlocked = 0;
 
 	SSH2->dma_ch0.CHCR = &SSH2->onchip.CHCR0;
 	SSH2->dma_ch0.CHCRM = &SSH2->onchip.CHCR0M;
@@ -375,12 +686,12 @@ void SH2Reset(SH2_struct* context)
 	SH2Core->SetMACL(context, 0x00000000);
 	SH2Core->SetPR(context, 0x00000000);
 
-   // Internal variables
-   context->target_cycles = 0x00000000;
-   context->cycles = 0;
-   context->divcycles = 0;
-   context->frtcycles = 0;
-   context->wdtcycles = 0;
+	// Internal variables
+	context->target_cycles = 0x00000000;
+	context->cycles = 0;
+	context->divcycles = 0;
+	context->frtcycles = 0;
+	context->wdtcycles = 0;
 
 	context->frc.leftover = 0;
 	context->frc.shift = 3;
@@ -547,26 +858,26 @@ void SH2TrackInfLoopClear(SH2_struct* context)
 
 void SH2HandleStepOverOut(SH2_struct* context)
 {
-   if (context->stepOverOut.enabled)
-   {
-      switch ((int)context->stepOverOut.type)
-      {
-      case SH2ST_STEPOVER: // Step Over
-         if (context->regs.PC == context->stepOverOut.address)
-         {
-            context->stepOverOut.enabled = 0;
-            context->stepOverOut.callBack(context, context->regs.PC, (void *)context->stepOverOut.type);
-         }
-         break;
-      case SH2ST_STEPOUT: // Step Out
-         {
-            u16 inst;
-            if ((context->stepOverOut.levels < 0) && (context->regs.PC == context->regs.PR))
-            {
-               context->stepOverOut.enabled = 0;
-               context->stepOverOut.callBack(context, context->regs.PC, (void *)context->stepOverOut.type);
-               return;
-            }
+	if (context->stepOverOut.enabled)
+	{
+		switch ((int)context->stepOverOut.type)
+		{
+		case SH2ST_STEPOVER: // Step Over
+			if (context->regs.PC == context->stepOverOut.address)
+			{
+				context->stepOverOut.enabled = 0;
+				context->stepOverOut.callBack(context, context->regs.PC, (void*)context->stepOverOut.type);
+			}
+			break;
+		case SH2ST_STEPOUT: // Step Out
+		{
+			u16 inst;
+			if ((context->stepOverOut.levels < 0) && (context->regs.PC == context->regs.PR))
+			{
+				context->stepOverOut.enabled = 0;
+				context->stepOverOut.callBack(context, context->regs.PC, (void*)context->stepOverOut.type);
+				return;
+			}
 
 			inst = context->instruction;;
 
@@ -911,98 +1222,98 @@ u16 FASTCALL OnchipReadWord(SH2_struct* context, u32 addr) {
 
 //////////////////////////////////////////////////////////////////////////////
 
-u32 FASTCALL OnchipReadLong(SH2_struct *context, u32 addr) {
-  switch(addr) {
-    case 0x10:
-    case 0x11:
-    case 0x12:
-    case 0x13:
-    case 0x14:
-    case 0x15:
-    case 0x16:
-    case 0x17:
-    case 0x18:
-    case 0x19:
-      FRTExec(context);
-      break;
-    default:
-      break;
-  }
-   switch(addr)
-   {
-      case 0x100:
-      case 0x120:
-         context->cycles += MAX((int)context->divcycles - (int)context->cycles,0);
-         return context->onchip.DVSR;
-      case 0x104: // DVDNT
-      case 0x124:
-         context->cycles += MAX((int)context->divcycles - (int)context->cycles,0);
-         return context->onchip.DVDNTL;
-      case 0x108:
-      case 0x128:
-         context->cycles += MAX((int)context->divcycles - (int)context->cycles,0);
-         return context->onchip.DVCR;
-      case 0x10C:
-      case 0x12C:
-         return context->onchip.VCRDIV;
-      case 0x110:
-      case 0x130:
-         context->cycles += MAX((int)context->divcycles - (int)context->cycles,0);
-         return context->onchip.DVDNTH;
-      case 0x114:
-      case 0x134:
-         context->cycles += MAX((int)context->divcycles - (int)context->cycles,0);
-         return context->onchip.DVDNTL;
-      case 0x118: // Acts as a separate register, but is set to the same value
-      case 0x138: // as DVDNTH after division
-         context->cycles += MAX((int)context->divcycles - (int)context->cycles,0);
-         return context->onchip.DVDNTUH;
-      case 0x11C: // Acts as a separate register, but is set to the same value
-      case 0x13C: // as DVDNTL after division
-         context->cycles += MAX((int)context->divcycles - (int)context->cycles,0);
-         return context->onchip.DVDNTUL;
-      case 0x180:
-         return context->onchip.SAR0;
-      case 0x184:
-         return context->onchip.DAR0;
-      case 0x188:
-         return context->onchip.TCR0;
-      case 0x18C:
-         context->onchip.CHCR0M = 0;
-         return context->onchip.CHCR0;
-      case 0x190:
-         return context->onchip.SAR1;
-      case 0x194:
-         return context->onchip.DAR1;
-      case 0x198:
-         return context->onchip.TCR1;
-      case 0x19C:
-          context->onchip.CHCR1M = 0;
-         return context->onchip.CHCR1;
-      case 0x1A0:
-         return context->onchip.VCRDMA0;
-      case 0x1A8:
-         return context->onchip.VCRDMA1;
-      case 0x1B0:
-         return context->onchip.DMAOR;
-      case 0x1E0:
-         return context->onchip.BCR1;
-      case 0x1E4:
-         return context->onchip.BCR2;
-      case 0x1E8:
-         return context->onchip.WCR;
-      case 0x1EC:
-         return context->onchip.MCR;
-      case 0x1F0:
-         return context->onchip.RTCSR;
-      case 0x1F4:
-         return context->onchip.RTCNT;
-      case 0x1F8:
-         return context->onchip.RTCOR;
-      default:
-         LOG("Unhandled Onchip long read %08X\n", (int)addr);
-         return 0;
-   }
+u32 FASTCALL OnchipReadLong(SH2_struct* context, u32 addr) {
+	switch (addr) {
+	case 0x10:
+	case 0x11:
+	case 0x12:
+	case 0x13:
+	case 0x14:
+	case 0x15:
+	case 0x16:
+	case 0x17:
+	case 0x18:
+	case 0x19:
+		FRTExec(context);
+		break;
+	default:
+		break;
+	}
+	switch (addr)
+	{
+	case 0x100:
+	case 0x120:
+		context->cycles += MAX((int)context->divcycles - (int)context->cycles, 0);
+		return context->onchip.DVSR;
+	case 0x104: // DVDNT
+	case 0x124:
+		context->cycles += MAX((int)context->divcycles - (int)context->cycles, 0);
+		return context->onchip.DVDNTL;
+	case 0x108:
+	case 0x128:
+		context->cycles += MAX((int)context->divcycles - (int)context->cycles, 0);
+		return context->onchip.DVCR;
+	case 0x10C:
+	case 0x12C:
+		return context->onchip.VCRDIV;
+	case 0x110:
+	case 0x130:
+		context->cycles += MAX((int)context->divcycles - (int)context->cycles, 0);
+		return context->onchip.DVDNTH;
+	case 0x114:
+	case 0x134:
+		context->cycles += MAX((int)context->divcycles - (int)context->cycles, 0);
+		return context->onchip.DVDNTL;
+	case 0x118: // Acts as a separate register, but is set to the same value
+	case 0x138: // as DVDNTH after division
+		context->cycles += MAX((int)context->divcycles - (int)context->cycles, 0);
+		return context->onchip.DVDNTUH;
+	case 0x11C: // Acts as a separate register, but is set to the same value
+	case 0x13C: // as DVDNTL after division
+		context->cycles += MAX((int)context->divcycles - (int)context->cycles, 0);
+		return context->onchip.DVDNTUL;
+	case 0x180:
+		return context->onchip.SAR0;
+	case 0x184:
+		return context->onchip.DAR0;
+	case 0x188:
+		return context->onchip.TCR0;
+	case 0x18C:
+		context->onchip.CHCR0M = 0;
+		return context->onchip.CHCR0;
+	case 0x190:
+		return context->onchip.SAR1;
+	case 0x194:
+		return context->onchip.DAR1;
+	case 0x198:
+		return context->onchip.TCR1;
+	case 0x19C:
+		context->onchip.CHCR1M = 0;
+		return context->onchip.CHCR1;
+	case 0x1A0:
+		return context->onchip.VCRDMA0;
+	case 0x1A8:
+		return context->onchip.VCRDMA1;
+	case 0x1B0:
+		return context->onchip.DMAOR;
+	case 0x1E0:
+		return context->onchip.BCR1;
+	case 0x1E4:
+		return context->onchip.BCR2;
+	case 0x1E8:
+		return context->onchip.WCR;
+	case 0x1EC:
+		return context->onchip.MCR;
+	case 0x1F0:
+		return context->onchip.RTCSR;
+	case 0x1F4:
+		return context->onchip.RTCNT;
+	case 0x1F8:
+		return context->onchip.RTCOR;
+	default:
+		LOG("Unhandled Onchip long read %08X\n", (int)addr);
+		return 0;
+	}
 
 	return 0;
 }
@@ -1341,126 +1652,126 @@ void FASTCALL OnchipWriteWord(SH2_struct* context, u32 addr, u16 val) {
 
 //////////////////////////////////////////////////////////////////////////////
 
-void FASTCALL OnchipWriteLong(SH2_struct *context, u32 addr, u32 val)  {
-  switch(addr) {
-    case 0x10:
-    case 0x11:
-    case 0x12:
-    case 0x13:
-    case 0x14:
-    case 0x15:
-    case 0x16:
-    case 0x17:
-    case 0x18:
-    case 0x19:
-      FRTExec(context);
-      break;
-    default:
-      break;
-  }
-   switch (addr)
-   {
-   case 0x010:
-     context->onchip.TIER = (val & 0x8E) | 0x1;
-     SH2EvaluateInterrupt(context);
-     break;
-   case 0x060:
-     context->onchip.IPRB = val & 0xFF00;
-     SH2EvaluateInterrupt(context);
-     break;
-      case 0x100:
-      case 0x120:
-        context->cycles += MAX((int)context->divcycles - (int)context->cycles,0);
-         context->onchip.DVSR = val;
-         return;
-      case 0x104: // 32-bit / 32-bit divide operation
-      case 0x124:
-      {
-         s32 divisor = (s32) context->onchip.DVSR;
-         context->divcycles = context->cycles + 39;
-         if (divisor == 0)
-         {
-            // Regardless of what DVDNTL is set to, the top 3 bits
-            // are used to create the new DVDNTH value
-            if (val & 0x80000000)
-            {
-               context->onchip.DVDNTL = 0x80000000;
-               context->onchip.DVDNTH = 0xFFFFFFFC | ((val >> 29) & 0x3);
-            }
-            else
-            {
-               context->onchip.DVDNTL = 0x7FFFFFFF;
-               context->onchip.DVDNTH = 0 | (val >> 29);
-            }
-            context->onchip.DVDNTUL = context->onchip.DVDNTL;
-            context->onchip.DVDNTUH = context->onchip.DVDNTH;
-            context->onchip.DVCR |= 1;
-            SH2EvaluateInterrupt(context);
-         }
-         else
-         {
-            s32 quotient = ((s32) val) / divisor;
-            s32 remainder = ((s32) val) % divisor;
+void FASTCALL OnchipWriteLong(SH2_struct* context, u32 addr, u32 val) {
+	switch (addr) {
+	case 0x10:
+	case 0x11:
+	case 0x12:
+	case 0x13:
+	case 0x14:
+	case 0x15:
+	case 0x16:
+	case 0x17:
+	case 0x18:
+	case 0x19:
+		FRTExec(context);
+		break;
+	default:
+		break;
+	}
+	switch (addr)
+	{
+	case 0x010:
+		context->onchip.TIER = (val & 0x8E) | 0x1;
+		SH2EvaluateInterrupt(context);
+		break;
+	case 0x060:
+		context->onchip.IPRB = val & 0xFF00;
+		SH2EvaluateInterrupt(context);
+		break;
+	case 0x100:
+	case 0x120:
+		context->cycles += MAX((int)context->divcycles - (int)context->cycles, 0);
+		context->onchip.DVSR = val;
+		return;
+	case 0x104: // 32-bit / 32-bit divide operation
+	case 0x124:
+	{
+		s32 divisor = (s32)context->onchip.DVSR;
+		context->divcycles = context->cycles + 39;
+		if (divisor == 0)
+		{
+			// Regardless of what DVDNTL is set to, the top 3 bits
+			// are used to create the new DVDNTH value
+			if (val & 0x80000000)
+			{
+				context->onchip.DVDNTL = 0x80000000;
+				context->onchip.DVDNTH = 0xFFFFFFFC | ((val >> 29) & 0x3);
+			}
+			else
+			{
+				context->onchip.DVDNTL = 0x7FFFFFFF;
+				context->onchip.DVDNTH = 0 | (val >> 29);
+			}
+			context->onchip.DVDNTUL = context->onchip.DVDNTL;
+			context->onchip.DVDNTUH = context->onchip.DVDNTH;
+			context->onchip.DVCR |= 1;
+			SH2EvaluateInterrupt(context);
+		}
+		else
+		{
+			s32 quotient = ((s32)val) / divisor;
+			s32 remainder = ((s32)val) % divisor;
 
-            if (quotient > 0x7FFFFFFF)
-            {
-               context->onchip.DVCR |= 1;
-               context->onchip.DVDNTL = 0x7FFFFFFF;
-               context->onchip.DVDNTH = 0xFFFFFFFE; // fix me
-               SH2EvaluateInterrupt(context);
-            }
-            else if ((s32)((s64)quotient >> 32) < -1)
-            {
-               context->onchip.DVCR |= 1;
-               context->onchip.DVDNTL = 0x80000000;
-               context->onchip.DVDNTH = 0xFFFFFFFE; // fix me
-               SH2EvaluateInterrupt(context);
-            }
-            else
-            {
-               context->onchip.DVDNTL = quotient;
-               context->onchip.DVDNTH = remainder;
-            }
-            context->onchip.DVDNT = context->onchip.DVDNTL;
-            context->onchip.DVDNTUL = context->onchip.DVDNTL;
-            context->onchip.DVDNTUH = context->onchip.DVDNTH;
-         }
-         return;
-      }
-      case 0x108:
-      case 0x128:
-         context->onchip.DVCR = val & 0x3;
-         SH2EvaluateInterrupt(context);
-         return;
-      case 0x10C:
-      case 0x12C:
-         context->onchip.VCRDIV = val & 0xFFFF;
-         SH2EvaluateInterrupt(context);
-         return;
-      case 0x110:
-      case 0x130:
-         context->cycles += MAX((int)context->divcycles - (int)context->cycles,0);
-         context->onchip.DVDNTH = val;
-         return;
-      case 0x114:
-      case 0x134: { // 64-bit / 32-bit divide operation
-         s32 divisor = (s32) context->onchip.DVSR;
-         s64 dividend = context->onchip.DVDNTH;
-         dividend = (s64)(((u64)dividend) << 32);
-         dividend |= val;
-         context->divcycles = context->cycles + 39;
-         if (divisor == 0)
-         {
-            if (context->onchip.DVDNTH & 0x80000000)
-            {
-               context->onchip.DVDNTL = 0x80000000;
-               context->onchip.DVDNTH = context->onchip.DVDNTH << 3; // fix me
-            }
-            else
-            {
-               context->onchip.DVDNTL = 0x7FFFFFFF;
-               context->onchip.DVDNTH = context->onchip.DVDNTH << 3; // fix me
-            }
+			if (quotient > 0x7FFFFFFF)
+			{
+				context->onchip.DVCR |= 1;
+				context->onchip.DVDNTL = 0x7FFFFFFF;
+				context->onchip.DVDNTH = 0xFFFFFFFE; // fix me
+				SH2EvaluateInterrupt(context);
+			}
+			else if ((s32)((s64)quotient >> 32) < -1)
+			{
+				context->onchip.DVCR |= 1;
+				context->onchip.DVDNTL = 0x80000000;
+				context->onchip.DVDNTH = 0xFFFFFFFE; // fix me
+				SH2EvaluateInterrupt(context);
+			}
+			else
+			{
+				context->onchip.DVDNTL = quotient;
+				context->onchip.DVDNTH = remainder;
+			}
+			context->onchip.DVDNT = context->onchip.DVDNTL;
+			context->onchip.DVDNTUL = context->onchip.DVDNTL;
+			context->onchip.DVDNTUH = context->onchip.DVDNTH;
+		}
+		return;
+	}
+	case 0x108:
+	case 0x128:
+		context->onchip.DVCR = val & 0x3;
+		SH2EvaluateInterrupt(context);
+		return;
+	case 0x10C:
+	case 0x12C:
+		context->onchip.VCRDIV = val & 0xFFFF;
+		SH2EvaluateInterrupt(context);
+		return;
+	case 0x110:
+	case 0x130:
+		context->cycles += MAX((int)context->divcycles - (int)context->cycles, 0);
+		context->onchip.DVDNTH = val;
+		return;
+	case 0x114:
+	case 0x134: { // 64-bit / 32-bit divide operation
+		s32 divisor = (s32)context->onchip.DVSR;
+		s64 dividend = context->onchip.DVDNTH;
+		dividend = (s64)(((u64)dividend) << 32);
+		dividend |= val;
+		context->divcycles = context->cycles + 39;
+		if (divisor == 0)
+		{
+			if (context->onchip.DVDNTH & 0x80000000)
+			{
+				context->onchip.DVDNTL = 0x80000000;
+				context->onchip.DVDNTH = context->onchip.DVDNTH << 3; // fix me
+			}
+			else
+			{
+				context->onchip.DVDNTL = 0x7FFFFFFF;
+				context->onchip.DVDNTH = context->onchip.DVDNTH << 3; // fix me
+			}
 
 			context->onchip.DVDNTUL = context->onchip.DVDNTL;
 			context->onchip.DVDNTUH = context->onchip.DVDNTH;
@@ -1472,61 +1783,61 @@ void FASTCALL OnchipWriteLong(SH2_struct *context, u32 addr, u32 val)  {
 			s64 quotient = dividend / divisor;
 			s32 remainder = dividend % divisor;
 
-            if (quotient > 0x7FFFFFFF)
-            {
-               context->onchip.DVCR |= 1;
-               context->onchip.DVDNTL = 0x7FFFFFFF;
-               context->onchip.DVDNTH = 0xFFFFFFFE; // fix me
-               SH2EvaluateInterrupt(context);
-            }
-            else if ((s32)(quotient >> 32) < -1)
-            {
-               context->onchip.DVCR |= 1;
-               context->onchip.DVDNTL = 0x80000000;
-               context->onchip.DVDNTH = 0xFFFFFFFE; // fix me
-               SH2EvaluateInterrupt(context);
-            }
-            else
-            {
-               context->onchip.DVDNTL = quotient;
-               context->onchip.DVDNTH = remainder;
-            }
-            context->onchip.DVDNT = context->onchip.DVDNTL;
-            context->onchip.DVDNTUL = context->onchip.DVDNTL;
-            context->onchip.DVDNTUH = context->onchip.DVDNTH;
-         }
-         return;
-      }
-      case 0x118:
-      case 0x138:
-         context->cycles += MAX((int)context->divcycles - (int)context->cycles,0);
-         context->onchip.DVDNTUH = val;
-         return;
-      case 0x11C:
-      case 0x13C:
-         context->cycles += MAX((int)context->divcycles - (int)context->cycles,0);
-         context->onchip.DVDNTUL = val;
-         return;
-      case 0x140:
-         context->onchip.BARA.all = val;
-         return;
-      case 0x144:
-         context->onchip.BAMRA.all = val;
-         return;
-      case 0x180:
-         context->onchip.SAR0 = val;
-         return;
-      case 0x184:
-         context->onchip.DAR0 = val;
-         return;
-      case 0x188:
-         context->onchip.TCR0 = val & 0xFFFFFF;
-         return;
-      case 0x18C:
-        if (context->onchip.TCR0 != 0) {
-          DMAProc(context, 0x7FFFFFFF);
-        }
-//         context->onchip.CHCR0 = val & 0xFFFF;
+			if (quotient > 0x7FFFFFFF)
+			{
+				context->onchip.DVCR |= 1;
+				context->onchip.DVDNTL = 0x7FFFFFFF;
+				context->onchip.DVDNTH = 0xFFFFFFFE; // fix me
+				SH2EvaluateInterrupt(context);
+			}
+			else if ((s32)(quotient >> 32) < -1)
+			{
+				context->onchip.DVCR |= 1;
+				context->onchip.DVDNTL = 0x80000000;
+				context->onchip.DVDNTH = 0xFFFFFFFE; // fix me
+				SH2EvaluateInterrupt(context);
+			}
+			else
+			{
+				context->onchip.DVDNTL = quotient;
+				context->onchip.DVDNTH = remainder;
+			}
+			context->onchip.DVDNT = context->onchip.DVDNTL;
+			context->onchip.DVDNTUL = context->onchip.DVDNTL;
+			context->onchip.DVDNTUH = context->onchip.DVDNTH;
+		}
+		return;
+	}
+	case 0x118:
+	case 0x138:
+		context->cycles += MAX((int)context->divcycles - (int)context->cycles, 0);
+		context->onchip.DVDNTUH = val;
+		return;
+	case 0x11C:
+	case 0x13C:
+		context->cycles += MAX((int)context->divcycles - (int)context->cycles, 0);
+		context->onchip.DVDNTUL = val;
+		return;
+	case 0x140:
+		context->onchip.BARA.all = val;
+		return;
+	case 0x144:
+		context->onchip.BAMRA.all = val;
+		return;
+	case 0x180:
+		context->onchip.SAR0 = val;
+		return;
+	case 0x184:
+		context->onchip.DAR0 = val;
+		return;
+	case 0x188:
+		context->onchip.TCR0 = val & 0xFFFFFF;
+		return;
+	case 0x18C:
+		if (context->onchip.TCR0 != 0) {
+			DMAProc(context, 0x7FFFFFFF);
+		}
+		//         context->onchip.CHCR0 = val & 0xFFFF;
 
 		context->onchip.CHCR0 = (val & ~2) | (context->onchip.CHCR0 & (val | context->onchip.CHCR0M) & 2);
 		SH2EvaluateInterrupt(context);
@@ -1659,19 +1970,19 @@ static u8 getLRU(SH2_struct* context, u32 tag, u8 line) {
 	return way;
 }
 
-static inline void CacheWriteThrough(SH2_struct *context, u8* mem, u32 addr, u32 val, u8 size) {
-  SH2UpdateABusAccess(context, 1); //When cpu access CPU-BUs at the same time as SCU, there might be a penalty
-  switch(size) {
-  case 1:
-    WriteByteList[(addr >> 16) & 0xFFF](context, mem, addr, val);
-    break;
-  case 2:
-    WriteWordList[(addr >> 16) & 0xFFF](context, mem, addr, val);
-    break;
-  case 4:
-    WriteLongList[(addr >> 16) & 0xFFF](context, mem, addr, val);
-    break;
-  }
+static inline void CacheWriteThrough(SH2_struct* context, u8* mem, u32 addr, u32 val, u8 size) {
+	SH2UpdateABusAccess(context, 1); //When cpu access CPU-BUs at the same time as SCU, there might be a penalty
+	switch (size) {
+	case 1:
+		WriteByteList[(addr >> 16) & 0xFFF](context, mem, addr, val);
+		break;
+	case 2:
+		WriteWordList[(addr >> 16) & 0xFFF](context, mem, addr, val);
+		break;
+	case 4:
+		WriteLongList[(addr >> 16) & 0xFFF](context, mem, addr, val);
+		break;
+	}
 }
 
 static inline void CacheWriteVal(SH2_struct* context, u32 addr, u32 val, u8 size) {
@@ -1733,7 +2044,7 @@ void InvalidateCache(SH2_struct* ctx) {
 	memset(ctx->cacheTagArray, 0x0, 64 * 4 * sizeof(u32));
 	SH2WriteNotify(ctx, 0, 0x1000);
 #endif
-  ctx->cycles += 1;
+	ctx->cycles += 1;
 }
 
 void enableCache(SH2_struct* context) {
@@ -1767,7 +2078,7 @@ void enableCache(SH2_struct* context) {
 #else
 	return;
 #endif
-}
+	}
 
 void disableCache(SH2_struct* context) {
 #ifdef USE_CACHE
@@ -1795,30 +2106,30 @@ void disableCache(SH2_struct* context) {
 			CacheWriteLongList[i] = WriteLongList[i];
 		}
 		InvalidateCache(context);
-		}
+	}
 #else
 	return;
 #endif
 	}
 
 #ifdef USE_CACHE
-void CacheFetch(SH2_struct *context, u8* memory, u32 addr, u8 way) {
-  u8 line = (addr>>4)&0x3F;
-  u32 tag = (addr>>10)&0x7FFFF;
-  SH2UpdateABusAccess(context, 1); //When cpu access CPU-BUs at the same time as SCU, there might be a penalty
-  UpdateLRU(context, line, way);
-  context->tagWay[line][tag] = way;
-  context->cacheTagArray[line][way] = tag;
-  for (int i=0; i<4; i++) {
-    u32 ret = ReadLongList[(addr >> 16) & 0xFFF](context, memory,(addr&(~0xF))|(i*4));
-    CacheWriteVal(context, (addr&(~0xF))|(i*4), ret, 4);
-    // printf("Fetch (%x) (%d)=%x\n", (addr&(~0xF))|(i*4), i, ret);
-  }
-  SH2WriteNotify(context, (addr&(~0xF)), 4);
-  // for (int i =0; i<=0xF; i++) {
-  //   printf("%x ", context->cacheData[line][way][i]);
-  // }
-  // printf("\n");
+void CacheFetch(SH2_struct* context, u8* memory, u32 addr, u8 way) {
+	u8 line = (addr >> 4) & 0x3F;
+	u32 tag = (addr >> 10) & 0x7FFFF;
+	SH2UpdateABusAccess(context, 1); //When cpu access CPU-BUs at the same time as SCU, there might be a penalty
+	UpdateLRU(context, line, way);
+	context->tagWay[line][tag] = way;
+	context->cacheTagArray[line][way] = tag;
+	for (int i = 0; i < 4; i++) {
+		u32 ret = ReadLongList[(addr >> 16) & 0xFFF](context, memory, (addr& (~0xF)) | (i * 4));
+		CacheWriteVal(context, (addr & (~0xF)) | (i * 4), ret, 4);
+		// printf("Fetch (%x) (%d)=%x\n", (addr&(~0xF))|(i*4), i, ret);
+	}
+	SH2WriteNotify(context, (addr & (~0xF)), 4);
+	// for (int i =0; i<=0xF; i++) {
+	//   printf("%x ", context->cacheData[line][way][i]);
+	// }
+	// printf("\n");
 }
 
 u8 CacheReadByte(SH2_struct* context, u8* memory, u32 addr) {
@@ -1835,10 +2146,10 @@ u8 CacheReadByte(SH2_struct* context, u8* memory, u32 addr) {
 			YuiMsg("Read Byte addr %x from cache = %x (%x)\n", addr, ret, ReadByteList[(addr >> 16) & 0xFFF](context, memory, addr));
 			fflush(stdout);
 			abort();
-}
+	}
 #endif
 		return ret;
-	}
+}
 	way = getLRU(context, tag, line);
 	CacheFetch(context, memory, addr, way);
 	u8 ret = ReadByteList[(addr >> 16) & 0xFFF](context, context->cacheData[line][way], byte);
@@ -1866,10 +2177,10 @@ u16 CacheReadWord(SH2_struct* context, u8* memory, u32 addr) {
 			YuiMsg("Read Word addr %x (%x) from of cache = %x (%x)\n", addr, (addr >> 16) & 0xFFF, ret, ReadWordList[(addr >> 16) & 0xFFF](context, memory, addr));
 			fflush(stdout);
 			abort();
-}
+	}
 #endif
 		return ret;
-	}
+}
 	way = getLRU(context, tag, line);
 	CacheFetch(context, memory, addr, way);
 	u16 ret = ReadWordList[(addr >> 16) & 0xFFF](context, context->cacheData[line][way], byte);
@@ -1878,7 +2189,7 @@ u16 CacheReadWord(SH2_struct* context, u8* memory, u32 addr) {
 		YuiMsg("Read Word addr %x (%x) out of cache = %x (%x)\n", addr, (addr >> 16) & 0xFFF, ret, ReadWordList[(addr >> 16) & 0xFFF](context, memory, addr));
 		fflush(stdout);
 		abort();
-  }
+	}
 #endif
 	return ret;
 }
@@ -1897,10 +2208,10 @@ u32 CacheReadLong(SH2_struct* context, u8* memory, u32 addr) {
 			YuiMsg("Read Long addr %x from cache = %x (%x)\n", addr, ret, ReadLongList[(addr >> 16) & 0xFFF](context, memory, addr));
 			fflush(stdout);
 			abort();
-}
+	}
 #endif
 		return ret;
-	}
+}
 	way = getLRU(context, tag, line);
 	CacheFetch(context, memory, addr, way);
 	u32 ret = ReadLongList[(addr >> 16) & 0xFFF](context, context->cacheData[line][way], byte);
@@ -1909,7 +2220,7 @@ u32 CacheReadLong(SH2_struct* context, u8* memory, u32 addr) {
 		YuiMsg("Read Long addr %x out of cache = %x (%x)\n", addr, ret, ReadLongList[(addr >> 16) & 0xFFF](context, memory, addr));
 		fflush(stdout);
 		abort();
-  }
+	}
 #endif
 	return ret;
 }
@@ -1925,7 +2236,7 @@ void CacheInvalidate(SH2_struct* context, u32 addr) {
 	if (way <= 0x3) context->cacheTagArray[line][way] = 0x0;
 	context->cacheLRU[line] = 0;
 #endif
-  context->cycles += 2;
+	context->cycles += 2;
 }
 
 u32 FASTCALL AddressArrayReadLong(SH2_struct* context, u32 addr) {
@@ -2249,10 +2560,10 @@ void DMATransferCycles(SH2_struct* context, Dmac* dmac, int cycles) {
 	u32 i = 0;
 	int count;
 
-   //LOG("sh2 dma src=%08X,dst=%08X,%d type:%d cycle:%d\n", *dmac->SAR, *dmac->DAR, *dmac->TCR, ((*dmac->CHCR & 0x0C00) >> 10), cycles);
-   if (isDMABlocked(context)) {
-     return;
-   }
+	//LOG("sh2 dma src=%08X,dst=%08X,%d type:%d cycle:%d\n", *dmac->SAR, *dmac->DAR, *dmac->TCR, ((*dmac->CHCR & 0x0C00) >> 10), cycles);
+	if (isDMABlocked(context)) {
+		return;
+	}
 
 	if (!(*dmac->CHCR & 0x2)) { // TE is not set
 		int srcInc;
@@ -2534,7 +2845,7 @@ void SH2DumpHistory(SH2_struct* context) {
 			index--;
 		}
 		fclose(history);
-	}
+}
 #endif
 }
 
@@ -2546,8 +2857,8 @@ void SH2DumpHistory(SH2_struct* context) {
 
 //////////////////////////////////////////////////////////////////////////////
 
-void SH2SetBreakpointCallBack(SH2_struct *context, void (*func)(void *, u32, void *), void *userdata) {
-   context->bp.BreakpointCallBack = func;
+void SH2SetBreakpointCallBack(SH2_struct* context, void (*func)(void*, u32, void*), void* userdata) {
+	context->bp.BreakpointCallBack = func;
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -2644,234 +2955,234 @@ void SH2ClearCodeBreakpoints(SH2_struct* context) {
 
 //////////////////////////////////////////////////////////////////////////////
 
-static u8 FASTCALL SH2MemoryBreakpointReadByte(SH2_struct *sh, u8* mem, u32 addr) {
-   int i;
-   for (i = 0; i < sh->bp.nummemorybreakpoints; i++)
-   {
-      if (sh->bp.memorybreakpoint[i].addr == (addr & 0x0FFFFFFF))
-      {
-         if (sh->bp.BreakpointCallBack && sh->bp.inbreakpoint == 0)
-         {
-            sh->bp.inbreakpoint = 1;
-            sh->bp.BreakpointUserData.PCAddress = (sh->isDelayed != 0)?sh->isDelayed:sh->regs.PC;
-            sh->bp.BreakpointUserData.BPAddress = addr;
-         }
+static u8 FASTCALL SH2MemoryBreakpointReadByte(SH2_struct* sh, u8* mem, u32 addr) {
+	int i;
+	for (i = 0; i < sh->bp.nummemorybreakpoints; i++)
+	{
+		if (sh->bp.memorybreakpoint[i].addr == (addr & 0x0FFFFFFF))
+		{
+			if (sh->bp.BreakpointCallBack && sh->bp.inbreakpoint == 0)
+			{
+				sh->bp.inbreakpoint = 1;
+				sh->bp.BreakpointUserData.PCAddress = (sh->isDelayed != 0) ? sh->isDelayed : sh->regs.PC;
+				sh->bp.BreakpointUserData.BPAddress = addr;
+			}
 
 			return sh->bp.memorybreakpoint[i].oldreadbyte(sh, mem, addr);
 		}
 	}
 
-   // Use the closest match if address doesn't match
-   for (i = 0; i < sh->bp.nummemorybreakpoints; i++)
-   {
-      if (((sh->bp.memorybreakpoint[i].addr >> 16) & 0xFFF) == ((addr >> 16) & 0xFFF))
-         return sh->bp.memorybreakpoint[i].oldreadbyte(sh, mem, addr);
-   }
-   SH2_struct *otherSH = (sh == MSH2)?SSH2:MSH2;
-   // the breakpoint might have been set for the other core.
-   for (i = 0; i < otherSH->bp.nummemorybreakpoints; i++)
-   {
-      if (((otherSH->bp.memorybreakpoint[i].addr >> 16) & 0xFFF) == ((addr >> 16) & 0xFFF))
-         return otherSH->bp.memorybreakpoint[i].oldreadbyte(sh, mem, addr);
-   }
-   return 0;
+	// Use the closest match if address doesn't match
+	for (i = 0; i < sh->bp.nummemorybreakpoints; i++)
+	{
+		if (((sh->bp.memorybreakpoint[i].addr >> 16) & 0xFFF) == ((addr >> 16) & 0xFFF))
+			return sh->bp.memorybreakpoint[i].oldreadbyte(sh, mem, addr);
+	}
+	SH2_struct* otherSH = (sh == MSH2) ? SSH2 : MSH2;
+	// the breakpoint might have been set for the other core.
+	for (i = 0; i < otherSH->bp.nummemorybreakpoints; i++)
+	{
+		if (((otherSH->bp.memorybreakpoint[i].addr >> 16) & 0xFFF) == ((addr >> 16) & 0xFFF))
+			return otherSH->bp.memorybreakpoint[i].oldreadbyte(sh, mem, addr);
+	}
+	return 0;
 }
 
 //////////////////////////////////////////////////////////////////////////////
 
-static u16 FASTCALL SH2MemoryBreakpointReadWord(SH2_struct *sh, u8* mem, u32 addr) {
-   int i;
-   for (i = 0; i < sh->bp.nummemorybreakpoints; i++)
-   {
-      if (sh->bp.memorybreakpoint[i].addr == (addr & 0x0FFFFFFF))
-      {
-         if (sh->bp.BreakpointCallBack && sh->bp.inbreakpoint == 0)
-         {
-            sh->bp.inbreakpoint = 1;
-            sh->bp.BreakpointUserData.PCAddress = (sh->isDelayed != 0)?sh->isDelayed:0Xcafedead;
-            sh->bp.BreakpointUserData.BPAddress = addr;
-         }
-         return sh->bp.memorybreakpoint[i].oldreadword(sh, mem, addr);
-      }
-   }
+static u16 FASTCALL SH2MemoryBreakpointReadWord(SH2_struct* sh, u8* mem, u32 addr) {
+	int i;
+	for (i = 0; i < sh->bp.nummemorybreakpoints; i++)
+	{
+		if (sh->bp.memorybreakpoint[i].addr == (addr & 0x0FFFFFFF))
+		{
+			if (sh->bp.BreakpointCallBack && sh->bp.inbreakpoint == 0)
+			{
+				sh->bp.inbreakpoint = 1;
+				sh->bp.BreakpointUserData.PCAddress = (sh->isDelayed != 0) ? sh->isDelayed : 0Xcafedead;
+				sh->bp.BreakpointUserData.BPAddress = addr;
+			}
+			return sh->bp.memorybreakpoint[i].oldreadword(sh, mem, addr);
+		}
+	}
 
-   // Use the closest match if address doesn't match
-   for (i = 0; i < sh->bp.nummemorybreakpoints; i++)
-   {
-      if (((sh->bp.memorybreakpoint[i].addr >> 16) & 0xFFF) == ((addr >> 16) & 0xFFF))
-         return sh->bp.memorybreakpoint[i].oldreadword(sh, mem, addr);
-   }
-   SH2_struct *otherSH = (sh == MSH2)?SSH2:MSH2;
-   // the breakpoint might have been set for the other core.
-   for (i = 0; i < otherSH->bp.nummemorybreakpoints; i++)
-   {
-      if (((otherSH->bp.memorybreakpoint[i].addr >> 16) & 0xFFF) == ((addr >> 16) & 0xFFF))
-         return otherSH->bp.memorybreakpoint[i].oldreadword(sh, mem, addr);
-   }
-   return 0;
+	// Use the closest match if address doesn't match
+	for (i = 0; i < sh->bp.nummemorybreakpoints; i++)
+	{
+		if (((sh->bp.memorybreakpoint[i].addr >> 16) & 0xFFF) == ((addr >> 16) & 0xFFF))
+			return sh->bp.memorybreakpoint[i].oldreadword(sh, mem, addr);
+	}
+	SH2_struct* otherSH = (sh == MSH2) ? SSH2 : MSH2;
+	// the breakpoint might have been set for the other core.
+	for (i = 0; i < otherSH->bp.nummemorybreakpoints; i++)
+	{
+		if (((otherSH->bp.memorybreakpoint[i].addr >> 16) & 0xFFF) == ((addr >> 16) & 0xFFF))
+			return otherSH->bp.memorybreakpoint[i].oldreadword(sh, mem, addr);
+	}
+	return 0;
 }
 
 //////////////////////////////////////////////////////////////////////////////
 
-static u32 FASTCALL SH2MemoryBreakpointReadLong(SH2_struct *sh, u8* mem, u32 addr) {
-   int i;
-   for (i = 0; i < sh->bp.nummemorybreakpoints; i++)
-   {
-      if (sh->bp.memorybreakpoint[i].addr == (addr & 0x0FFFFFFF))
-      {
-         if (sh->bp.BreakpointCallBack && sh->bp.inbreakpoint == 0)
-         {
-            sh->bp.inbreakpoint = 1;
-            sh->bp.BreakpointUserData.PCAddress = (sh->isDelayed != 0)?sh->isDelayed:sh->regs.PC;
-            sh->bp.BreakpointUserData.BPAddress = addr;
-         }
-         return sh->bp.memorybreakpoint[i].oldreadlong(sh, mem, addr);
-      }
-   }
+static u32 FASTCALL SH2MemoryBreakpointReadLong(SH2_struct* sh, u8* mem, u32 addr) {
+	int i;
+	for (i = 0; i < sh->bp.nummemorybreakpoints; i++)
+	{
+		if (sh->bp.memorybreakpoint[i].addr == (addr & 0x0FFFFFFF))
+		{
+			if (sh->bp.BreakpointCallBack && sh->bp.inbreakpoint == 0)
+			{
+				sh->bp.inbreakpoint = 1;
+				sh->bp.BreakpointUserData.PCAddress = (sh->isDelayed != 0) ? sh->isDelayed : sh->regs.PC;
+				sh->bp.BreakpointUserData.BPAddress = addr;
+			}
+			return sh->bp.memorybreakpoint[i].oldreadlong(sh, mem, addr);
+		}
+	}
 
-   // Use the closest match if address doesn't match
-   for (i = 0; i < sh->bp.nummemorybreakpoints; i++)
-   {
-      if (((sh->bp.memorybreakpoint[i].addr >> 16) & 0xFFF) == ((addr >> 16) & 0xFFF))
-         return sh->bp.memorybreakpoint[i].oldreadlong(sh, mem, addr);
-   }
-   SH2_struct *otherSH = (sh == MSH2)?SSH2:MSH2;
-   // the breakpoint might have been set for the other core.
-   for (i = 0; i < otherSH->bp.nummemorybreakpoints; i++)
-   {
-      if (((otherSH->bp.memorybreakpoint[i].addr >> 16) & 0xFFF) == ((addr >> 16) & 0xFFF))
-         return otherSH->bp.memorybreakpoint[i].oldreadlong(sh, mem, addr);
-   }
-   return 0;
+	// Use the closest match if address doesn't match
+	for (i = 0; i < sh->bp.nummemorybreakpoints; i++)
+	{
+		if (((sh->bp.memorybreakpoint[i].addr >> 16) & 0xFFF) == ((addr >> 16) & 0xFFF))
+			return sh->bp.memorybreakpoint[i].oldreadlong(sh, mem, addr);
+	}
+	SH2_struct* otherSH = (sh == MSH2) ? SSH2 : MSH2;
+	// the breakpoint might have been set for the other core.
+	for (i = 0; i < otherSH->bp.nummemorybreakpoints; i++)
+	{
+		if (((otherSH->bp.memorybreakpoint[i].addr >> 16) & 0xFFF) == ((addr >> 16) & 0xFFF))
+			return otherSH->bp.memorybreakpoint[i].oldreadlong(sh, mem, addr);
+	}
+	return 0;
 }
 
 //////////////////////////////////////////////////////////////////////////////
 
-static void FASTCALL SH2MemoryBreakpointWriteByte(SH2_struct *sh, u8* mem, u32 addr, u8 val) {
-   int i;
-   SH2WriteNotify(MSH2, addr, 1);
-   SH2WriteNotify(SSH2, addr, 1);
-   for (i = 0; i < sh->bp.nummemorybreakpoints; i++)
-   {
-      if (sh->bp.memorybreakpoint[i].addr == (addr & 0x0FFFFFFF))
-      {
-         if (sh->bp.BreakpointCallBack && sh->bp.inbreakpoint == 0)
-         {
-            sh->bp.inbreakpoint = 1;
-            sh->bp.BreakpointUserData.PCAddress = (sh->isDelayed != 0)?sh->isDelayed:sh->regs.PC;
-            sh->bp.BreakpointUserData.BPAddress = addr;
-         }
+static void FASTCALL SH2MemoryBreakpointWriteByte(SH2_struct* sh, u8* mem, u32 addr, u8 val) {
+	int i;
+	SH2WriteNotify(MSH2, addr, 1);
+	SH2WriteNotify(SSH2, addr, 1);
+	for (i = 0; i < sh->bp.nummemorybreakpoints; i++)
+	{
+		if (sh->bp.memorybreakpoint[i].addr == (addr & 0x0FFFFFFF))
+		{
+			if (sh->bp.BreakpointCallBack && sh->bp.inbreakpoint == 0)
+			{
+				sh->bp.inbreakpoint = 1;
+				sh->bp.BreakpointUserData.PCAddress = (sh->isDelayed != 0) ? sh->isDelayed : sh->regs.PC;
+				sh->bp.BreakpointUserData.BPAddress = addr;
+			}
 
 			sh->bp.memorybreakpoint[i].oldwritebyte(sh, mem, addr, val);
 			return;
 		}
 	}
 
-   // Use the closest match if address doesn't match
-   for (i = 0; i < sh->bp.nummemorybreakpoints; i++)
-   {
-      if (((sh->bp.memorybreakpoint[i].addr >> 16) & 0xFFF) == ((addr >> 16) & 0xFFF))
-      {
-         sh->bp.memorybreakpoint[i].oldwritebyte(sh, mem, addr, val);
-         return;
-      }
-   }
-   SH2_struct *otherSH = (sh == MSH2)?SSH2:MSH2;
-   // the breakpoint might have been set for the other core.
-   for (i = 0; i < otherSH->bp.nummemorybreakpoints; i++)
-   {
-     if (((otherSH->bp.memorybreakpoint[i].addr >> 16) & 0xFFF) == ((addr >> 16) & 0xFFF))
-     {
-        otherSH->bp.memorybreakpoint[i].oldwritebyte(sh, mem, addr, val);
-        return;
-     }
-   }
+	// Use the closest match if address doesn't match
+	for (i = 0; i < sh->bp.nummemorybreakpoints; i++)
+	{
+		if (((sh->bp.memorybreakpoint[i].addr >> 16) & 0xFFF) == ((addr >> 16) & 0xFFF))
+		{
+			sh->bp.memorybreakpoint[i].oldwritebyte(sh, mem, addr, val);
+			return;
+		}
+	}
+	SH2_struct* otherSH = (sh == MSH2) ? SSH2 : MSH2;
+	// the breakpoint might have been set for the other core.
+	for (i = 0; i < otherSH->bp.nummemorybreakpoints; i++)
+	{
+		if (((otherSH->bp.memorybreakpoint[i].addr >> 16) & 0xFFF) == ((addr >> 16) & 0xFFF))
+		{
+			otherSH->bp.memorybreakpoint[i].oldwritebyte(sh, mem, addr, val);
+			return;
+		}
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////////
 
-static void FASTCALL SH2MemoryBreakpointWriteWord(SH2_struct *sh, u8* mem, u32 addr, u16 val) {
-   int i;
-    SH2WriteNotify(MSH2, addr, 2);
-    SH2WriteNotify(SSH2, addr, 2);
-   for (i = 0; i < sh->bp.nummemorybreakpoints; i++)
-   {
-      if (sh->bp.memorybreakpoint[i].addr == (addr & 0x0FFFFFFF))
-      {
-         if (sh->bp.BreakpointCallBack && sh->bp.inbreakpoint == 0)
-         {
-            sh->bp.inbreakpoint = 1;
-            sh->bp.BreakpointUserData.PCAddress = (sh->isDelayed != 0)?sh->isDelayed:sh->regs.PC;
-            sh->bp.BreakpointUserData.BPAddress = addr;
-         }
+static void FASTCALL SH2MemoryBreakpointWriteWord(SH2_struct* sh, u8* mem, u32 addr, u16 val) {
+	int i;
+	SH2WriteNotify(MSH2, addr, 2);
+	SH2WriteNotify(SSH2, addr, 2);
+	for (i = 0; i < sh->bp.nummemorybreakpoints; i++)
+	{
+		if (sh->bp.memorybreakpoint[i].addr == (addr & 0x0FFFFFFF))
+		{
+			if (sh->bp.BreakpointCallBack && sh->bp.inbreakpoint == 0)
+			{
+				sh->bp.inbreakpoint = 1;
+				sh->bp.BreakpointUserData.PCAddress = (sh->isDelayed != 0) ? sh->isDelayed : sh->regs.PC;
+				sh->bp.BreakpointUserData.BPAddress = addr;
+			}
 
 			sh->bp.memorybreakpoint[i].oldwriteword(sh, mem, addr, val);
 			return;
 		}
 	}
 
-   // Use the closest match if address doesn't match
-   for (i = 0; i < sh->bp.nummemorybreakpoints; i++)
-   {
-      if (((sh->bp.memorybreakpoint[i].addr >> 16) & 0xFFF) == ((addr >> 16) & 0xFFF))
-      {
-         sh->bp.memorybreakpoint[i].oldwriteword(sh, mem, addr, val);
-         return;
-      }
-   }
-   SH2_struct *otherSH = (sh == MSH2)?SSH2:MSH2;
-   // the breakpoint might have been set for the other core.
-   for (i = 0; i < otherSH->bp.nummemorybreakpoints; i++)
-   {
-     if (((otherSH->bp.memorybreakpoint[i].addr >> 16) & 0xFFF) == ((addr >> 16) & 0xFFF))
-     {
-        otherSH->bp.memorybreakpoint[i].oldwriteword(sh, mem, addr, val);
-        return;
-     }
-   }
+	// Use the closest match if address doesn't match
+	for (i = 0; i < sh->bp.nummemorybreakpoints; i++)
+	{
+		if (((sh->bp.memorybreakpoint[i].addr >> 16) & 0xFFF) == ((addr >> 16) & 0xFFF))
+		{
+			sh->bp.memorybreakpoint[i].oldwriteword(sh, mem, addr, val);
+			return;
+		}
+	}
+	SH2_struct* otherSH = (sh == MSH2) ? SSH2 : MSH2;
+	// the breakpoint might have been set for the other core.
+	for (i = 0; i < otherSH->bp.nummemorybreakpoints; i++)
+	{
+		if (((otherSH->bp.memorybreakpoint[i].addr >> 16) & 0xFFF) == ((addr >> 16) & 0xFFF))
+		{
+			otherSH->bp.memorybreakpoint[i].oldwriteword(sh, mem, addr, val);
+			return;
+		}
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////////
 
-static void FASTCALL SH2MemoryBreakpointWriteLong(SH2_struct *sh, u8* mem, u32 addr, u32 val) {
-   int i;
-   SH2WriteNotify(MSH2, addr, 4);
-   SH2WriteNotify(SSH2, addr, 4);
-   for (i = 0; i < sh->bp.nummemorybreakpoints; i++)
-   {
-      if (sh->bp.memorybreakpoint[i].addr == (addr & 0x0FFFFFFF))
-      {
-         if (sh->bp.BreakpointCallBack && sh->bp.inbreakpoint == 0)
-         {
-            sh->bp.inbreakpoint = 1;
-            sh->bp.BreakpointUserData.PCAddress = (sh->isDelayed != 0)?sh->isDelayed:sh->regs.PC;
-            sh->bp.BreakpointUserData.BPAddress = addr;
-         }
+static void FASTCALL SH2MemoryBreakpointWriteLong(SH2_struct* sh, u8* mem, u32 addr, u32 val) {
+	int i;
+	SH2WriteNotify(MSH2, addr, 4);
+	SH2WriteNotify(SSH2, addr, 4);
+	for (i = 0; i < sh->bp.nummemorybreakpoints; i++)
+	{
+		if (sh->bp.memorybreakpoint[i].addr == (addr & 0x0FFFFFFF))
+		{
+			if (sh->bp.BreakpointCallBack && sh->bp.inbreakpoint == 0)
+			{
+				sh->bp.inbreakpoint = 1;
+				sh->bp.BreakpointUserData.PCAddress = (sh->isDelayed != 0) ? sh->isDelayed : sh->regs.PC;
+				sh->bp.BreakpointUserData.BPAddress = addr;
+			}
 
 			sh->bp.memorybreakpoint[i].oldwritelong(sh, mem, addr, val);
 			return;
 		}
 	}
 
-   // Use the closest match if address doesn't match
-   for (i = 0; i < sh->bp.nummemorybreakpoints; i++)
-   {
-      if (((sh->bp.memorybreakpoint[i].addr >> 16) & 0xFFF) == ((addr >> 16) & 0xFFF))
-      {
-         sh->bp.memorybreakpoint[i].oldwritelong(sh, mem, addr, val);
-         return;
-      }
-   }
-   SH2_struct *otherSH = (sh == MSH2)?SSH2:MSH2;
-   // the breakpoint might have been set for the other core.
-   for (i = 0; i < otherSH->bp.nummemorybreakpoints; i++)
-   {
-     if (((otherSH->bp.memorybreakpoint[i].addr >> 16) & 0xFFF) == ((addr >> 16) & 0xFFF))
-     {
-        otherSH->bp.memorybreakpoint[i].oldwritelong(sh, mem, addr, val);
-        return;
-     }
-   }
+	// Use the closest match if address doesn't match
+	for (i = 0; i < sh->bp.nummemorybreakpoints; i++)
+	{
+		if (((sh->bp.memorybreakpoint[i].addr >> 16) & 0xFFF) == ((addr >> 16) & 0xFFF))
+		{
+			sh->bp.memorybreakpoint[i].oldwritelong(sh, mem, addr, val);
+			return;
+		}
+	}
+	SH2_struct* otherSH = (sh == MSH2) ? SSH2 : MSH2;
+	// the breakpoint might have been set for the other core.
+	for (i = 0; i < otherSH->bp.nummemorybreakpoints; i++)
+	{
+		if (((otherSH->bp.memorybreakpoint[i].addr >> 16) & 0xFFF) == ((addr >> 16) & 0xFFF))
+		{
+			otherSH->bp.memorybreakpoint[i].oldwritelong(sh, mem, addr, val);
+			return;
+		}
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////////

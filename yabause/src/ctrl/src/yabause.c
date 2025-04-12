@@ -557,7 +557,7 @@ static int YabauseRefreshInit(yabauseinit_struct *init) {
   if (init->auto_cart != 0)
      DBLookup(&init->carttype, &init->cartpath, init->supportdir);
 
-  if (CartInit(init->cartpath, init->carttype) != 0)
+  if (CartInit(init->cartpath, init->carttype, init->modemip, init->modemport) != 0)
   {
      YabSetError(YAB_ERR_CANNOTINIT, _("Cartridge"));
      return -1;
@@ -641,7 +641,13 @@ void YabFlushBackups(void)
 
 //////////////////////////////////////////////////////////////////////////////
 
+//extern char netlinkSendBuffer[];
+//extern char netlinkRecvBuffer[];
+//extern int netlinkSendLen;
+//extern int netlinkRecvLen;
 void YabauseDeInit(void) {
+
+
 
    STVDeInit();
    Vdp2DeInit();
@@ -1019,7 +1025,8 @@ void YabauseStartSlave(void) {
       SH2GetRegisters(SSH2, &SSH2->regs);
       SSH2->regs.R[15] = Cs2GetSlaveStackAdress();
       SSH2->regs.VBR = 0x06000400;
-      SSH2->regs.PC = SH2MappedMemoryReadLong(SSH2, 0x06000250);
+      //SSH2->regs.PC = SH2MappedMemoryReadLong(SSH2, 0x06000250);
+      SSH2->UpdatePC(SSH2, SH2MappedMemoryReadLong(SSH2, 0x06000250));
       if (SH2MappedMemoryReadLong(SSH2, 0x060002AC) != 0)
          SSH2->regs.R[15] = SH2MappedMemoryReadLong(SSH2, 0x060002AC);
 
@@ -1029,7 +1036,8 @@ void YabauseStartSlave(void) {
    else {
      SH2PowerOn(SSH2);
      SH2GetRegisters(SSH2, &SSH2->regs);
-     SSH2->regs.PC = 0x20000200;
+     //SSH2->regs.PC = 0x20000200;
+     SSH2->UpdatePC(SSH2, 0x20000200);
      SH2SetRegisters(SSH2, &SSH2->regs);
 
    }
@@ -1396,7 +1404,8 @@ int YabauseQuickLoadGame(void)
       MSH2->onchip.VCRC = 0x64 << 8;
       MSH2->onchip.VCRWDT = 0x6869;
       MSH2->onchip.IPRB = 0x0F00;
-      MSH2->regs.PC = Cs2GetMasterExecutionAdress();
+      //MSH2->regs.PC = Cs2GetMasterExecutionAdress();
+      MSH2->UpdatePC(MSH2, Cs2GetMasterExecutionAdress());
       MSH2->regs.R[15] = Cs2GetMasterStackAdress();
       SH2SetRegisters(MSH2, &MSH2->regs);
       //OnchipWriteByte(0x92, 0X1); //Enable cache support
