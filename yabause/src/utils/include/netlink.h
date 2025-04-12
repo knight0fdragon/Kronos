@@ -114,7 +114,7 @@ void FASTCALL NetlinkWriteByte(SH2_struct *context, u8* memory, u32 addr, u8 val
 int NetlinkInit(const char *ip, const char *port);
 void NetlinkDeInit(void);
 void NetlinkExec(u32 timing);
-
+void NetlinkPreconnect();
 #ifdef __cplusplus
 }
 #endif

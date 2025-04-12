@@ -67,7 +67,10 @@ void YabauseThread::deInitEmulation()
 	YabauseDeInit();
 	mInit = -1;
 }
-
+void YabauseThread::Preconnect() 
+{
+	YabausePreconnect();
+}
 bool YabauseThread::pauseEmulation( bool pause, bool reset )
 {
 	if ( mInit < 0 )

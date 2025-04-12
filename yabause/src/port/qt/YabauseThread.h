@@ -44,7 +44,7 @@ public:
 	bool IsCDInserted() {return mIsCdIn;};
 	void OpenTray();
 	int CloseTray();
-
+	void Preconnect();
 protected:
 	yabauseinit_struct mYabauseConf;
 	bool showFPS;

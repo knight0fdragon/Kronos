@@ -37,6 +37,8 @@
         <file alias="wheel.png">icons/wheel.png</file>
       <file alias="missionstick.png">icons/missionstick.png</file>
       <file alias="doublemissionstick.png">icons/doublemissionstick.png</file>
+		<file>icons/actions/phone.png</file>
+		<file>icons/actions/phoneOn.png</file>
     </qresource>
     <qresource prefix="/icons">
         <file>icons/youtube_social_squircle_red.png</file>

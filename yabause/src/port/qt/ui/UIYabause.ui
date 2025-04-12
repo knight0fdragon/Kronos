@@ -298,10 +298,36 @@
    <addaction name="aToolsBackupManager"/>
    <addaction name="aToolsCheatsList"/>
    <addaction name="separator"/>
+   <addaction name="aNetlink"/>
    <addaction name="aFileQuit"/>
    <addaction name="aHelpAbout"/>
   </widget>
-  <action name="aFileQuit">
+	 <action name="aNetlink">
+		 <property name="checkable">
+			 <bool>true</bool>
+		 </property>
+		 <property name="checked">
+			 <bool>false</bool>
+		 </property>
+		 <property name="enabled">
+			 <bool>false</bool>
+		 </property>
+		 <property name="icon">
+			 <iconset resource="../resources/resources.qrc">
+				 <selectedon>:/actions/icons/actions/phoneOn.png</selectedon>:/actions/icons/actions/phoneOn.png
+				 <normaloff>:/actions/icons/actions/phone.png</normaloff>:/actions/icons/actions/phone.png
+				 <normalon>:/actions/icons/actions/phoneOn.png</normalon>:/actions/icons/actions/phoneOn.png
+
+				 <activeon>:/actions/icons/actions/phoneOn.png</activeon>:/actions/icons/actions/phoneOn.png
+
+			 </iconset>
+		 </property>
+		 <property name="text">
+			 <string>&amp;Netlink</string>
+		 </property>
+	 </action>
+
+	 <action name="aFileQuit">
    <property name="icon">
     <iconset resource="../resources/resources.qrc">
      <normaloff>:/actions/icons/actions/quit.png</normaloff>:/actions/icons/actions/quit.png</iconset>
@@ -979,6 +1005,22 @@
   <include location="../resources/resources.qrc"/>
  </resources>
  <connections>
+	 <connection>
+		 <sender>aNetlink</sender>
+		 <signal>triggered()</signal>
+		 <receiver>UIYabause</receiver>
+		
+		 <hints>
+			 <hint type="sourcelabel">
+				 <x>-1</x>
+				 <y>-1</y>
+			 </hint>
+			 <hint type="destinationlabel">
+				 <x>159</x>
+				 <y>119</y>
+			 </hint>
+		 </hints>
+	 </connection>
   <connection>
    <sender>aFileQuit</sender>
    <signal>triggered()</signal>

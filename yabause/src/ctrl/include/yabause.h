@@ -100,7 +100,7 @@ void YabauseSetVideoFormat(int type);
 void YabauseSetSkipframe(int skipframe);
 void YabauseSpeedySetup(void);
 int YabauseQuickLoadGame(void);
-
+void YabausePreconnect(void);
 void EnableAutoFrameSkip(void);
 int isAutoFrameSkip(void);
 void DisableAutoFrameSkip(void);

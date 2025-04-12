@@ -859,6 +859,8 @@ int UIYabause::loadCDRom()
 		s->setValue("Cartridge/Type", cartId);
 		yabsys.isReloadingImage = 2;
 	}
+	
+	
 	refreshStatesActions();
 	return fn.isEmpty();
 }
@@ -980,9 +982,27 @@ void UIYabause::on_aFileQuit_triggered()
 	close();
 }
 
+void UIYabause::on_aNetlink_triggered()
+{
+//	icon25
+//	mY=
+	/*QIcon icon1;
+	icon1.addFile(QString::fromUtf8(":/actions/icons/actions/phone.png"), QSize(), QIcon::Normal, QIcon::Off);
+	aNetlink->setIcon(icon1);*/
+	bool b = aNetlink->isChecked();
+//	aNetlink->setChecked(!aNetlink->isChecked());
+//	bool c = aNetlink->isChecked();
+	//mYabauseThread->Preconnect();
+//	Preconnect();
+}
+
 void UIYabause::on_aEmulationRun_triggered()
 {
 	mYabauseThread->initEmulation();
+	Settings* s = QtYabause::settings();
+
+	aNetlink->setEnabled((s->value("Cartridge/Type", 0).toInt() == CART_NETLINK) || (s->value("Cartridge/Type", 0).toInt() == CART_JAPMODEM));
+
 	if ( mYabauseThread->emulationPaused() )
 	{
 		mYabauseThread->pauseEmulation( false, false );
@@ -1297,6 +1317,8 @@ int UIYabause::loadGameFromFile(QString const& fileName)
 		ret = 0;
 		yabsys.isReloadingImage = 2;
 	}
+	
+	
 	refreshStatesActions();
 
 	return ret;

@@ -44,6 +44,7 @@ static int NetworkInit(const char* port);
 static void NetworkDeInit(void);
 static void NetworkStopClient();
 static void NetworkStopConnect();
+
 static void NetworkConnect(const char* ip, const char* port);
 static int NetworkWaitForConnect();
 static int NetworkSend(const void* buffer, int length);
@@ -122,14 +123,14 @@ int NetworkRestartListener(void)
 static int NetworkInit(const char* port)
 {
 	YuiMsg("Netlink initializing\n");
-	//int ret;
+	int ret;
 
 	YabSockInit();
 
 	NetlinkArea->clientsocket = NetlinkArea->listensocket = NetlinkArea->connectsocket = -1;
 	//TODO:Undo if necessary
-	//if (ret = NetworkRestartListener(atoi(port)) != 0)
-	//	return ret;
+	if (ret = NetworkRestartListener(atoi(port)) != 0)
+		return ret;
 
 	NetlinkArea->connectstatus = NL_CONNECTSTATUS_IDLE;
 	YuiMsg("Netlink initialized.\n");
@@ -151,11 +152,27 @@ static void NetworkStopConnect()
 	}
 	YuiMsg("Netlink stopped connecting.\n");
 }
+//////////////////////////////////////////////////////////////////////////////
+
+void FASTCALL NetlinkPreconnect()
+{
+	NetworkConnect(NetlinkArea->ipstring, NetlinkArea->portstring);
+
+	NetlinkArea->connect_time = 0;
+	NETLINK_LOG("Starting dial %s\n", NetlinkArea->ipstring);
+	char* dialString = ExtractString();
+	YuiMsg("Starting to dial %s\n", dialString);
+}
 
 //////////////////////////////////////////////////////////////////////////////
 
 static void NetworkConnect(const char* ip, const char* port)
 {
+	if (thread_handle[YAB_THREAD_NETLINKCONNECT].running)
+	{
+		fprintf(stderr, "YabThreadStart: thread %u is already started!\n", id);
+		return -1;
+	}
 
 	netlink_thread* connect;
 	if (!(connect = malloc(sizeof(netlink_thread)))) return;
@@ -478,6 +495,7 @@ char* FASTCALL ExtractString()
 	return dialString;
 }
 
+
 //////////////////////////////////////////////////////////////////////////////
 
 void FASTCALL NetlinkWriteByte(SH2_struct* context, u8* memory, u32 addr, u8 val)
@@ -742,39 +760,6 @@ void FASTCALL NetlinkWriteByte(SH2_struct* context, u8* memory, u32 addr, u8 val
 #endif
 								NetlinkArea->connect_time = 0;
 								NETLINK_LOG("Starting dial %s\n", NetlinkArea->ipstring);
-								/*int spot = NetlinkArea->inbufferstart;
-								int len = 0;
-								while ((((char*)NetlinkArea->inbuffer)[spot]) != 0xD) {
-									len++;
-									spot++;
-									if (spot >= NETLINK_BUFFER_SIZE)
-									{
-										spot -= NETLINK_BUFFER_SIZE;
-									}
-								}*/
-
-								/*char* dialString;
-
-								if (dialString = malloc(len + 1))
-								{
-									dialString[len] = '\0';
-									for (int i = len - 1; i >= 0; i--)
-									{
-										spot--;
-										if (spot < 0)
-										{
-											spot += NETLINK_BUFFER_SIZE;
-										}
-										dialString[i] = ((char*)NetlinkArea->inbuffer)[spot];
-
-
-									}
-								}
-								else
-								{
-									int error = 0;
-								}*/
-								//strchr(dialedNumber, '\r')[0] = '\0';
 								char* dialString = ExtractString();
 								YuiMsg("Starting to dial %s\n", dialString);
 
@@ -785,59 +770,12 @@ void FASTCALL NetlinkWriteByte(SH2_struct* context, u8* memory, u32 addr, u8 val
 								NetlinkDoATWriteData(dialString);
 								if (strcmp(dialString, "Error"))
 									free(dialString);
+
+
+
+								if (strcmp(dialString, "18007798852") == 0 || strcmp(dialString, "8007798852") == 0)
+									NetlinkArea->internet_enable = 1;
 							}
-
-
-							//NetlinkArea->inbufferstart = strchr(((char*)NetlinkArea->inbuffer)[NetlinkArea->inbufferstart], '\r') - inbuffer - 1;
-							//if (NetlinkArea->inbufferstart >= NETLINK_BUFFER_SIZE)
-							//{
-								//NetlinkArea->inbufferstart -= NETLINK_BUFFER_SIZE;
-							//}
-							//if ((p = strchr(inbuffer + i + 2, '*')) != NULL)
-							//{
-							//	// Fetch IP
-							//	char ipstring[45];
-
-							//	sscanf(p + 1, "%[^\r]\r", ipstring);
-
-							//	// replace ',' with '.'
-							//	for (j = 0; ipstring[j] != '\0'; j++)
-							//		if (ipstring[j] == ',')
-							//			ipstring[j] = '.';
-
-							//	// Get port string if necessary
-							//	if ((p = strchr(ipstring, '*')) != NULL)
-							//	{
-							//		p[0] = '\0';
-							//		strcpy(NetlinkArea->portstring, p + 1);
-							//	}
-							//	strcpy(NetlinkArea->ipstring, ipstring);
-							//}
-							//else
-							//{
-							//	// If we're using Sega's old network, just assume we're using internet mode
-							//	char number[45];
-
-							//	sscanf(inbuffer + i + 2, "%[^\r]\r", number);
-							//	//remove_all_chars(number, '-');
-							//	char* pr = number, * pw = number;
-							//	while (*pr) {
-							//		*pw = *pr++;
-							//		pw += (*pw != '-');
-							//	}
-							//	*pw = '\0';
-
-							//	if (strcmp(number, "18007798852") == 0 ||
-							//		strcmp(number, "8007798852") == 0)
-							//		NetlinkArea->internet_enable = 1;
-							//}
-
-							/*NetlinkArea->inbufferstart--;
-							if (NetlinkArea->inbufferstart < 0)
-							{
-								NetlinkArea->inbufferstart += NETLINK_BUFFER_SIZE;
-							}
-							*/
 							break;
 						}
 						case 'E':
